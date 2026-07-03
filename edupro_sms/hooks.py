@@ -162,6 +162,12 @@ has_permission = {
 # 	}
 # }
 
+doc_events = {
+	"School Settings": {
+		"on_update": "edupro_sms.edupro_sms.branding.sync_website_branding",
+	}
+}
+
 # Scheduled Tasks
 # ---------------
 
