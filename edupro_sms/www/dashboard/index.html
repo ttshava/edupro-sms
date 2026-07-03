@@ -1,0 +1,104 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<div class="edupro-dashboard">
+  <style>
+    .edupro-dashboard h1 { margin-bottom: 4px; }
+    .edupro-dashboard .user-line { color: #666; margin-bottom: 20px; }
+    .edupro-dashboard h2 { font-size: 1.1em; margin-top: 28px; margin-bottom: 10px; color: #1a5276; }
+
+    .edupro-dashboard .stat-cards { display: flex; gap: 14px; flex-wrap: wrap; }
+    .edupro-dashboard .stat-card {
+      border: 1px solid #ddd; border-radius: 6px; padding: 16px 22px; min-width: 110px; text-align: center;
+    }
+    .edupro-dashboard .stat-value { font-size: 1.8em; font-weight: bold; color: #1a5276; }
+    .edupro-dashboard .stat-label { color: #666; font-size: 0.9em; margin-top: 2px; }
+
+    .edupro-dashboard table { width: 100%; border-collapse: collapse; }
+    .edupro-dashboard th, .edupro-dashboard td { padding: 8px; border-bottom: 1px solid #eee; text-align: left; }
+
+    .edupro-dashboard .state { padding: 2px 8px; border-radius: 10px; font-size: 0.85em; }
+    .state-complete { background: #d4edda; color: #155724; }
+    .state-progress { background: #fff3cd; color: #856404; }
+
+    .edupro-dashboard .empty { color: #777; padding: 20px 0; }
+    .edupro-dashboard .desk-link { margin-top: 18px; }
+    .edupro-dashboard .desk-link a { color: #1a5276; font-weight: 600; }
+  </style>
+
+  <h1>Dashboard</h1>
+  <p class="user-line">{{ frappe.session.user }}</p>
+
+  {% if dashboard_role == "headmaster" %}
+    <div class="stat-cards">
+      <div class="stat-card"><div class="stat-value">{{ summary.total_students }}</div><div class="stat-label">Students</div></div>
+      <div class="stat-card"><div class="stat-value">{{ summary.total_instructors }}</div><div class="stat-label">Teachers</div></div>
+      <div class="stat-card"><div class="stat-value">{{ summary.total_classes }}</div><div class="stat-label">Classes</div></div>
+    </div>
+
+    <h2>Classes</h2>
+    <table>
+      <thead>
+        <tr><th>Class</th><th>Program</th><th>Students</th><th>Teachers</th></tr>
+      </thead>
+      <tbody>
+        {% for c in summary.classes %}
+        <tr>
+          <td>{{ c.name }}</td>
+          <td>{{ c.program or "-" }}</td>
+          <td>{{ c.student_count }}</td>
+          <td>{{ c.teachers }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="desk-link"><a href="/app/student-group">View all classes in Desk &rarr;</a></p>
+
+    <h2>Report Card Status</h2>
+    <div class="stat-cards">
+      {% for state, count in summary.report_card_states.items() %}
+      <div class="stat-card"><div class="stat-value">{{ count }}</div><div class="stat-label">{{ state }}</div></div>
+      {% endfor %}
+      {% if not summary.report_card_states %}
+      <p class="empty">No report cards created yet.</p>
+      {% endif %}
+    </div>
+    <p class="desk-link"><a href="/app/report-card">Review report card approvals in Desk &rarr;</a></p>
+
+  {% elif dashboard_role == "teacher" %}
+    <h2>My Classes</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Class</th><th>Subject</th><th>Term</th><th>Assessment Date</th>
+          <th>Students</th><th>Marks Entered</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in classes %}
+        <tr>
+          <td>{{ row.student_group }}</td>
+          <td>{{ row.course }}</td>
+          <td>{{ row.academic_term }}</td>
+          <td>{{ row.schedule_date }}</td>
+          <td>{{ row.total_students }}</td>
+          <td>{{ row.marks_entered }}</td>
+          <td>
+            <span class="state {{ 'state-complete' if row.status == 'Complete' else 'state-progress' }}">
+              {{ row.status }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not classes %}
+        <tr><td colspan="7" class="empty">No classes assigned yet.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+    <p class="desk-link"><a href="/app/assessment-result">Enter or edit marks in Desk &rarr;</a></p>
+
+  {% else %}
+    <p class="empty">No dashboard is configured for your role yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -17,15 +17,14 @@ boot_session = "edupro_sms.edupro_sms.boot.boot_session"
 # required_apps = []
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "edupro_sms",
-# 		"logo": "/assets/edupro_sms/logo.png",
-# 		"title": "Edupro SMS",
-# 		"route": "/edupro_sms",
-# 		"has_permission": "edupro_sms.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": "edupro_sms",
+		"title": "Edupro SMS",
+		"route": "/dashboard",
+		"has_permission": "edupro_sms.edupro_sms.dashboard.has_dashboard_access",
+	}
+]
 
 # Includes in <head>
 # ------------------
@@ -165,7 +164,10 @@ has_permission = {
 doc_events = {
 	"School Settings": {
 		"on_update": "edupro_sms.edupro_sms.branding.sync_website_branding",
-	}
+	},
+	"User": {
+		"validate": "edupro_sms.edupro_sms.dashboard.sync_dashboard_default_app",
+	},
 }
 
 # Scheduled Tasks
