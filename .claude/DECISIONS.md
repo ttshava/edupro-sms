@@ -535,3 +535,59 @@ without any manual step. Also flips the school logo `File` to public on
 sync, since a private file 404s for the `Guest` user viewing `/login`
 (caught by testing the actual unauthenticated request, not just the DB
 field value).
+
+## 0013 — Headmaster/Instructor land on a website dashboard, not Desk, without losing Desk access
+
+**Decision:** Headmaster and Instructor now default to a new
+`/dashboard` website page (`www/dashboard/`) after login. They stay
+`user_type = System User` (unlike Student/Guardian, which are Website
+Users) and keep full, unrestricted Desk access — the owner explicitly
+chose this scope (dashboard-only) over a fully website-only experience,
+because marks entry and report-card approval are still Desk-form-based
+and reimplementing both on the website was out of scope for this ask.
+
+**Why this couldn't just reuse the `role_home_page` hook** (the
+mechanism already used for Student/Guardian → `/my-reports`, 0009):
+`frappe/www/login.py`'s `set_user_info()` only calls
+`get_home_page()` (which consults `role_home_page`) for
+`user_type == "Website User"`. For every other user type it sets
+`home_page` from the user's `default_app` route (via
+`frappe.apps.get_default_path()`), falling back to `/app`. Since
+Headmaster/Instructor deliberately stay System Users, `role_home_page`
+is simply never consulted for them — confirmed by reading
+`frappe/auth.py`'s `set_user_info()` and `frappe/apps.py`'s
+`get_default_path()`/`get_route()` before building anything, not by
+trial and error.
+
+**Implementation:**
+1. `hooks.py` `add_to_apps_screen` registers `edupro_sms` with
+   `route: "/dashboard"` and a `has_permission` gate
+   (`edupro_sms/edupro_sms/dashboard.py::has_dashboard_access`,
+   true for Headmaster/Instructor).
+2. A `User.validate` doc event
+   (`dashboard.py::sync_dashboard_default_app`) sets
+   `default_app = "edupro_sms"` whenever a user has either role, so
+   `get_default_path()` resolves to `/dashboard` for them without a
+   manual per-account step — future Headmaster/Instructor accounts get
+   this automatically, same spirit as 0012's branding sync.
+3. `/dashboard`'s `get_context()` branches by role: Headmaster gets a
+   school-wide summary; Instructor gets their assigned classes by
+   **importing and reusing** the My Classes Script Report's `_rows()`
+   function (`edupro_sms/edupro_sms/report/my_classes/my_classes.py`)
+   instead of duplicating the query — it already scopes correctly to
+   the logged-in Instructor via `teacher_permissions.py`, regardless of
+   whether it's called from a Desk report or a website page.
+
+**Side effect caught before shipping:** adding a non-`/app/*` route to
+`add_to_apps_screen` breaks `frappe.apps.get_route()`'s
+`is_desk_apps()` shortcut for every *other* System User without a
+personal `default_app` (Administrator, future System Managers) —
+Frappe can no longer assume "all registered apps are Desk apps," so it
+sends them to the `/apps` picker screen instead of straight into Desk.
+Caught by testing Administrator's login response before considering
+this done, not just Headmaster/Instructor's. Fixed by setting
+`System Settings.default_app = "erpnext"` (matching erpnext's own
+`add_to_apps_screen` route of `/app/home`, the same page Administrator
+landed on before this change) — restores the old fallback for anyone
+without a personal override, while Headmaster/Instructor's personal
+`default_app` still takes priority for them.

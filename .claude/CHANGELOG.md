@@ -245,6 +245,26 @@ YYYY-MM-DD.
   soon") on `/my-reports`, since fee tracking isn't built yet — deferred
   to a future `edupro_finance` app per MVP scope, not silently dropped
   from the student menu.
+- **Website dashboard for Headmaster/Instructor, logo on report cards**
+  — two follow-up requests after the pilot feedback batch:
+  1. Headmaster and Instructor now land on a new `/dashboard` website
+     page after login instead of Desk (`www/dashboard/`) — a school-wide
+     overview (student/teacher/class counts, Report Card status
+     breakdown) for Headmaster, assigned classes + marks-entry progress
+     for Instructor (reuses the My Classes report's row logic rather
+     than duplicating it). They keep full Desk access for actual work
+     (marks entry, report card approval) per an explicit scope decision
+     — see `DECISIONS.md` 0013 for why this needed
+     `add_to_apps_screen` + a `User.validate` hook rather than the
+     `role_home_page` hook already used for Student/Guardian (that hook
+     only applies to Website Users; Headmaster/Instructor stay System
+     Users on purpose). Fixed a side effect this caused for
+     Administrator/other System Managers (landed on the `/apps` picker
+     instead of Desk) via `System Settings.default_app`.
+  2. School logo added to the `IGCSE Report Card` print format header,
+     verified against a real wkhtmltopdf-generated PDF (not just the
+     HTML preview) — reuses the same public logo file the login page
+     branding already relies on.
 
 ---
 

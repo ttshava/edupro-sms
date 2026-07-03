@@ -239,6 +239,15 @@ for the full verification detail per item.
 - [x] Fees placeholder tab added (not silently dropped; fee tracking is
       genuinely post-MVP, see Backlog below)
 
+## Follow-up: Headmaster/Teacher dashboard + report card logo ✅ done 2026-07-03
+
+- [x] Headmaster and Instructor land on a new `/dashboard` website page
+      after login instead of Desk (`www/dashboard/`), while keeping full
+      Desk access for actual work (marks entry, approvals) — see
+      `DECISIONS.md` 0013
+- [x] School logo added to the `IGCSE Report Card` print format header,
+      verified against a real generated PDF
+
 ## Backlog (post-MVP)
 
 ### MVP polish (small, non-blocking — do before or shortly after pilot launch)
