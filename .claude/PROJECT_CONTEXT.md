@@ -70,22 +70,34 @@ capability matrix in `docs/11_Roles_And_Permissions.md`.
   `.claude/DECISIONS.md` 0005.
 - **Modularity for the future:** additional domains (finance, attendance,
   transport) become their own apps installed alongside `edupro_sms`.
-- **Infra:** Dockerized Frappe bench on Windows for local dev, MariaDB +
-  Redis via the standard Frappe Docker setup.
+- **Infra:** Dockerized Frappe on Windows for local dev — `frappe_docker/`
+  at the project root (gitignored vendor clone), MariaDB + Redis via
+  frappe_docker's standard overrides. Running since 2026-07-03, see
+  `docs/08_Deployment.md` §8.1.
 
 Full detail: `docs/02_Database.md`, `docs/03_DocTypes.md`.
 
 ## Current Sprint
 
-**Sprint 0 — Documentation & environment scaffolding** (in progress)
+**Sprint 8 — Dashboards, Testing & MVP Release: done. All 9 planned
+sprints (0–8) are complete — MVP feature-complete on sample data.**
 
-- [x] Create `.claude/` project docs
-- [x] Ingest full functional spec into `docs/01`–`11`
-- [x] Decide multi-tenancy model (0004: site-per-school, accepted) and
-      Education-app approach (0005: spike first in Sprint 1, accepted)
-- [ ] Install Docker Desktop, VS Code, Git, Claude Desktop
-- [ ] Stand up `docker/` Frappe environment
-- [ ] Create `edupro_sms` custom app, configure site, configure Git
-- [ ] Run the Education-app spike (0005) before starting Sprint 2
+Sprint 8 added: automated tests covering all 12 required scenarios from
+`docs/07_Testing.md` (12/12 pass), a Headmaster dashboard ("Report Card
+Status by Class"), a performance spot-check (well within targets at
+20-student scale), and a real UAT checklist for a human browser pass.
+Full readiness breakdown in `docs/08_Deployment.md` §8.5 — what's left
+before a real pilot-school launch is deployment/data/config work (real
+School Settings, real classes/people, real SMTP, a browser UAT pass), not
+further feature development. See `.claude/TASKS.md` Backlog for the small
+list of non-blocking polish items and genuinely post-MVP features
+(`edupro_finance`, `edupro_attendance`, `edupro_transport`, etc.).
+
+Environment: `frappe_docker/` at project root, custom image
+`edupro-sms:v15`, Frappe 15.113.4 + ERPNext 15.115.0 + Education 15.5.3,
+Python 3.11.15, site `edupro.localhost` at http://localhost:8080
+(`DECISIONS.md` 0006, `docs/08` §8.1). Data model direction: extend the
+Education app rather than build fresh (`DECISIONS.md` 0007,
+`docs/03_DocTypes.md`).
 
 See [`TASKS.md`](TASKS.md) for the full sprint breakdown.

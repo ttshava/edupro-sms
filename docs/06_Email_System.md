@@ -1,5 +1,8 @@
 # 06 — Email System
 
+**Built and verified, Sprint 7** (`edupro_sms/edupro_sms/doctype/report_card/notify.py`).
+Real SMTP delivery is still a deployment-time task — see §6.6.
+
 ## 6.1 Approach
 
 - Outbound email via Frappe's built-in Email Queue (SMTP), configured
@@ -91,7 +94,27 @@ at send time.
 
 ## 6.5 Failure Handling
 
-Failed sends stay visible (not silently dropped) — surface in a Headmaster/
-Admin-facing report so undelivered report cards can be resent manually.
-Retry policy: TBD at implementation, default to Frappe Email Queue's
-built-in retry behavior unless it proves insufficient.
+Failed sends stay visible (not silently dropped): a per-guardian failure
+is caught and logged via `frappe.log_error` (visible in the Desk Error
+Log to Admin/System Manager) rather than crashing the whole batch or
+silently swallowing it — verified with a real failure (no Email Account
+configured) that logged correctly and left `sent_to_parent_at` unset.
+**Not yet built:** a friendlier Headmaster-facing delivery report (vs.
+digging through Error Log) — Sprint 8 polish candidate. Retry policy:
+default to Frappe Email Queue's built-in retry behavior.
+
+## 6.6 SMTP Setup (deployment-time TODO)
+
+The pipeline is verified end-to-end (correct recipient, subject, body,
+PDF attachment — confirmed by creating a placeholder `Email Account`,
+triggering a send, inspecting the resulting `Email Queue` record, then
+removing the placeholder). What's *not* done: pointing it at a real SMTP
+provider. Before pilot-school go-live:
+
+1. Create an `Email Account` in Frappe (Desk → Email Account) with real
+   SMTP credentials, `enable_outgoing = 1`, `default_outgoing = 1`.
+2. Do **not** commit credentials to `edupro_sms` or any doc — they live
+   only in the site's database (or `frappe_docker/.env` for local dev,
+   already gitignored).
+3. Send a real test email (e.g. re-run `notify.send_report_card_emails`
+   for one Report Card) and confirm actual delivery, not just queuing.

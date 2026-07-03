@@ -42,10 +42,12 @@ truth, referenced from every other doc.
 - Recommend promotion/retention.
 - **Cannot** approve reports, manage other classes.
 
-Determined by `Class.class_teacher` — permission scoping should be
-contextual (via `get_permission_query_conditions`, see
-`.claude/CODING_STANDARDS.md`) rather than a flat role grant, since "which
-class" varies per teacher.
+Determined by `Student Group.class_teacher` (Custom Field, added Sprint 4
+— see `docs/03_DocTypes.md`). **Permission scoping built and verified,
+Sprint 7:** `get_permission_query_conditions` on `Report Card` restricts a
+Class Teacher to only Student Groups where they're the `class_teacher`
+(`edupro_sms/edupro_sms/doctype/report_card/report_card.py`) — contextual,
+not a flat role grant, since "which class" varies per teacher.
 
 ### Headmaster (Frappe Role: `Headmaster`)
 
@@ -64,22 +66,37 @@ class" varies per teacher.
 
 **Primary responsibility:** access personal academic information.
 
-- Login to student portal.
-- View own report card (HTML + PDF).
-- View current and historical terms.
-- Print report.
-- **Cannot** view other students' reports or access admin functions.
+- Login to student portal — **built, Sprint 7**: `/my-reports`
+  (`edupro_sms/www/my-reports/`).
+- View own report card (HTML + PDF) — built, only `Published` reports
+  are visible (enforced server-side, not just hidden in the UI).
+- View current and historical terms — built (page lists all accessible
+  terms; only one term of data exists so far to test with).
+- Print report — built (print/download link per report, using the
+  `IGCSE Report Card` format; permission-checked, verified a
+  cross-student attempt gets HTTP 403).
+- **Cannot** view other students' reports or access admin functions —
+  verified with a real negative-case HTTP test, not just assumed.
 
-### Parent (Frappe Role: `Parent`, portal user)
+### Parent (Frappe Role: `Guardian`, portal user)
 
-**Primary responsibility:** monitor children's academic progress.
+**Primary responsibility:** monitor children's academic progress. (Role
+is named `Guardian` in Frappe/Education, not `Parent` — same concept.)
 
-- View all linked children (via `Student.guardians`).
-- Toggle between children's reports.
-- View summary dashboard across all children.
-- Receive email notifications.
-- Download/print PDF per child.
-- **Cannot** view other parents' children or access admin functions.
+- View all linked children (via `Student.guardians` / reverse-synced
+  `Guardian.students`) — **built, Sprint 7**, same `/my-reports` page,
+  grouped per child.
+- Toggle between children's reports — built (each child gets its own
+  block on the page; verified with a guardian linked to two students).
+- View summary dashboard across all children — the per-child grouping on
+  `/my-reports` covers this for MVP; a dedicated dashboard view is not
+  built.
+- Receive email notifications — built, Sprint 7
+  (`docs/06_Email_System.md`), triggered automatically on Publish.
+- Download/print PDF per child — built, same print link as Student.
+- **Cannot** view other parents' children or access admin functions —
+  verified server-side (row-level query conditions + single-doc
+  `has_permission`, fails closed for unmatched users).
 
 ## 11.2 DocType Permission Matrix (fill in during Sprint 2)
 
@@ -92,6 +109,9 @@ class" varies per teacher.
 | Marks | CRUD | Read/Approve/Reject | Read/Comment (own class) | Create/Update (own, pre-approval) | Read (own, post-publish) | Read (children's, post-publish) |
 | Report Card | Read | Approve/Publish | Comment (own class) | – | Read (own, post-publish) | Read (children's, post-publish) |
 
-This table is the target — implement it via the Role Permissions Manager
-+ permission-query hooks where row-level scoping (own class / own
-children) is needed, per `.claude/CODING_STANDARDS.md`.
+**Report Card row is built and verified (Sprint 7)** — the rest of this
+table (School Settings, Academic Year/Term, Class/Subject, Student/Guardian)
+uses Role Permissions Manager defaults only; no row-level scoping has
+been implemented for those yet, since nothing has needed it so far
+(only Report Card has a portal-facing audience). Revisit if/when
+Sprint 8 or beyond exposes any of those to non-admin roles directly.

@@ -1,36 +1,47 @@
 # 05 — Print Formats
 
-## 5.1 Report Card Print Format
+## 5.1 Report Card Print Format — built, Sprint 6
 
-Built as a Frappe Print Format (Jinja/HTML+CSS) on the `Report Card`
-DocType. Layout, top to bottom:
+`IGCSE Report Card` — a Frappe Print Format (Jinja/HTML+CSS) on the
+`Report Card` DocType (`docs/03_DocTypes.md`), `standard=1` so it's
+version-controlled in `edupro_sms/edupro_sms/print_format/igcse_report_card/`.
+Verified: generates a real PDF end-to-end via `frappe.get_print` +
+`frappe.utils.pdf.get_pdf`.
 
-1. **Header** — school logo, school name, motto, "TERM {n} REPORT CARD",
-   academic year.
-2. **Student details block** — name, admission number, class, term dates,
-   date of birth, gender.
-3. **Academic performance table** — one row per subject:
+Layout, top to bottom (all implemented):
 
-   | Subject | Test (/max) | Exam (/max) | Total | Grade | Comment |
-   |---|---|---|---|---|---|
-
-   Footer row: overall total, average percentage, overall grade, class
-   position (`position`/`number_of_students`).
+1. **Header** — school name + motto from `School Settings` (via
+   `frappe.db.get_single_value` — `frappe.get_single` is blocked in the
+   print format Jinja sandbox, see `.claude/DECISIONS.md` 0008), "TERM
+   REPORT CARD — {term}, {year}".
+2. **Student details block** — student name, class, term, academic year.
+3. **Academic performance table** — one row per subject (from the
+   `assessment_results` child table): Subject, Score (total/max), Grade,
+   Comment. Footer row: total, average %, overall grade, class position.
 4. **Class Teacher comment** block.
 5. **Headmaster comment** block.
-6. **Signature blocks** — Class Teacher signature, Headmaster signature
-   (use `School Settings` attached signature images where available).
-7. **Footer** — generation date, school contact info (phone, email).
+6. **Signature blocks** — Class Teacher / Headmaster signature lines
+   (plain lines for MVP; actual signature image attachments on `School
+   Settings` are a nice-to-have, not built).
+7. **Footer** — generation date, school phone/email from `School Settings`.
 
-Action buttons available wherever the report is viewed (Desk, portal):
-Download PDF, Print, Email to Parent (Headmaster/Admin only), Back.
+**Not yet built:** admission number, date of birth, gender on the student
+details block (Student doctype has these — just not wired into the
+template yet); Download/Print/Email action buttons in the portal context
+(Sprint 7, once portals exist).
+
+**Reuse note:** Education's `Student Report Generation Tool` has its own
+`get_formatted_result` data-fetching helper
+(`education.education.report.course_wise_assessment_report`) — not used
+here since `generate_report_cards` (docs/03, docs/04) already produces
+the aggregated data our print format needs directly from `Report Card`.
 
 ## 5.2 Marks Entry Screen (Desk, reference layout)
 
 Not a Print Format, but documented here since it's the primary
 data-entry surface teachers use — implement as a custom Desk page/list
-view for the `Marks` DocType, filtered to the teacher's assigned
-class+subject:
+view for the `Assessment Result` DocType, filtered to the teacher's
+assigned Student Group + Course:
 
 - Header: class, term, subject, entry deadline, current status
   (Draft/Pending Approval/etc.), Save Draft / Submit for Approval actions.
@@ -45,10 +56,16 @@ class+subject:
 
 ## 5.3 PDF Generation Notes
 
-- Use Frappe's native Print Format → PDF rendering (wkhtmltopdf under the
+- Uses Frappe's native Print Format → PDF rendering (wkhtmltopdf under the
   hood), not a separate PDF library — keeps it inside the framework's
-  print system per `.claude/CODING_STANDARDS.md`.
-- Generation happens as part of the Report Card Generation Workflow
-  (`docs/04_Workflows.md` §4.2), triggered per-class in a background job so
-  generating 200 PDFs doesn't block the request. Target: < 5 sec/student
-  (`docs/08_Deployment.md`).
+  print system per `.claude/CODING_STANDARDS.md`. Verified working.
+- **Gotcha (see `.claude/DECISIONS.md` 0008):** wkhtmltopdf needs a
+  container-reachable base URL to fetch the print CSS. The default
+  `frappe.utils.get_url()` (`http://edupro.localhost`, no port) isn't
+  reachable from inside the backend container. Fixed with
+  `bench set-config host_name "http://frontend:8080"`.
+- **Not yet built:** triggering generation as a background job
+  (currently invoked synchronously via `bench execute`/console — fine for
+  one-off testing, but bulk generation for a whole class needs to move to
+  `frappe.enqueue` per `.claude/CODING_STANDARDS.md` before Sprint 8).
+  Target: < 5 sec/student (`docs/08_Deployment.md`).

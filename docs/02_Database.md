@@ -7,9 +7,9 @@ Redis for cache and the RQ background job queue.
 
 ## 2.2 Multi-Tenancy Model
 
-**Decision (recommended default, pending confirmation — see
-`.claude/DECISIONS.md` 0004):** one Frappe **site** per school. Each site
-has its own database; the `edupro_sms` app is installed on every site.
+**Decision (accepted — see `.claude/DECISIONS.md` 0004):** one Frappe
+**site** per school. Each site has its own database; the `edupro_sms`
+app is installed on every site.
 
 This means:
 

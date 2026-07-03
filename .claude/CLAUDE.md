@@ -28,11 +28,13 @@ platform, not just a report-card generator.
 
 ## Framework
 
-- Frappe Framework v16 (confirm/pin exact version once `docker/` is stood up)
+- Frappe Framework **v15** (pinned — running Frappe 15.113.4 / ERPNext
+  15.115.0 / Education 15.5.3, Python 3.11.15)
 - MariaDB (default Frappe DB)
 - Redis (cache) + Redis Queue / RQ (background jobs)
 - Frappe Desk as the frontend for MVP (no separate SPA)
-- Docker on Windows for local development
+- Docker on Windows for local development — `frappe_docker/` at the
+  project root, see `docs/08_Deployment.md` §8.1 for the running setup
 
 ## Role Definition (state this at the start of every session)
 
