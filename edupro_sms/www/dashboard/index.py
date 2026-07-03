@@ -12,8 +12,12 @@ def get_context(context):
 	roles = set(frappe.get_roles())
 
 	if "Headmaster" in roles or "System Manager" in roles:
+		from edupro_sms.edupro_sms.approvals import get_pending_report_cards
+
 		context.dashboard_role = "headmaster"
 		context.summary = _headmaster_summary()
+		context.pending_report_cards = get_pending_report_cards()
+		context.csrf_token = frappe.sessions.get_csrf_token()
 	elif "Instructor" in roles:
 		context.dashboard_role = "teacher"
 		context.classes = _teacher_classes()

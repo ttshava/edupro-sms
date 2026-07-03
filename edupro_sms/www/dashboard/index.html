@@ -24,6 +24,17 @@
     .edupro-dashboard .empty { color: #777; padding: 20px 0; }
     .edupro-dashboard .desk-link { margin-top: 18px; }
     .edupro-dashboard .desk-link a { color: #1a5276; font-weight: 600; }
+
+    .edupro-dashboard .action-btn {
+      border: none; padding: 6px 14px; border-radius: 4px; font-size: 0.9em;
+      cursor: pointer; margin-right: 6px; color: #fff;
+    }
+    .edupro-dashboard .btn-approve { background: #1e8449; }
+    .edupro-dashboard .btn-reject { background: #c0392b; }
+    .edupro-dashboard .btn-publish { background: #1a5276; }
+    .edupro-dashboard #approval-status { margin: 10px 0; font-weight: 600; }
+    .edupro-dashboard .save-ok { color: #1e8449; }
+    .edupro-dashboard .save-error { color: #c0392b; }
   </style>
 
   <h1>Dashboard</h1>
@@ -63,7 +74,79 @@
       <p class="empty">No report cards created yet.</p>
       {% endif %}
     </div>
-    <p class="desk-link"><a href="/app/report-card">Review report card approvals in Desk &rarr;</a></p>
+
+    <h2>Pending Approvals</h2>
+    <div id="approval-status"></div>
+    <table>
+      <thead>
+        <tr><th>Student</th><th>Class</th><th>Term</th><th>State</th><th></th></tr>
+      </thead>
+      <tbody id="pending-approvals-body">
+        {% for rc in pending_report_cards %}
+        <tr data-name="{{ rc.name }}">
+          <td>{{ rc.student_name }}</td>
+          <td>{{ rc.student_group }}</td>
+          <td>{{ rc.academic_term }}</td>
+          <td>{{ rc.workflow_state }}</td>
+          <td>
+            {% if rc.workflow_state == "Reviewed" %}
+            <button class="action-btn btn-approve" data-action="Approve">Approve</button>
+            <button class="action-btn btn-reject" data-action="Reject">Reject</button>
+            {% elif rc.workflow_state == "Approved" %}
+            <button class="action-btn btn-publish" data-action="Publish">Publish</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not pending_report_cards %}
+        <tr><td colspan="5" class="empty">Nothing awaiting your review right now.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    <script>
+      document.getElementById("pending-approvals-body").addEventListener("click", function (e) {
+        if (!e.target.classList.contains("action-btn")) return;
+        var btn = e.target;
+        var tr = btn.closest("tr");
+        var name = tr.dataset.name;
+        var action = btn.dataset.action;
+        var statusEl = document.getElementById("approval-status");
+
+        btn.disabled = true;
+        statusEl.className = "";
+        statusEl.textContent = action + "ing...";
+
+        fetch("/api/method/edupro_sms.edupro_sms.approvals.apply_report_card_action", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Frappe-CSRF-Token": "{{ csrf_token }}",
+          },
+          body: JSON.stringify({ name: name, action: action }),
+        })
+          .then(function (r) {
+            return r.json().then(function (body) { return { ok: r.ok, body: body }; });
+          })
+          .then(function (result) {
+            if (result.ok) {
+              statusEl.textContent = action + "d. New state: " + result.body.message.workflow_state;
+              statusEl.className = "save-ok";
+              setTimeout(function () { window.location.reload(); }, 900);
+            } else {
+              var msg = result.body.exception || result.body._server_messages || "Could not update.";
+              statusEl.textContent = "Error: " + msg;
+              statusEl.className = "save-error";
+              btn.disabled = false;
+            }
+          })
+          .catch(function (err) {
+            statusEl.textContent = "Error: " + err;
+            statusEl.className = "save-error";
+            btn.disabled = false;
+          });
+      });
+    </script>
 
   {% elif dashboard_role == "teacher" %}
     <h2>My Classes</h2>
