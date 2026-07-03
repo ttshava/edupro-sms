@@ -248,7 +248,42 @@ for the full verification detail per item.
 - [x] School logo added to the `IGCSE Report Card` print format header,
       verified against a real generated PDF
 
+## Independent QA pass ✅ done 2026-07-03
+
+Full browser-based test of all 4 portal roles against a stated brief
+("student/parent must view subjects+marks, print PDF, no Desk";
+"teacher must enter marks on the website, no Desk"; "headmaster must
+approve on the website, no Desk"). Report:
+`exports/Edupro_SMS_QA_Report_2026-07-03.pdf`. Result: 10/16 criteria
+passed outright, 2 partial, 4 failed. Student and Parent portals are
+in good shape (two minor UX gaps). Teacher and Headmaster fail their
+"no Desk" and "act entirely from the website" requirements — this is
+**not a bug**, it's the direct, known consequence of Decision 0013
+(deliberately kept Desk access for marks entry/approval instead of
+building website equivalents). See Backlog below for the open items
+this surfaced, and 0013 for why the conflict exists before "fixing" it.
+
 ## Backlog (post-MVP)
+
+### Open items from the 2026-07-03 QA pass (needs a scope decision first)
+
+- **Conflict to resolve before building further:** either (a) accept
+  Teacher/Headmaster keep Desk access for marks entry/report approval
+  (current state, Decision 0013), or (b) build a real marks-entry form
+  on the Teacher dashboard and a real approve/reject action on the
+  Headmaster dashboard, then remove their Desk access entirely. Not a
+  small follow-up — (b) is genuinely new UI work, not a re-route.
+- A parent's child with no Report Card yet silently disappears from
+  the Grades tab (present correctly in Profile) — no "not published
+  yet" state shown. Low effort, worth fixing regardless of the above.
+- Student/Parent Grades tab shows only a per-term aggregate, not a
+  per-subject mark breakdown — that detail currently only exists
+  inside the printable report card.
+- Teacher/Headmaster Desk sidebar shows unrelated ERPNext modules
+  (Accounting, Stock, Quality, Integrations, Build) — worth trimming
+  regardless of the Desk-access decision above.
+- Login footer still reads "Powered by ERPNext" alongside otherwise
+  full school branding — cosmetic.
 
 ### MVP polish (small, non-blocking — do before or shortly after pilot launch)
 
