@@ -10,7 +10,106 @@ from education.education.api import get_grade
 
 
 class ReportCard(Document):
-	pass
+	def on_update_after_submit(self):
+		"""Fires on every field change while docstatus=1 — e.g. the
+		Approved -> Published workflow transition (allow_on_submit lets
+		workflow_state change post-submit). Only act the moment it
+		actually becomes Published, not on every such update."""
+		if self.workflow_state == "Published" and not self.sent_to_parent_at:
+			frappe.enqueue(
+				"edupro_sms.edupro_sms.doctype.report_card.notify.send_report_card_emails",
+				queue="short",
+				report_card_name=self.name,
+			)
+
+
+def get_permission_query_conditions(user: str | None = None) -> str:
+	"""Row-level scoping for the Report Card list view.
+
+	- System Manager / Headmaster: unrestricted.
+	- Class Teacher: only classes where they're Student Group.class_teacher.
+	- Student: only their own report, and only once Published.
+	- Guardian: only their linked children's reports, and only once Published.
+	"""
+	user = user or frappe.session.user
+	if user == "Administrator":
+		return ""
+
+	roles = set(frappe.get_roles(user))
+	if "System Manager" in roles or "Headmaster" in roles:
+		return ""
+
+	conditions = []
+
+	if "Class Teacher" in roles:
+		instructor = frappe.db.get_value("Instructor", {"user": user}, "name")
+		if instructor:
+			groups = frappe.get_all("Student Group", filters={"class_teacher": instructor}, pluck="name")
+			if groups:
+				group_list = ", ".join(frappe.db.escape(g) for g in groups)
+				conditions.append(f"`tabReport Card`.student_group in ({group_list})")
+
+	if "Student" in roles:
+		student = frappe.db.get_value("Student", {"user": user}, "name")
+		if student:
+			conditions.append(
+				f"(`tabReport Card`.student = {frappe.db.escape(student)} "
+				f"and `tabReport Card`.workflow_state = 'Published')"
+			)
+
+	if "Guardian" in roles:
+		guardian = frappe.db.get_value("Guardian", {"user": user}, "name")
+		if guardian:
+			children = frappe.get_all(
+				"Student Guardian", filters={"guardian": guardian, "parenttype": "Student"}, pluck="parent"
+			)
+			if children:
+				child_list = ", ".join(frappe.db.escape(c) for c in children)
+				conditions.append(
+					f"(`tabReport Card`.student in ({child_list}) "
+					f"and `tabReport Card`.workflow_state = 'Published')"
+				)
+
+	if not conditions:
+		# Has a portal role but no matching Instructor/Student/Guardian
+		# record (or a role with no scoping rule defined) -> see nothing,
+		# not everything. Fail closed.
+		return "1=0"
+
+	return "(" + " or ".join(conditions) + ")"
+
+
+def has_permission(doc, user: str | None = None, permission_type: str | None = None) -> bool:
+	"""Single-document check (print view, direct /app/report-card/<name>
+	access) — same rules as get_permission_query_conditions, evaluated
+	against one document instead of a SQL fragment."""
+	user = user or frappe.session.user
+	if user == "Administrator":
+		return True
+
+	roles = set(frappe.get_roles(user))
+	if "System Manager" in roles or "Headmaster" in roles:
+		return True
+
+	if "Class Teacher" in roles:
+		instructor = frappe.db.get_value("Instructor", {"user": user}, "name")
+		if instructor and frappe.db.get_value("Student Group", doc.student_group, "class_teacher") == instructor:
+			return True
+
+	if doc.workflow_state == "Published":
+		if "Student" in roles:
+			student = frappe.db.get_value("Student", {"user": user}, "name")
+			if student and doc.student == student:
+				return True
+
+		if "Guardian" in roles:
+			guardian = frappe.db.get_value("Guardian", {"user": user}, "name")
+			if guardian and frappe.db.exists(
+				"Student Guardian", {"guardian": guardian, "parent": doc.student, "parenttype": "Student"}
+			):
+				return True
+
+	return False
 
 
 @frappe.whitelist()
