@@ -1,9 +1,13 @@
-{% extends "templates/web.html" %}
+{% extends "templates/portal_base.html" %}
 
-{% block page_content %}
+{% block sidebar_nav %}
+<a href="/dashboard">My Classes</a>
+<a href="/marks-entry?plan={{ data.plan.name|urlencode }}" class="active">Enter Marks</a>
+{% endblock %}
+
+{% block portal_content %}
 <div class="marks-entry">
   <style>
-    .marks-entry h1 { margin-bottom: 4px; }
     .marks-entry .sub { color: #666; margin-bottom: 20px; }
     .marks-entry table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
     .marks-entry th, .marks-entry td { padding: 8px; border-bottom: 1px solid #eee; text-align: left; }

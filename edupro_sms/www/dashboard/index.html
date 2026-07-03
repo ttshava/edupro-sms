@@ -1,11 +1,21 @@
-{% extends "templates/web.html" %}
+{% extends "templates/portal_base.html" %}
 
-{% block page_content %}
+{% block sidebar_nav %}
+{% if dashboard_role == "headmaster" %}
+<a href="#overview" class="active">Overview</a>
+<a href="#classes">Classes</a>
+<a href="#report-status">Report Cards</a>
+<a href="#approvals">Approvals</a>
+{% elif dashboard_role == "teacher" %}
+<a href="#my-classes" class="active">My Classes</a>
+{% endif %}
+{% endblock %}
+
+{% block portal_content %}
 <div class="edupro-dashboard">
   <style>
-    .edupro-dashboard h1 { margin-bottom: 4px; }
-    .edupro-dashboard .user-line { color: #666; margin-bottom: 20px; }
-    .edupro-dashboard h2 { font-size: 1.1em; margin-top: 28px; margin-bottom: 10px; color: #1a5276; }
+    html { scroll-behavior: smooth; }
+    .edupro-dashboard h2 { font-size: 1.1em; margin-top: 28px; margin-bottom: 10px; color: #1a5276; scroll-margin-top: 20px; }
 
     .edupro-dashboard .stat-cards { display: flex; gap: 14px; flex-wrap: wrap; }
     .edupro-dashboard .stat-card {
@@ -39,13 +49,13 @@
   <p class="user-line">{{ frappe.session.user }}</p>
 
   {% if dashboard_role == "headmaster" %}
-    <div class="stat-cards">
+    <div id="overview" class="stat-cards">
       <div class="stat-card"><div class="stat-value">{{ summary.total_students }}</div><div class="stat-label">Students</div></div>
       <div class="stat-card"><div class="stat-value">{{ summary.total_instructors }}</div><div class="stat-label">Teachers</div></div>
       <div class="stat-card"><div class="stat-value">{{ summary.total_classes }}</div><div class="stat-label">Classes</div></div>
     </div>
 
-    <h2>Classes</h2>
+    <h2 id="classes">Classes</h2>
     <table>
       <thead>
         <tr><th>Class</th><th>Program</th><th>Students</th><th>Teachers</th></tr>
@@ -62,7 +72,7 @@
       </tbody>
     </table>
 
-    <h2>Report Card Status</h2>
+    <h2 id="report-status">Report Card Status</h2>
     <div class="stat-cards">
       {% for state, count in summary.report_card_states.items() %}
       <div class="stat-card"><div class="stat-value">{{ count }}</div><div class="stat-label">{{ state }}</div></div>
@@ -72,7 +82,7 @@
       {% endif %}
     </div>
 
-    <h2>Pending Approvals</h2>
+    <h2 id="approvals">Pending Approvals</h2>
     <div id="approval-status"></div>
     <table>
       <thead>
@@ -146,7 +156,7 @@
     </script>
 
   {% elif dashboard_role == "teacher" %}
-    <h2>My Classes</h2>
+    <h2 id="my-classes">My Classes</h2>
     <table>
       <thead>
         <tr>

@@ -15,8 +15,8 @@ import frappe
 FOOTER_POWERED = (
 	'<img src="https://edupro.co.zw/assets/img/logo.png" alt="Edupro" '
 	'style="height:20px;vertical-align:middle;margin-right:6px;"> '
-	'Powered by <a href="https://www.edupro.co.zw" target="_blank" rel="noopener">'
-	"Edupro School Management System</a> &middot; Helpdesk: 0788 111 611"
+	'<a href="https://www.edupro.co.zw" target="_blank" rel="noopener">'
+	"Edupro School Management System</a> &middot; +263 788 111 611"
 )
 
 

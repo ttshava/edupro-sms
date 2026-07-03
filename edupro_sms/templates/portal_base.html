@@ -1,0 +1,81 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<div class="portal-shell">
+  <style>
+    .portal-shell {
+      display: flex; gap: 24px; align-items: flex-start;
+      font-family: Arial, sans-serif;
+    }
+    .portal-sidebar {
+      width: 240px; flex-shrink: 0; background: #1a5276; color: #fff;
+      border-radius: 10px; padding: 22px 0; position: sticky; top: 20px;
+    }
+    .sidebar-brand {
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 20px 18px 20px; margin-bottom: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+    }
+    .sidebar-brand .brand-logo {
+      width: 34px; height: 34px; border-radius: 7px; background: #fff;
+      object-fit: contain; padding: 2px;
+    }
+    .sidebar-brand .brand-name { font-weight: 700; font-size: 1.02em; line-height: 1.25; }
+
+    .sidebar-nav { display: flex; flex-direction: column; padding: 0 12px; gap: 2px; }
+    .sidebar-nav a, .sidebar-nav button.tab-btn {
+      display: block; width: 100%; text-align: left; box-sizing: border-box;
+      padding: 10px 14px; border-radius: 8px; color: rgba(255,255,255,0.85);
+      text-decoration: none; font-size: 0.95em; border: none; background: none;
+      cursor: pointer; font-family: inherit;
+    }
+    .sidebar-nav a:hover, .sidebar-nav button.tab-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .sidebar-nav a.active, .sidebar-nav button.tab-btn.active { background: #fff; color: #1a5276; font-weight: 600; }
+
+    .sidebar-footer {
+      margin-top: 22px; padding: 14px 20px 0 20px; border-top: 1px solid rgba(255,255,255,0.15);
+      font-size: 0.82em; color: rgba(255,255,255,0.7);
+    }
+    .sidebar-footer .sidebar-user { word-break: break-all; margin-bottom: 8px; }
+    .sidebar-footer a { color: #fff; text-decoration: underline; }
+
+    .portal-main { flex: 1; min-width: 0; }
+    .portal-main h1 { margin: 0 0 4px 0; font-size: 1.7em; }
+    .portal-main .user-line { color: #666; margin-bottom: 20px; }
+    /* Wide tables scroll within their own box instead of breaking the
+       layout -- works because display:block on <table> keeps its
+       internal table formatting while making the element itself the
+       scroll container. */
+    .portal-main table { display: block; overflow-x: auto; white-space: nowrap; }
+    .portal-main table thead, .portal-main table tbody { display: table; width: 100%; table-layout: auto; }
+
+    @media (max-width: 768px) {
+      .portal-shell { flex-direction: column; }
+      .portal-sidebar { width: 100%; position: static; padding: 16px 0; }
+      .sidebar-nav { flex-direction: row; flex-wrap: wrap; padding: 0 12px; }
+      .sidebar-nav a, .sidebar-nav button.tab-btn { width: auto; }
+    }
+  </style>
+
+  <aside class="portal-sidebar">
+    <div class="sidebar-brand">
+      {% set school_logo = frappe.db.get_single_value("School Settings", "logo") %}
+      {% if school_logo %}<img src="{{ school_logo }}" class="brand-logo">{% endif %}
+      <div class="brand-name">{{ frappe.db.get_single_value("School Settings", "school_name") or "Edupro SMS" }}</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      {% block sidebar_nav %}{% endblock %}
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">{{ frappe.session.user }}</div>
+      <a href="/api/method/logout">Log out</a>
+    </div>
+  </aside>
+
+  <main class="portal-main">
+    {% block portal_content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}
