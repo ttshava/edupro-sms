@@ -66,9 +66,16 @@ boot_session = "edupro_sms.edupro_sms.boot.boot_session"
 # home_page = "login"
 
 # website user home page (by Role)
-# role_home_page = {
-# 	"Role": "home_page"
-# }
+# Education's own hooks set Student/Guardian -> edu-portal (its own
+# built-in, compiled-JS portal we can't safely customize). role_home_page
+# hooks merge into a list across apps and frappe/website/utils.py takes
+# the LAST entry (role_home_page[role][-1]) -- edupro_sms loads after
+# education in apps.txt, so this override wins. See
+# .claude/DECISIONS.md for why we're not customizing edu-portal itself.
+role_home_page = {
+	"Student": "my-reports",
+	"Guardian": "my-reports",
+}
 
 # Generators
 # ----------
