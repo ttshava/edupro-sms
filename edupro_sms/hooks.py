@@ -125,10 +125,14 @@ boot_session = "edupro_sms.edupro_sms.boot.boot_session"
 
 permission_query_conditions = {
 	"Report Card": "edupro_sms.edupro_sms.doctype.report_card.report_card.get_permission_query_conditions",
+	"Assessment Plan": "edupro_sms.edupro_sms.teacher_permissions.assessment_plan_query_conditions",
+	"Assessment Result": "edupro_sms.edupro_sms.teacher_permissions.assessment_result_query_conditions",
 }
 
 has_permission = {
 	"Report Card": "edupro_sms.edupro_sms.doctype.report_card.report_card.has_permission",
+	"Assessment Plan": "edupro_sms.edupro_sms.teacher_permissions.assessment_plan_has_permission",
+	"Assessment Result": "edupro_sms.edupro_sms.teacher_permissions.assessment_result_has_permission",
 }
 
 # DocType Class
@@ -205,12 +209,43 @@ fixtures = [
 	{
 		"dt": "Custom Field",
 		"filters": [
-			["name", "in", ["Student Group-class_teacher", "Assessment Result-special_case"]]
+			[
+				"name",
+				"in",
+				[
+					"Student Group-class_teacher",
+					"Assessment Result-special_case",
+					"Instructor-user",
+				],
+			]
 		],
 	},
 	{"dt": "Workflow", "filters": [["name", "in", ["Report Card Approval"]]]},
 	{"dt": "Workflow State", "filters": [["name", "in", ["Pending Approval", "Reviewed", "Published"]]]},
 	{"dt": "Workflow Action Master", "filters": [["name", "in", ["Resubmit", "Publish"]]]},
+	{
+		"dt": "Custom DocPerm",
+		"filters": [
+			[
+				"parent",
+				"in",
+				[
+					"Student",
+					"Instructor",
+					"Student Group",
+					"Student Group Student",
+					"Guardian",
+					"Course",
+					"Program",
+					"Assessment Plan",
+					"Assessment Result",
+					"Academic Term",
+					"Academic Year",
+				],
+			],
+			["role", "in", ["Headmaster", "Instructor"]],
+		],
+	},
 ]
 
 # Ignore links to specified DocTypes when deleting documents

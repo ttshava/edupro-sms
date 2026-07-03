@@ -1,0 +1,77 @@
+{
+ "charts": [],
+ "content": "[{\"id\": \"header1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Edupro SMS</b></span>\", \"col\": 12}}, {\"id\": \"sc_Report_Card_Status_by_Class\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Report Card Status by Class\", \"col\": 3}}, {\"id\": \"sc_Report_Card\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Report Card\", \"col\": 3}}, {\"id\": \"sc_Student_Group\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Student Group\", \"col\": 3}}, {\"id\": \"sc_Student\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Student\", \"col\": 3}}, {\"id\": \"sc_Instructor\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Instructor\", \"col\": 3}}, {\"id\": \"sc_Guardian\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Guardian\", \"col\": 3}}, {\"id\": \"sc_School_Settings\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"School Settings\", \"col\": 3}}, {\"id\": \"sc_My_Classes\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"My Classes\", \"col\": 3}}]",
+ "creation": "2026-07-04 01:04:06.244097",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "hide_custom": 0,
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "Edupro SMS",
+ "links": [],
+ "modified": "2026-07-04 01:16:33.384796",
+ "modified_by": "Administrator",
+ "module": "Edupro SMS",
+ "name": "Edupro SMS",
+ "number_cards": [],
+ "owner": "Administrator",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 1.0,
+ "shortcuts": [
+  {
+   "doc_view": "",
+   "label": "Report Card Status by Class",
+   "link_to": "Report Card Status by Class",
+   "report_ref_doctype": "Report Card",
+   "type": "Report"
+  },
+  {
+   "doc_view": "",
+   "label": "Report Card",
+   "link_to": "Report Card",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "",
+   "label": "Student Group",
+   "link_to": "Student Group",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "",
+   "label": "Student",
+   "link_to": "Student",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "",
+   "label": "Instructor",
+   "link_to": "Instructor",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "",
+   "label": "Guardian",
+   "link_to": "Guardian",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "",
+   "label": "School Settings",
+   "link_to": "School Settings",
+   "type": "DocType"
+  },
+  {
+   "doc_view": "",
+   "label": "My Classes",
+   "link_to": "My Classes",
+   "report_ref_doctype": "Assessment Plan",
+   "type": "Report"
+  }
+ ],
+ "title": "Edupro SMS"
+}
