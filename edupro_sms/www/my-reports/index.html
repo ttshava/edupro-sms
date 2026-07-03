@@ -4,6 +4,17 @@
 <div class="my-reports">
   <style>
     .my-reports h1 { margin-bottom: 4px; }
+    .my-reports .user-line { color: #666; margin-bottom: 20px; }
+
+    .my-reports .tabs { display: flex; gap: 4px; border-bottom: 2px solid #e0e0e0; margin-bottom: 20px; }
+    .my-reports .tab-btn {
+      padding: 10px 20px; border: none; background: none; cursor: pointer;
+      font-size: 1em; color: #666; border-bottom: 2px solid transparent; margin-bottom: -2px;
+    }
+    .my-reports .tab-btn.active { color: #1a5276; border-bottom-color: #1a5276; font-weight: bold; }
+    .my-reports .tab-panel { display: none; }
+    .my-reports .tab-panel.active { display: block; }
+
     .my-reports .child-block { margin-bottom: 24px; border: 1px solid #ddd; border-radius: 6px; padding: 16px; }
     .my-reports .child-name { font-size: 1.2em; font-weight: bold; margin-bottom: 10px; }
     .my-reports table { width: 100%; border-collapse: collapse; }
@@ -12,53 +23,99 @@
     .state-published { background: #d4edda; color: #155724; }
     .state-other { background: #fff3cd; color: #856404; }
     .my-reports .empty { color: #777; padding: 20px 0; }
+
+    .my-reports .profile-row { display: flex; padding: 8px 0; border-bottom: 1px solid #eee; }
+    .my-reports .profile-label { width: 160px; color: #666; font-weight: 600; }
+    .my-reports .fees-placeholder {
+      text-align: center; padding: 40px 20px; color: #777; border: 1px dashed #ccc; border-radius: 6px;
+    }
   </style>
 
   <h1>My Reports</h1>
-  <p>{{ frappe.session.user }}</p>
+  <p class="user-line">{{ frappe.session.user }}</p>
 
-  {% if not children %}
-    <p class="empty">No report cards available yet.</p>
-  {% endif %}
-
-  {% for child in children %}
-  <div class="child-block">
-    <div class="child-name">{{ child.student_name }}</div>
-    <table>
-      <thead>
-        <tr>
-          <th>Term</th>
-          <th>Average</th>
-          <th>Grade</th>
-          <th>Position</th>
-          <th>Status</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for report in child.reports %}
-        <tr>
-          <td>{{ report.academic_term }}</td>
-          <td>{{ "%.1f"|format(report.average_percentage) if report.average_percentage else "-" }}%</td>
-          <td>{{ report.overall_grade or "-" }}</td>
-          <td>{{ report.position }}/{{ report.number_of_students }}</td>
-          <td>
-            <span class="state {{ 'state-published' if report.workflow_state == 'Published' else 'state-other' }}">
-              {{ report.workflow_state }}
-            </span>
-          </td>
-          <td>
-            {% if report.workflow_state == "Published" %}
-            <a href="/printview?doctype=Report%20Card&name={{ report.name|urlencode }}&format=IGCSE%20Report%20Card&no_letterhead=0" target="_blank">
-              View / Print
-            </a>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="grades">Grades</button>
+    <button class="tab-btn" data-tab="profile">Profile</button>
+    <button class="tab-btn" data-tab="fees">Fees</button>
   </div>
-  {% endfor %}
+
+  <div class="tab-panel active" id="tab-grades">
+    {% if not children %}
+      <p class="empty">No report cards available yet.</p>
+    {% endif %}
+
+    {% for child in children %}
+    <div class="child-block">
+      <div class="child-name">{{ child.student_name }}</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Term</th>
+            <th>Average</th>
+            <th>Grade</th>
+            <th>Position</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for report in child.reports %}
+          <tr>
+            <td>{{ report.academic_term }}</td>
+            <td>{{ "%.1f"|format(report.average_percentage) if report.average_percentage else "-" }}%</td>
+            <td>{{ report.overall_grade or "-" }}</td>
+            <td>{{ report.position }}/{{ report.number_of_students }}</td>
+            <td>
+              <span class="state {{ 'state-published' if report.workflow_state == 'Published' else 'state-other' }}">
+                {{ report.workflow_state }}
+              </span>
+            </td>
+            <td>
+              {% if report.workflow_state == "Published" %}
+              <a href="/printview?doctype=Report%20Card&name={{ report.name|urlencode }}&format=IGCSE%20Report%20Card&no_letterhead=0" target="_blank">
+                View / Print
+              </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="tab-panel" id="tab-profile">
+    {% if not profile_students %}
+      <p class="empty">No profile information available yet.</p>
+    {% endif %}
+    {% for p in profile_students %}
+    <div class="child-block">
+      <div class="child-name">{{ p.student_name }}</div>
+      <div class="profile-row"><div class="profile-label">Class</div><div>{{ p.student_group or "Not yet assigned" }}</div></div>
+      <div class="profile-row"><div class="profile-label">Subjects</div><div>{{ p.courses|join(", ") if p.courses else "Not yet assigned" }}</div></div>
+      <div class="profile-row"><div class="profile-label">Parent Email{{ "s" if p.guardian_emails|length > 1 else "" }}</div><div>{{ p.guardian_emails|join(", ") if p.guardian_emails else "Not on file" }}</div></div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="tab-panel" id="tab-fees">
+    <div class="fees-placeholder">
+      <p><strong>Fees</strong></p>
+      <p>Fee statements aren't available yet — this section is coming in a future update.</p>
+    </div>
+  </div>
 </div>
+
+<script>
+  document.querySelectorAll(".my-reports .tab-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll(".my-reports .tab-btn").forEach(function (b) { b.classList.remove("active"); });
+      document.querySelectorAll(".my-reports .tab-panel").forEach(function (p) { p.classList.remove("active"); });
+      btn.classList.add("active");
+      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+    });
+  });
+</script>
 {% endblock %}
