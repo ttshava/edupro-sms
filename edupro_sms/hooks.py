@@ -202,6 +202,9 @@ fixtures = [
 			["name", "in", ["Student Group-class_teacher", "Assessment Result-special_case"]]
 		],
 	},
+	{"dt": "Workflow", "filters": [["name", "in", ["Report Card Approval"]]]},
+	{"dt": "Workflow State", "filters": [["name", "in", ["Pending Approval", "Reviewed", "Published"]]]},
+	{"dt": "Workflow Action Master", "filters": [["name", "in", ["Resubmit", "Publish"]]]},
 ]
 
 # Ignore links to specified DocTypes when deleting documents
