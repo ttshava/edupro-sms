@@ -591,3 +591,58 @@ this done, not just Headmaster/Instructor's. Fixed by setting
 landed on before this change) — restores the old fallback for anyone
 without a personal override, while Headmaster/Instructor's personal
 `default_app` still takes priority for them.
+
+## 0014 — Removed Desk access for Teacher/Headmaster, after building website replacements, not before
+
+**Decision:** Reverses part of 0013. An independent QA pass
+(`exports/Edupro_SMS_QA_Report_2026-07-03.pdf`) tested against a
+stricter brief than 0013 assumed — Teacher must enter marks and
+Headmaster must approve report cards *entirely on the website*, and
+neither should be able to reach Desk at all. 0013's "keep Desk access"
+call directly failed that brief. Resolved by building the two website
+equivalents Desk was standing in for, then removing Desk access once
+both were verified working, not as a single step.
+
+**Why sequenced this way (build first, remove access last):** Desk
+access was these two roles' only way to do real work up to this point.
+Removing it before the replacement existed would have left them with
+no working tool — a strictly worse outcome than the thing being fixed.
+Each piece was verified independently before the next: marks entry
+end-to-end (create, edit an already-submitted mark via the cancel/
+amend Frappe requires, cross-class permission denial) before touching
+approvals; approve/reject/publish end-to-end (including confirming a
+Published report actually reaches the parent's `/my-reports`) before
+touching Desk access; and only then was `user_type` flipped.
+
+**Implementation:**
+1. `edupro_sms/edupro_sms/marks_entry.py` + `www/marks-entry/` — a
+   teacher-facing form per Assessment Plan. Deliberately does *not*
+   reimplement Assessment Result's validation (max score, grade calc,
+   duplicate check) — it builds a normal document and lets
+   `Document.validate()` do that, same as the Desk form always did.
+   Editing an already-submitted result needed a real cancel+amend+
+   resubmit, since `Assessment Result` is `is_submittable=1` with no
+   `allow_on_submit` fields (checked the doctype JSON before assuming
+   a plain field update would work — it wouldn't have). Skips
+   re-amending rows whose scores are unchanged from what's already
+   stored, to avoid pointless cancel/amend churn on every save.
+2. `edupro_sms/edupro_sms/approvals.py` + a Pending Approvals section
+   on `/dashboard` — calls `frappe.model.workflow.apply_workflow(doc,
+   action)`, the same function Desk's own workflow buttons call,
+   against the existing `Report Card Approval` workflow
+   (`fixtures/workflow.json`). No new state machine.
+3. `edupro_sms/edupro_sms/dashboard.py`'s `sync_dashboard_default_app`
+   User validate hook (from 0013) now also sets
+   `user_type = "Website User"` for Headmaster/Instructor, so future
+   accounts get the no-Desk-access treatment automatically, same as
+   the `default_app` sync already did.
+
+**Side effect checked for and not found this time:** re-verified
+`is_system_user()` and `frappe.apps.get_default_path()` behave
+identically for a `Website User` with `default_app` already set as
+they did for a `System User` (both resolve to `/dashboard` via the
+same `elif user_default_app:` branch) — the flip didn't require
+touching the `add_to_apps_screen`/`default_app` mechanism from 0013 at
+all, it "just worked" once `user_type` changed. Confirmed Administrator
+and both flipped accounts (Headmaster, Teacher) all still land in the
+right place after a full restart, not just before it.

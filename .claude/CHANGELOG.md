@@ -265,6 +265,41 @@ YYYY-MM-DD.
      verified against a real wkhtmltopdf-generated PDF (not just the
      HTML preview) — reuses the same public logo file the login page
      branding already relies on.
+- **Independent QA report** (`exports/Edupro_SMS_QA_Report_2026-07-03.pdf`):
+  full browser-based test of Student/Parent/Teacher/Headmaster against
+  a stricter brief than the same-day Decision 0013 assumed — 10/16
+  criteria passed outright, 2 partial, 4 failed. Teacher and Headmaster
+  failed "act entirely from the website" and "no Desk access" because
+  0013 had deliberately kept Desk for their real work.
+- **Resolved the QA report's top 4 findings**, in dependency order:
+  1. New `/marks-entry?plan=X` page — teacher marks entry entirely on
+     the website. Reuses `Assessment Result.validate()` instead of
+     reimplementing max-score/grade/duplicate checks; edits to an
+     already-submitted mark go through a real cancel+amend+resubmit
+     (required since the doctype is submittable with no
+     `allow_on_submit` fields); skips re-amending unchanged rows.
+     Cross-class permission denial verified (clean "Not Permitted",
+     not a stack trace).
+  2. New Pending Approvals section on the Headmaster's `/dashboard` —
+     Approve/Reject/Publish buttons drive the existing Report Card
+     Approval workflow via `frappe.model.workflow.apply_workflow`, the
+     same call Desk's buttons make. Verified the full loop: marks
+     entered on the website → report generated → approved and
+     published from the website → visible as Published on the parent's
+     `/my-reports`, no Desk step anywhere in the chain.
+  3. **Desk access removed for Teacher/Headmaster** (`user_type` →
+     `Website User`, same as Student/Guardian) — done last, only after
+     1 and 2 were built and verified, since removing it first would
+     have left both roles with no working tool. See `DECISIONS.md`
+     0014 for the full sequencing rationale and a config detail that
+     turned out not to need touching (the `add_to_apps_screen`/
+     `default_app` redirect from 0013 worked unchanged after the flip).
+  4. A guardian's child with no Report Card yet no longer disappears
+     from the Grades tab — shows "No report card published yet"
+     instead, matching what the Profile tab already displayed.
+  Two lower-priority findings from the same report (per-subject marks
+  not shown inline on Grades, "Powered by ERPNext" in the login footer)
+  remain open in `TASKS.md` Backlog.
 
 ---
 

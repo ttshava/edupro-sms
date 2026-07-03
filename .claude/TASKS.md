@@ -265,23 +265,26 @@ this surfaced, and 0013 for why the conflict exists before "fixing" it.
 
 ## Backlog (post-MVP)
 
-### Open items from the 2026-07-03 QA pass (needs a scope decision first)
+### 2026-07-03 QA pass — top 4 findings ✅ resolved same day
 
-- **Conflict to resolve before building further:** either (a) accept
-  Teacher/Headmaster keep Desk access for marks entry/report approval
-  (current state, Decision 0013), or (b) build a real marks-entry form
-  on the Teacher dashboard and a real approve/reject action on the
-  Headmaster dashboard, then remove their Desk access entirely. Not a
-  small follow-up — (b) is genuinely new UI work, not a re-route.
-- A parent's child with no Report Card yet silently disappears from
-  the Grades tab (present correctly in Profile) — no "not published
-  yet" state shown. Low effort, worth fixing regardless of the above.
+The scope conflict got resolved as option (b): built real website
+replacements first, then removed Desk access — see `DECISIONS.md`
+0014 for the full sequencing rationale and what was verified.
+
+- [x] Teacher marks entry moved to the website (`/marks-entry?plan=X`)
+- [x] Headmaster approve/reject/publish moved to the website
+      (`/dashboard` Pending Approvals section)
+- [x] Desk access removed for Teacher/Headmaster (now `Website User`,
+      same as Student/Guardian) — done last, only after the two items
+      above were built and verified as full replacements
+- [x] Parent's child with no Report Card yet no longer disappears from
+      the Grades tab — shows "No report card published yet" instead
+
+### Remaining lower-priority items from that QA pass
+
 - Student/Parent Grades tab shows only a per-term aggregate, not a
   per-subject mark breakdown — that detail currently only exists
   inside the printable report card.
-- Teacher/Headmaster Desk sidebar shows unrelated ERPNext modules
-  (Accounting, Stock, Quality, Integrations, Build) — worth trimming
-  regardless of the Desk-access decision above.
 - Login footer still reads "Powered by ERPNext" alongside otherwise
   full school branding — cosmetic.
 
