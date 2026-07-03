@@ -231,6 +231,7 @@ fixtures = [
 					"Student Group-class_teacher",
 					"Assessment Result-special_case",
 					"Instructor-user",
+					"Program-curriculum",
 				],
 			]
 		],
