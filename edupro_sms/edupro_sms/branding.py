@@ -2,9 +2,22 @@
 with School Settings. Each site is one school, so Website Settings has
 no other configured use for app_name/app_logo/copyright -- wired via
 hooks.py doc_events on School Settings.
+
+footer_powered is the one field here that's *not* per-school -- it's
+Edupro's own vendor attribution (the platform maker, not the pilot
+school), so it's a constant re-asserted on every sync rather than
+pulled from doc, same idea as ERPNext's own "Powered by ERPNext" it
+replaces.
 """
 
 import frappe
+
+FOOTER_POWERED = (
+	'<img src="https://edupro.co.zw/assets/img/logo.png" alt="Edupro" '
+	'style="height:20px;vertical-align:middle;margin-right:6px;"> '
+	'Powered by <a href="https://www.edupro.co.zw" target="_blank" rel="noopener">'
+	"Edupro School Management System</a> &middot; Helpdesk: 0788 111 611"
+)
 
 
 def sync_website_branding(doc, method=None):
@@ -22,4 +35,5 @@ def sync_website_branding(doc, method=None):
 	ws.app_logo = logo_url
 	ws.copyright = doc.motto
 	ws.show_footer_on_login = 1
+	ws.footer_powered = FOOTER_POWERED
 	ws.save(ignore_permissions=True)
