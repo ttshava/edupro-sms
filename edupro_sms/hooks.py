@@ -196,7 +196,12 @@ app_license = "mit"
 fixtures = [
 	{"dt": "Role", "filters": [["name", "in", ["Headmaster", "Class Teacher"]]]},
 	{"dt": "Grading Scale", "filters": [["name", "in", ["IGCSE Standard"]]]},
-	{"dt": "Custom Field", "filters": [["name", "in", ["Student Group-class_teacher"]]]},
+	{
+		"dt": "Custom Field",
+		"filters": [
+			["name", "in", ["Student Group-class_teacher", "Assessment Result-special_case"]]
+		],
+	},
 ]
 
 # Ignore links to specified DocTypes when deleting documents
