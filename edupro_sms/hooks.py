@@ -5,6 +5,12 @@ app_description = "IGCSE academic reporting and school management platform"
 app_email = "ttshava@gmail.com"
 app_license = "mit"
 
+# Boot session
+# ------------------
+# Force "setup complete" on every session -- see edupro_sms/boot.py and
+# .claude/DECISIONS.md 0011 for why.
+boot_session = "edupro_sms.edupro_sms.boot.boot_session"
+
 # Apps
 # ------------------
 
