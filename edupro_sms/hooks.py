@@ -189,6 +189,15 @@ app_license = "mit"
 #
 # auto_cancel_exempted_doctypes = ["Auto Repeat"]
 
+# Fixtures
+# --------
+# Version-controlled, reproducible across sites — see CODING_STANDARDS.md
+
+fixtures = [
+	{"dt": "Role", "filters": [["name", "in", ["Headmaster", "Class Teacher"]]]},
+	{"dt": "Grading Scale", "filters": [["name", "in", ["IGCSE Standard"]]]},
+]
+
 # Ignore links to specified DocTypes when deleting documents
 # -----------------------------------------------------------
 
