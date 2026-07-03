@@ -300,6 +300,24 @@ YYYY-MM-DD.
   Two lower-priority findings from the same report (per-subject marks
   not shown inline on Grades, "Powered by ERPNext" in the login footer)
   remain open in `TASKS.md` Backlog.
+- **Portal redesign: shared left-sidebar layout.** New
+  `edupro_sms/templates/portal_base.html`, extended by all three portal
+  pages (`/my-reports`, `/dashboard`, `/marks-entry`) instead of
+  `templates/web.html` directly — branded sidebar (school logo/name,
+  role-based nav, user + logout) with consistent chrome across every
+  role. Student/Guardian's Grades/Profile/Fees tabs moved from the top
+  into the sidebar (same JS, no behavior change); Headmaster's sidebar
+  links to anchored sections on the same dashboard page rather than
+  separate routes. Also closes the last open footer item: dropped
+  "Powered by" (logo + linked company name only) and added the +263
+  country code to the helpdesk number.
+  Two issues caught before calling this done: the new template was
+  initially misplaced one directory too deep (surfaced immediately as
+  `TemplateNotFound`, not a silent failure), and the teacher's 8-column
+  My Classes table overflowed the narrower content pane with the
+  sidebar in place, hiding the "Enter Marks" link off-screen — fixed
+  with a `display:block`/`overflow-x:auto` rule so wide tables scroll
+  within their own box instead of breaking the page layout.
 
 ---
 

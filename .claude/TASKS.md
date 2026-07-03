@@ -285,8 +285,18 @@ replacements first, then removed Desk access — see `DECISIONS.md`
 - Student/Parent Grades tab shows only a per-term aggregate, not a
   per-subject mark breakdown — that detail currently only exists
   inside the printable report card.
-- Login footer still reads "Powered by ERPNext" alongside otherwise
-  full school branding — cosmetic.
+- [x] ~~Login footer still reads "Powered by ERPNext"~~ — rebranded
+      2026-07-03 (footer redesign, see Changelog)
+
+## Portal redesign: left-sidebar layout ✅ done 2026-07-03
+
+- [x] Shared `edupro_sms/templates/portal_base.html` sidebar shell,
+      adopted by `/my-reports`, `/dashboard`, `/marks-entry`
+- [x] Student/Guardian Grades/Profile/Fees moved into sidebar nav
+- [x] Headmaster sidebar links to anchored sections (Overview/Classes/
+      Report Cards/Approvals) on the same dashboard page
+- [x] Footer: dropped "Powered by", added +263 country code to helpdesk
+      number
 
 ### MVP polish (small, non-blocking — do before or shortly after pilot launch)
 
