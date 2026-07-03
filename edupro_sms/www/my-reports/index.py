@@ -11,6 +11,8 @@ def get_context(context):
 	roles = set(frappe.get_roles())
 	context.viewer_role = "guardian" if "Guardian" in roles else "student" if "Student" in roles else None
 
+	profile_students = _get_profile_students(context.viewer_role)
+
 	cards = frappe.get_list(
 		"Report Card",
 		fields=[
@@ -26,18 +28,21 @@ def get_context(context):
 			"number_of_students",
 			"workflow_state",
 		],
-		order_by="student_name asc, academic_term desc",
+		order_by="academic_term desc",
 	)
-
-	# Group by student so a Guardian with multiple children gets a clear
-	# per-child breakdown rather than one flat list.
-	by_student = {}
+	reports_by_student = {}
 	for card in cards:
-		by_student.setdefault(card.student, {"student_name": card.student_name, "reports": []})
-		by_student[card.student]["reports"].append(card)
+		reports_by_student.setdefault(card.student, []).append(card)
 
-	context.children = list(by_student.values())
-	context.profile_students = _get_profile_students(context.viewer_role)
+	# Show every student the viewer can see (same roster as the Profile
+	# tab), not just the ones with a Report Card so far -- a child with no
+	# report published yet used to disappear from this tab entirely
+	# instead of showing a "not published yet" state.
+	context.children = [
+		{"student_name": p["student_name"], "reports": reports_by_student.get(p["student"], [])}
+		for p in profile_students
+	]
+	context.profile_students = profile_students
 	context.title = "My Reports"
 
 
@@ -87,6 +92,7 @@ def _build_profile(student_name):
 	guardian_emails = [e for e in guardian_emails if e]
 
 	return {
+		"student": student.name,
 		"student_name": student.student_name,
 		"student_group": student_group.name if student_group else None,
 		"program": student_group.program if student_group else None,

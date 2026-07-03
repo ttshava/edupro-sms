@@ -71,7 +71,7 @@
       <thead>
         <tr>
           <th>Class</th><th>Subject</th><th>Term</th><th>Assessment Date</th>
-          <th>Students</th><th>Marks Entered</th><th>Status</th>
+          <th>Students</th><th>Marks Entered</th><th>Status</th><th></th>
         </tr>
       </thead>
       <tbody>
@@ -88,14 +88,14 @@
               {{ row.status }}
             </span>
           </td>
+          <td><a href="/marks-entry?plan={{ row.name|urlencode }}">Enter Marks</a></td>
         </tr>
         {% endfor %}
         {% if not classes %}
-        <tr><td colspan="7" class="empty">No classes assigned yet.</td></tr>
+        <tr><td colspan="8" class="empty">No classes assigned yet.</td></tr>
         {% endif %}
       </tbody>
     </table>
-    <p class="desk-link"><a href="/app/assessment-result">Enter or edit marks in Desk &rarr;</a></p>
 
   {% else %}
     <p class="empty">No dashboard is configured for your role yet.</p>

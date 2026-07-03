@@ -42,12 +42,15 @@
 
   <div class="tab-panel active" id="tab-grades">
     {% if not children %}
-      <p class="empty">No report cards available yet.</p>
+      <p class="empty">No profile information available yet.</p>
     {% endif %}
 
     {% for child in children %}
     <div class="child-block">
       <div class="child-name">{{ child.student_name }}</div>
+      {% if not child.reports %}
+      <p class="empty">No report card published yet.</p>
+      {% else %}
       <table>
         <thead>
           <tr>
@@ -82,6 +85,7 @@
           {% endfor %}
         </tbody>
       </table>
+      {% endif %}
     </div>
     {% endfor %}
   </div>

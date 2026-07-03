@@ -48,6 +48,7 @@ def _rows():
 		status = "Complete" if total_students and marks_entered >= total_students else "In Progress"
 		rows.append(
 			{
+				"name": plan.name,
 				"student_group": plan.student_group,
 				"course": plan.course,
 				"academic_term": plan.academic_term,

@@ -1,0 +1,117 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<div class="marks-entry">
+  <style>
+    .marks-entry h1 { margin-bottom: 4px; }
+    .marks-entry .sub { color: #666; margin-bottom: 20px; }
+    .marks-entry table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+    .marks-entry th, .marks-entry td { padding: 8px; border-bottom: 1px solid #eee; text-align: left; }
+    .marks-entry input.score-input {
+      width: 70px; padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 1em;
+    }
+    .marks-entry .row-status { color: #666; font-size: 0.9em; }
+    .marks-entry #save-btn {
+      background: #1a5276; color: #fff; border: none; padding: 10px 22px;
+      border-radius: 4px; font-size: 1em; cursor: pointer;
+    }
+    .marks-entry #save-btn:hover { background: #154360; }
+    .marks-entry #save-status { margin: 10px 0; font-weight: 600; }
+    .marks-entry .save-ok { color: #1e8449; }
+    .marks-entry .save-error { color: #c0392b; }
+    .marks-entry .back-link { display: block; margin-top: 18px; }
+  </style>
+
+  <h1>Enter Marks</h1>
+  <p class="sub">{{ data.plan.course }} &middot; {{ data.plan.student_group }} &middot; {{ data.plan.academic_term }}</p>
+
+  <div id="save-status"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Student</th>
+        {% for c in data.criteria %}
+        <th>{{ c.assessment_criteria }} (max {{ c.maximum_score|int }})</th>
+        {% endfor %}
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in data.rows %}
+      <tr data-student="{{ row.student }}">
+        <td>{{ row.student_name }}</td>
+        {% for c in data.criteria %}
+        <td>
+          <input type="number" step="0.5" min="0" max="{{ c.maximum_score }}"
+                 class="score-input" data-criteria="{{ c.assessment_criteria }}"
+                 value="{{ row.scores.get(c.assessment_criteria, '') }}">
+        </td>
+        {% endfor %}
+        <td class="row-status">
+          {% if row.existing_docstatus == 1 %}Submitted
+          {% elif row.existing_docstatus == 0 %}Draft
+          {% else %}Not entered{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      {% if not data.rows %}
+      <tr><td colspan="{{ data.criteria|length + 2 }}" class="row-status">No students in this class.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <button id="save-btn">Save Marks</button>
+  <a class="back-link" href="/dashboard">&larr; Back to Dashboard</a>
+</div>
+
+<script>
+  document.getElementById("save-btn").addEventListener("click", function () {
+    var entries = [];
+    document.querySelectorAll(".marks-entry tbody tr[data-student]").forEach(function (tr) {
+      var scores = {};
+      tr.querySelectorAll(".score-input").forEach(function (input) {
+        if (input.value !== "") {
+          scores[input.dataset.criteria] = input.value;
+        }
+      });
+      entries.push({ student: tr.dataset.student, scores: scores });
+    });
+
+    var statusEl = document.getElementById("save-status");
+    statusEl.className = "";
+    statusEl.textContent = "Saving...";
+
+    fetch("/api/method/edupro_sms.edupro_sms.marks_entry.save_marks", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Frappe-CSRF-Token": "{{ csrf_token }}",
+      },
+      body: JSON.stringify({
+        assessment_plan: "{{ data.plan.name }}",
+        entries: entries,
+      }),
+    })
+      .then(function (r) {
+        return r.json().then(function (body) { return { ok: r.ok, body: body }; });
+      })
+      .then(function (result) {
+        if (result.ok) {
+          var saved = result.body.message ? result.body.message.saved : 0;
+          statusEl.textContent = "Saved " + saved + " result(s).";
+          statusEl.className = "save-ok";
+          setTimeout(function () { window.location.reload(); }, 900);
+        } else {
+          var msg = (result.body.exception || result.body._server_messages || "Could not save marks.");
+          statusEl.textContent = "Error: " + msg;
+          statusEl.className = "save-error";
+        }
+      })
+      .catch(function (err) {
+        statusEl.textContent = "Error: " + err;
+        statusEl.className = "save-error";
+      });
+  });
+</script>
+{% endblock %}
