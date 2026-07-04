@@ -1,7 +1,8 @@
 {% extends "templates/portal_base.html" %}
 
 {% block sidebar_nav %}
-<button class="tab-btn active" data-tab="grades">Grades</button>
+<button class="tab-btn active" data-tab="overview">Overview</button>
+<button class="tab-btn" data-tab="grades">Grades</button>
 <button class="tab-btn" data-tab="profile">Profile</button>
 <button class="tab-btn" data-tab="fees">Fees</button>
 {% endblock %}
@@ -28,12 +29,164 @@
     .my-reports .fees-placeholder {
       text-align: center; padding: 40px 20px; color: #777; border: 1px dashed #ccc; border-radius: 6px;
     }
+
+    /* Overview: compact, "slick", space-saving -- small chips instead of
+       big padded cards, dense tables, everything on one scroll. */
+    .my-reports .chip-strip { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .my-reports .chip {
+      display: flex; align-items: center; gap: 6px; background: #f4f6f8; border-radius: 20px;
+      padding: 6px 14px; font-size: 0.85em; color: #333;
+    }
+    .my-reports .chip strong { color: #1a5276; }
+    .my-reports .chip.new-chip { background: #fdeaea; color: #c0392b; }
+    .my-reports .chip.new-chip strong { color: #c0392b; }
+
+    .my-reports .kid-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+    .my-reports .kid-card {
+      width: 150px; border: 1px solid #ddd; border-radius: 8px; padding: 12px; text-align: center;
+      text-decoration: none; color: inherit; transition: box-shadow 0.15s;
+    }
+    .my-reports .kid-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .my-reports .kid-avatar {
+      width: 40px; height: 40px; border-radius: 50%; background: #1a5276; color: #fff;
+      display: flex; align-items: center; justify-content: center; font-weight: bold; margin: 0 auto 8px;
+    }
+    .my-reports .kid-card .kid-name { font-weight: 600; font-size: 0.95em; }
+    .my-reports .kid-card .kid-class { color: #777; font-size: 0.8em; margin: 2px 0 6px; }
+    .my-reports .kid-card .kid-avg { font-weight: bold; color: #1a5276; }
+    .my-reports .kid-card .kid-status { font-size: 0.75em; padding: 1px 8px; border-radius: 10px; margin-top: 6px; display: inline-block; }
+    .kid-status.active { background: #d4edda; color: #155724; }
+    .kid-status.inactive { background: #eee; color: #777; }
+
+    .my-reports .detail-block { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 20px; scroll-margin-top: 20px; }
+    .my-reports .detail-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+    .my-reports .detail-header h3 { margin: 0; }
+    .my-reports .detail-header .sub { color: #777; font-size: 0.85em; }
+
+    .my-reports .stat-chip-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+    .my-reports .stat-chip {
+      background: #f8f9fa; border-radius: 6px; padding: 8px 14px; min-width: 90px; text-align: center;
+    }
+    .my-reports .stat-chip .v { font-size: 1.2em; font-weight: bold; color: #1a5276; }
+    .my-reports .stat-chip .l { font-size: 0.75em; color: #777; }
+    .my-reports .stars { color: #d4ac0d; letter-spacing: 1px; }
+
+    .my-reports .subject-perf-table td.comment { color: #555; font-size: 0.9em; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .my-reports .pass-fail { padding: 2px 8px; border-radius: 10px; font-size: 0.8em; }
+    .pass-fail.pass { background: #d4edda; color: #155724; }
+    .pass-fail.fail { background: #f8d7da; color: #721c24; }
+
+    .my-reports .action-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 4px; }
+    .my-reports .action-btn {
+      border: 1px solid #1a5276; background: #fff; color: #1a5276; padding: 6px 14px;
+      border-radius: 4px; font-size: 0.85em; cursor: pointer; text-decoration: none;
+    }
+    .my-reports .action-btn:hover { background: #1a5276; color: #fff; }
+    .my-reports .action-status { font-size: 0.85em; margin-top: 6px; }
+    .my-reports .action-status.ok { color: #1e8449; }
+    .my-reports .action-status.error { color: #c0392b; }
+
+    .my-reports .progress-note { color: #777; font-size: 0.85em; border-top: 1px dashed #ddd; padding-top: 10px; margin-top: 10px; }
+    .my-reports .progress-table td, .my-reports .progress-table th { text-align: center; }
   </style>
 
   <h1>My Reports</h1>
   <p class="user-line">{{ frappe.session.user }}</p>
 
-  <div class="tab-panel active" id="tab-grades">
+  <div class="tab-panel active" id="tab-overview">
+    {% if not profile_students %}
+      <p class="empty">No profile information available yet.</p>
+    {% else %}
+
+    <div class="chip-strip">
+      {% if overview.academic_year %}<div class="chip">📅 Academic Year <strong>{{ overview.academic_year }}</strong></div>{% endif %}
+      {% if overview.current_term %}<div class="chip">📋 Current Term <strong>{{ overview.current_term }}</strong></div>{% endif %}
+      <div class="chip">{{ "👨‍👩‍👧" if viewer_role == "guardian" else "🏫" }} {{ "Children" if viewer_role == "guardian" else "Class" }} <strong>{{ overview.children_count if viewer_role == "guardian" else profile_students[0].student_group }}</strong></div>
+      <div class="chip">📄 Reports Available <strong>{{ overview.reports_available }}</strong></div>
+      {% if overview.new_reports %}
+      <div class="chip new-chip">🔔 New <strong>{{ overview.new_reports }}</strong></div>
+      {% endif %}
+    </div>
+
+    {% if viewer_role == "guardian" and profile_students|length > 1 %}
+    <div class="kid-grid">
+      {% for p in profile_students %}
+      <a href="#child-{{ p.student }}" class="kid-card">
+        <div class="kid-avatar">{{ p.student_name[0] }}</div>
+        <div class="kid-name">{{ p.student_name }}</div>
+        <div class="kid-class">{{ p.student_group or "Unassigned" }}</div>
+        {% if p.latest_report %}
+        <div class="kid-avg">{{ "%.1f"|format(p.latest_report.average_percentage) }}%</div>
+        {% else %}
+        <div class="kid-avg">-</div>
+        {% endif %}
+        <span class="kid-status {{ 'active' if p.enabled else 'inactive' }}">{{ "Active" if p.enabled else "Inactive" }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% for p in profile_students %}
+    <div class="detail-block" id="child-{{ p.student }}">
+      <div class="detail-header">
+        <h3>{{ p.student_name }}{% if p.student_group %} &middot; {{ p.student_group }}{% endif %}</h3>
+        <span class="sub">Class Teacher: {{ p.class_teacher }}</span>
+      </div>
+
+      {% if p.latest_report %}
+      <div class="stat-chip-row">
+        <div class="stat-chip"><div class="v">{{ "%.1f"|format(p.latest_report.average_percentage) }}%</div><div class="l">Average</div></div>
+        <div class="stat-chip"><div class="v">{{ p.latest_report.overall_grade or "-" }}</div><div class="l">Grade</div></div>
+        <div class="stat-chip"><div class="v">{{ p.latest_report.position }}/{{ p.latest_report.number_of_students }}</div><div class="l">Position</div></div>
+        <div class="stat-chip"><div class="v">{{ p.latest_report.subjects|length }}</div><div class="l">Subjects</div></div>
+        <div class="stat-chip"><div class="v stars">{{ "★" * p.latest_report.star_rating }}{{ "☆" * (5 - p.latest_report.star_rating) }}</div><div class="l">Rating</div></div>
+      </div>
+
+      <table class="subject-perf-table">
+        <thead>
+          <tr><th>Subject</th><th>Score</th><th>Grade</th><th>Status</th><th>Teacher Comment</th></tr>
+        </thead>
+        <tbody>
+          {% for s in p.latest_report.subjects %}
+          {% set pct = (s.total_score / s.maximum_score * 100) if s.maximum_score else 0 %}
+          <tr>
+            <td>{{ s.course }}</td>
+            <td>{{ s.total_score }}/{{ s.maximum_score|int }}</td>
+            <td>{{ s.grade }}</td>
+            <td><span class="pass-fail {{ 'pass' if pct >= 50 else 'fail' }}">{{ "Pass" if pct >= 50 else "Fail" }}</span></td>
+            <td class="comment" title="{{ s.comment or '' }}">{{ s.comment or "-" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="action-row">
+        <a class="action-btn" href="/printview?doctype=Report%20Card&name={{ p.latest_report.name|urlencode }}&format=IGCSE%20Report%20Card&no_letterhead=0" target="_blank">View / Print / Download PDF</a>
+        <button class="action-btn resend-email-btn" data-report="{{ p.latest_report.name }}">Email to Parent</button>
+      </div>
+      <div class="action-status" data-status-for="{{ p.latest_report.name }}"></div>
+
+      {% if p.has_history %}
+      <div class="progress-note">
+        <strong>Academic Progress</strong>
+        <table class="progress-table">
+          <thead><tr>{% for h in p.report_history %}<th>{{ h.academic_term }}</th>{% endfor %}</tr></thead>
+          <tbody><tr>{% for h in p.report_history %}<td>{{ "%.1f"|format(h.average_percentage) }}%</td>{% endfor %}</tr></tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="progress-note">Progress-over-terms will appear here once a second term is published for {{ p.student_name.split(" ")[0] }}.</p>
+      {% endif %}
+
+      {% else %}
+      <p class="empty">No report card published yet.</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+
+  <div class="tab-panel" id="tab-grades">
     {% if not children %}
       <p class="empty">No profile information available yet.</p>
     {% endif %}
@@ -125,6 +278,41 @@
       document.querySelectorAll(".tab-panel").forEach(function (p) { p.classList.remove("active"); });
       btn.classList.add("active");
       document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+    });
+  });
+
+  document.querySelectorAll(".resend-email-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var reportName = btn.dataset.report;
+      var statusEl = document.querySelector('[data-status-for="' + reportName + '"]');
+      btn.disabled = true;
+      statusEl.className = "action-status";
+      statusEl.textContent = "Sending...";
+
+      fetch("/api/method/edupro_sms.edupro_sms.doctype.report_card.notify.resend_report_card_email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Frappe-CSRF-Token": "{{ csrf_token }}",
+        },
+        body: JSON.stringify({ report_card_name: reportName }),
+      })
+        .then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
+        .then(function (result) {
+          if (result.ok) {
+            statusEl.textContent = "Emailed to parent(s).";
+            statusEl.className = "action-status ok";
+          } else {
+            statusEl.textContent = "Error: " + (result.body.exception || result.body._server_messages || "Could not send.");
+            statusEl.className = "action-status error";
+          }
+          btn.disabled = false;
+        })
+        .catch(function (err) {
+          statusEl.textContent = "Error: " + err;
+          statusEl.className = "action-status error";
+          btn.disabled = false;
+        });
     });
   });
 </script>

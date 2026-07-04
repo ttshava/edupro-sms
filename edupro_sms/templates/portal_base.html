@@ -42,12 +42,18 @@
     .portal-main { flex: 1; min-width: 0; }
     .portal-main h1 { margin: 0 0 4px 0; font-size: 1.7em; }
     .portal-main .user-line { color: #666; margin-bottom: 20px; }
-    /* Wide tables scroll within their own box instead of breaking the
-       layout -- works because display:block on <table> keeps its
-       internal table formatting while making the element itself the
-       scroll container. */
-    .portal-main table { display: block; overflow-x: auto; white-space: nowrap; }
-    .portal-main table thead, .portal-main table tbody { display: table; width: 100%; table-layout: auto; }
+    /* Wide tables scroll horizontally inside a wrapper div (added by the
+       script below) instead of breaking the page layout. This used to be
+       done with display:block directly on <table>, but that turns thead
+       and tbody into two SEPARATE anonymous tables that size their
+       columns independently -- header and data columns silently drift
+       out of alignment the moment a table has more than a couple of
+       columns with differently-sized content (caught when the my-reports
+       Subject Performance table's Score/Grade/Status columns rendered
+       under the wrong headers). A wrapper div is the correct fix: the
+       <table> itself keeps its real column grid, only the wrapper scrolls. */
+    .portal-main .table-scroll { overflow-x: auto; }
+    .portal-main table { width: 100%; }
 
     @media (max-width: 768px) {
       .portal-shell { flex-direction: column; }
@@ -78,4 +84,14 @@
     {% block portal_content %}{% endblock %}
   </main>
 </div>
+
+<script>
+  document.querySelectorAll(".portal-main table").forEach(function (table) {
+    if (table.parentElement.classList.contains("table-scroll")) return;
+    var wrapper = document.createElement("div");
+    wrapper.className = "table-scroll";
+    table.parentNode.insertBefore(wrapper, table);
+    wrapper.appendChild(table);
+  });
+</script>
 {% endblock %}

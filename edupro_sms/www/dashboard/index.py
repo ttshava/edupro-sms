@@ -31,21 +31,10 @@ def get_context(context):
 	context.title = "Dashboard"
 
 
-def _current_academic_term():
-	today = frappe.utils.today()
-	term = frappe.db.get_value(
-		"Academic Term", {"term_start_date": ["<=", today], "term_end_date": [">=", today]}, "name"
-	)
-	if not term:
-		# Between terms (holidays) -- fall back to the most recently started one.
-		term = frappe.db.get_value(
-			"Academic Term", {"term_start_date": ["<=", today]}, "name", order_by="term_start_date desc"
-		)
-	return term
-
-
 def _teacher_summary(classes: list[dict]) -> dict:
-	term = _current_academic_term()
+	from edupro_sms.edupro_sms.academic_calendar import get_current_term
+
+	term = get_current_term()
 	academic_year = frappe.db.get_value("Academic Term", term, "academic_year") if term else None
 
 	assigned_subjects = {row["course"] for row in classes}

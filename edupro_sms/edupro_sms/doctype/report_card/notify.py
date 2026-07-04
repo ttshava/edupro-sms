@@ -65,6 +65,27 @@ EMAIL_BODY_TEMPLATE = """
 """
 
 
+@frappe.whitelist()
+def resend_report_card_email(report_card_name: str):
+	"""Manual "Email to Parent" action from the portal -- reuses the same
+	background job the Published workflow transition already enqueues,
+	gated by the same permission check Report Card itself uses."""
+	from edupro_sms.edupro_sms.doctype.report_card.report_card import has_permission
+
+	doc = frappe.get_doc("Report Card", report_card_name)
+	if not has_permission(doc):
+		frappe.throw(frappe._("Not permitted."), frappe.PermissionError)
+	if doc.workflow_state != "Published":
+		frappe.throw(frappe._("This report card hasn't been published yet."))
+
+	frappe.enqueue(
+		"edupro_sms.edupro_sms.doctype.report_card.notify.send_report_card_emails",
+		queue="short",
+		report_card_name=doc.name,
+	)
+	return {"queued": True}
+
+
 def send_report_card_emails(report_card_name: str):
 	"""Background job: email every guardian linked to this Report Card's
 	student. Enqueued from report_card.py, never called synchronously
