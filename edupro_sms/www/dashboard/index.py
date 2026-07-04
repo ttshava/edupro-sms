@@ -12,11 +12,8 @@ def get_context(context):
 	roles = set(frappe.get_roles())
 
 	if "Headmaster" in roles or "System Manager" in roles:
-		from edupro_sms.edupro_sms.approvals import get_pending_report_cards
-
 		context.dashboard_role = "headmaster"
 		context.summary = _headmaster_summary()
-		context.pending_report_cards = get_pending_report_cards()
 		context.csrf_token = frappe.sessions.get_csrf_token()
 	elif "Instructor" in roles:
 		from edupro_sms.edupro_sms.grading import get_grade_boundaries
@@ -57,29 +54,46 @@ def _teacher_summary(classes: list[dict]) -> dict:
 
 
 def _headmaster_summary():
-	groups = frappe.get_all("Student Group", fields=["name", "program", "class_teacher"], order_by="name asc")
+	from education.education.api import get_grade
 
-	class_rows = []
-	for group in groups:
-		student_count = frappe.db.count("Student Group Student", {"parent": group.name, "active": 1})
-		class_teacher_name = None
-		if group.class_teacher:
-			class_teacher_name = frappe.db.get_value("Instructor", group.class_teacher, "instructor_name")
-		class_rows.append(
-			{
-				"name": group.name,
-				"program": group.program,
-				"student_count": student_count,
-				"class_teacher": class_teacher_name or "Not assigned",
-			}
+	from edupro_sms.edupro_sms.academic_calendar import get_current_term
+	from edupro_sms.edupro_sms.class_review import get_class_summary_rows, get_recent_activity, get_subject_analysis
+
+	term = get_current_term()
+	academic_year = frappe.db.get_value("Academic Term", term, "academic_year") if term else None
+
+	class_rows = get_class_summary_rows(term)
+	total_students = frappe.db.count("Student", {"enabled": 1})
+
+	states = Counter(
+		frappe.get_all(
+			"Report Card", filters={"academic_term": term, "docstatus": ["!=", 2]}, pluck="workflow_state"
 		)
+	)
+	reports_published = states.get("Published", 0)
+	reports_pending_approval = sum(v for k, v in states.items() if k != "Published")
+	reports_approved = states.get("Approved", 0)
+
+	averages = [r["average_percentage"] for r in class_rows if r["average_percentage"] is not None]
+	overall_average = (sum(averages) / len(averages)) if averages else None
+	overall_grade = get_grade("IGCSE Standard", overall_average) if overall_average is not None else None
 
 	return {
-		"total_students": frappe.db.count("Student", {"enabled": 1}),
+		"academic_year": academic_year,
+		"current_term": term,
+		"total_students": total_students,
 		"total_instructors": frappe.db.count("Instructor"),
-		"total_classes": len(groups),
+		"total_classes": len(class_rows),
 		"classes": class_rows,
-		"report_card_states": Counter(frappe.get_all("Report Card", pluck="workflow_state")),
+		"report_card_states": states,
+		"reports_published": reports_published,
+		"reports_expected": total_students,
+		"reports_pending_approval": reports_pending_approval,
+		"reports_approved": reports_approved,
+		"overall_average": overall_average,
+		"overall_grade": overall_grade,
+		"subject_analysis": get_subject_analysis(term),
+		"recent_activity": get_recent_activity(),
 	}
 
 

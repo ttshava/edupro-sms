@@ -1,0 +1,156 @@
+{% extends "templates/portal_base.html" %}
+
+{% block sidebar_nav %}
+<a href="/dashboard">&larr; Dashboard</a>
+{% endblock %}
+
+{% block portal_content %}
+<div class="class-review">
+  <style>
+    .class-review .stat-chip-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+    .class-review .stat-chip { background: #f8f9fa; border-radius: 6px; padding: 10px 16px; min-width: 100px; text-align: center; }
+    .class-review .stat-chip .v { font-size: 1.3em; font-weight: bold; color: #1a5276; }
+    .class-review .stat-chip .l { font-size: 0.8em; color: #777; }
+
+    .class-review table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+    .class-review th, .class-review td { padding: 8px; border-bottom: 1px solid #eee; text-align: left; }
+    .class-review .state { padding: 2px 8px; border-radius: 10px; font-size: 0.85em; }
+    .state-published { background: #d4edda; color: #155724; }
+    .state-other { background: #fff3cd; color: #856404; }
+
+    .class-review .dist-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .class-review .dist-label { width: 26px; font-weight: 600; }
+    .class-review .dist-track { flex: 1; background: #eee; border-radius: 6px; height: 16px; overflow: hidden; }
+    .class-review .dist-fill { background: #1a5276; height: 100%; }
+    .class-review .dist-count { width: 130px; color: #666; font-size: 0.85em; }
+
+    .class-review .comment-block { border: 1px solid #ddd; border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; color: #444; }
+
+    .class-review .action-row { display: flex; gap: 8px; margin: 14px 0; }
+    .class-review .action-btn { border: none; padding: 8px 18px; border-radius: 4px; font-size: 0.9em; cursor: pointer; color: #fff; }
+    .class-review .btn-approve { background: #1e8449; }
+    .class-review .btn-reject { background: #c0392b; }
+    .class-review .btn-publish { background: #1a5276; }
+    .class-review #bulk-status { margin: 10px 0; font-weight: 600; }
+    .class-review .save-ok { color: #1e8449; }
+    .class-review .save-error { color: #c0392b; }
+    .class-review .empty { color: #777; padding: 12px 0; }
+  </style>
+
+  <h1>{{ review.student_group }}</h1>
+  <p class="user-line">{{ review.academic_term }} &middot; Class Teacher: {{ review.class_teacher }}</p>
+
+  <div class="stat-chip-row">
+    <div class="stat-chip"><div class="v">{{ "%.1f"|format(review.average_percentage) if review.average_percentage is not none else "-" }}%</div><div class="l">Average</div></div>
+    <div class="stat-chip"><div class="v">{{ review.overall_grade or "-" }}</div><div class="l">Grade</div></div>
+    <div class="stat-chip"><div class="v">{{ review.student_count }}</div><div class="l">Students</div></div>
+    <div class="stat-chip"><div class="v">{{ review.pass_rate ~ "%" if review.pass_rate is not none else "-" }}</div><div class="l">Pass Rate</div></div>
+    <div class="stat-chip"><div class="v">{{ review.position_among_classes or "-" }}/{{ review.total_classes }}</div><div class="l">Position</div></div>
+  </div>
+
+  {% if review.grade_distribution %}
+  <h2>Grade Distribution</h2>
+  {% set total = review.students|length %}
+  {% for grade, count in review.grade_distribution.items()|sort %}
+  <div class="dist-row">
+    <div class="dist-label">{{ grade }}</div>
+    <div class="dist-track"><div class="dist-fill" style="width:{{ (count / total * 100)|round }}%"></div></div>
+    <div class="dist-count">{{ count }} students ({{ (count / total * 100)|round }}%)</div>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <h2>Student Performance Details</h2>
+  {% if not review.students %}
+  <p class="empty">No report cards for this class/term yet.</p>
+  {% else %}
+  <table>
+    <thead>
+      <tr><th>#</th><th>Student</th><th>Subjects</th><th>Average</th><th>Grade</th><th>Status</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for s in review.students %}
+      <tr>
+        <td>{{ s.position }}</td>
+        <td>{{ s.student_name }}</td>
+        <td>{{ s.subject_count }}</td>
+        <td>{{ "%.1f"|format(s.average_percentage) if s.average_percentage is not none else "-" }}%</td>
+        <td>{{ s.grade or "-" }}</td>
+        <td><span class="state {{ 'state-published' if s.workflow_state == 'Published' else 'state-other' }}">{{ s.workflow_state }}</span></td>
+        <td>
+          {% if s.workflow_state == "Published" %}
+          <a href="/printview?doctype=Report%20Card&name={{ s.report_card|urlencode }}&format=IGCSE%20Report%20Card&no_letterhead=0" target="_blank">View</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if review.teacher_comments %}
+  <h2>Class Teacher Comments</h2>
+  {% for c in review.teacher_comments %}
+  <div class="comment-block">{{ c }}</div>
+  {% endfor %}
+  {% endif %}
+
+  <h2>Headmaster's Review</h2>
+  <div id="bulk-status"></div>
+  <div class="action-row">
+    {% if review.reviewed_count %}
+    <button class="action-btn btn-approve" data-action="Approve">Approve All ({{ review.reviewed_count }})</button>
+    <button class="action-btn btn-reject" data-action="Reject">Request Revisions ({{ review.reviewed_count }})</button>
+    {% endif %}
+    {% if review.approved_count %}
+    <button class="action-btn btn-publish" data-action="Publish">Publish All ({{ review.approved_count }})</button>
+    {% endif %}
+    {% if not review.reviewed_count and not review.approved_count %}
+    <p class="empty">Nothing awaiting your review for this class right now.</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll(".action-row .action-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var action = btn.dataset.action;
+      var statusEl = document.getElementById("bulk-status");
+      document.querySelectorAll(".action-row .action-btn").forEach(function (b) { b.disabled = true; });
+      statusEl.className = "";
+      statusEl.textContent = action + "ing...";
+
+      fetch("/api/method/edupro_sms.edupro_sms.approvals.apply_class_report_card_action", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Frappe-CSRF-Token": "{{ csrf_token }}",
+        },
+        body: JSON.stringify({
+          student_group: "{{ review.student_group }}",
+          academic_term: "{{ review.academic_term }}",
+          action: action,
+        }),
+      })
+        .then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
+        .then(function (result) {
+          if (result.ok) {
+            var msg = result.body.message;
+            statusEl.textContent = action + "d " + msg.succeeded + "/" + msg.total + ".";
+            statusEl.className = "save-ok";
+            setTimeout(function () { window.location.reload(); }, 900);
+          } else {
+            statusEl.textContent = "Error: " + (result.body.exception || result.body._server_messages || "Could not update.");
+            statusEl.className = "save-error";
+            document.querySelectorAll(".action-row .action-btn").forEach(function (b) { b.disabled = false; });
+          }
+        })
+        .catch(function (err) {
+          statusEl.textContent = "Error: " + err;
+          statusEl.className = "save-error";
+          document.querySelectorAll(".action-row .action-btn").forEach(function (b) { b.disabled = false; });
+        });
+    });
+  });
+</script>
+{% endblock %}
