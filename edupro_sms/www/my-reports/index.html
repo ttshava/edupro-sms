@@ -48,9 +48,6 @@
         <thead>
           <tr>
             <th>Term</th>
-            <th>Average</th>
-            <th>Grade</th>
-            <th>Position</th>
             <th>Status</th>
             <th></th>
           </tr>
@@ -59,12 +56,9 @@
           {% for report in child.reports %}
           <tr>
             <td>{{ report.academic_term }}</td>
-            <td>{{ "%.1f"|format(report.average_percentage) if report.average_percentage else "-" }}%</td>
-            <td>{{ report.overall_grade or "-" }}</td>
-            <td>{{ report.position }}/{{ report.number_of_students }}</td>
             <td>
               <span class="state {{ 'state-published' if report.workflow_state == 'Published' else 'state-other' }}">
-                {{ report.workflow_state }}
+                {{ "Published" if report.workflow_state == "Published" else "Pending" }}
               </span>
             </td>
             <td>

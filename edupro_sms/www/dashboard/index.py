@@ -60,4 +60,10 @@ def _teacher_classes():
 	# own classes via teacher_permissions.py, same as on the Desk report.
 	from edupro_sms.edupro_sms.report.my_classes.my_classes import _rows
 
-	return _rows()
+	rows = _rows()
+	for row in rows:
+		# The subject/class selector on the dashboard serializes this list
+		# with Jinja's |tojson, which can't handle a raw date object.
+		if row.get("schedule_date"):
+			row["schedule_date"] = str(row["schedule_date"])
+	return rows

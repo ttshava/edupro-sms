@@ -15,19 +15,7 @@ def get_context(context):
 
 	cards = frappe.get_list(
 		"Report Card",
-		fields=[
-			"name",
-			"student",
-			"student_name",
-			"student_group",
-			"academic_term",
-			"academic_year",
-			"overall_grade",
-			"average_percentage",
-			"position",
-			"number_of_students",
-			"workflow_state",
-		],
+		fields=["name", "student", "student_name", "academic_term", "workflow_state"],
 		order_by="academic_term desc",
 	)
 	reports_by_student = {}

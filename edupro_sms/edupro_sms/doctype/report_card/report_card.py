@@ -1,6 +1,8 @@
 # Copyright (c) 2026, Edupro and contributors
 # For license information, please see license.txt
 
+import secrets
+
 import frappe
 from frappe import _
 from frappe.model.document import Document
@@ -15,7 +17,16 @@ class ReportCard(Document):
 		Approved -> Published workflow transition (allow_on_submit lets
 		workflow_state change post-submit). Only act the moment it
 		actually becomes Published, not on every such update."""
-		if self.workflow_state == "Published" and not self.sent_to_parent_at:
+		if self.workflow_state != "Published":
+			return
+
+		if not self.verification_code:
+			# Random, unguessable token (not the predictable "RC-..." doc
+			# name) -- this is what the print format's QR code encodes, so
+			# scanning it can't be used to enumerate other students' reports.
+			self.db_set("verification_code", secrets.token_hex(8), update_modified=False)
+
+		if not self.sent_to_parent_at:
 			frappe.enqueue(
 				"edupro_sms.edupro_sms.doctype.report_card.notify.send_report_card_emails",
 				queue="short",

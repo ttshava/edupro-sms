@@ -86,10 +86,11 @@ role_home_page = {
 # ----------
 
 # add methods and filters to jinja environment
-# jinja = {
-# 	"methods": "edupro_sms.utils.jinja_methods",
-# 	"filters": "edupro_sms.utils.jinja_filters"
-# }
+jinja = {
+	"methods": [
+		"edupro_sms.edupro_sms.qr.report_card_verification_qr_data_uri",
+	],
+}
 
 # Installation
 # ------------

@@ -34,6 +34,7 @@
   "column_break_4",
   "sent_to_parent_at",
   "viewed_by_parent_at",
+  "verification_code",
   "amended_from"
  ],
  "fields": [
@@ -197,6 +198,17 @@
    "fieldtype": "Datetime",
    "label": "Viewed by Parent At",
    "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "Random token set the moment this report card is first Published — encoded in the print format's QR code so anyone scanning it can confirm authenticity at /verify-report-card without seeing the full mark breakdown.",
+   "fieldname": "verification_code",
+   "fieldtype": "Data",
+   "label": "Verification Code",
+   "no_copy": 1,
+   "print_hide": 1,
+   "read_only": 1,
+   "unique": 1
   },
   {
    "fieldname": "amended_from",

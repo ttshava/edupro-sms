@@ -43,6 +43,14 @@
     .edupro-dashboard #approval-status { margin: 10px 0; font-weight: 600; }
     .edupro-dashboard .save-ok { color: #1e8449; }
     .edupro-dashboard .save-error { color: #c0392b; }
+
+    .edupro-dashboard .step-hint { color: #666; margin-bottom: 12px; }
+    .edupro-dashboard .subject-list { display: flex; flex-wrap: wrap; gap: 10px; }
+    .edupro-dashboard .subject-btn {
+      border: 1px solid #1a5276; background: #fff; color: #1a5276; padding: 12px 20px;
+      border-radius: 6px; font-size: 1em; cursor: pointer;
+    }
+    .edupro-dashboard .subject-btn:hover { background: #1a5276; color: #fff; }
   </style>
 
   <h1>Dashboard</h1>
@@ -157,35 +165,77 @@
 
   {% elif dashboard_role == "teacher" %}
     <h2 id="my-classes">My Classes</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Class</th><th>Subject</th><th>Term</th><th>Assessment Date</th>
-          <th>Students</th><th>Marks Entered</th><th>Status</th><th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in classes %}
-        <tr>
-          <td>{{ row.student_group }}</td>
-          <td>{{ row.course }}</td>
-          <td>{{ row.academic_term }}</td>
-          <td>{{ row.schedule_date }}</td>
-          <td>{{ row.total_students }}</td>
-          <td>{{ row.marks_entered }}</td>
-          <td>
-            <span class="state {{ 'state-complete' if row.status == 'Complete' else 'state-progress' }}">
-              {{ row.status }}
-            </span>
-          </td>
-          <td><a href="/marks-entry?plan={{ row.name|urlencode }}">Enter Marks</a></td>
-        </tr>
-        {% endfor %}
-        {% if not classes %}
-        <tr><td colspan="8" class="empty">No classes assigned yet.</td></tr>
-        {% endif %}
-      </tbody>
-    </table>
+
+    {% if not classes %}
+    <p class="empty">No classes assigned yet.</p>
+    {% else %}
+    <div id="subject-step">
+      <p class="step-hint">Select a subject you teach:</p>
+      <div id="subject-list" class="subject-list"></div>
+    </div>
+
+    <div id="class-step" style="display: none;">
+      <p class="step-hint">
+        <a href="#" id="back-to-subjects">&larr; Subjects</a> &middot; <strong id="class-step-subject"></strong>
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Class</th><th>Term</th><th>Assessment Date</th>
+            <th>Students</th><th>Marks Entered</th><th>Status</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="class-list-body"></tbody>
+      </table>
+    </div>
+
+    <script id="teacher-classes-data" type="application/json">{{ classes | tojson }}</script>
+    <script>
+      (function () {
+        var rows = JSON.parse(document.getElementById("teacher-classes-data").textContent);
+        var bySubject = {};
+        rows.forEach(function (row) {
+          (bySubject[row.course] = bySubject[row.course] || []).push(row);
+        });
+
+        var subjectList = document.getElementById("subject-list");
+        Object.keys(bySubject).sort().forEach(function (subject) {
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "subject-btn";
+          btn.textContent = subject + " (" + bySubject[subject].length + ")";
+          btn.addEventListener("click", function () { showClasses(subject); });
+          subjectList.appendChild(btn);
+        });
+
+        function showClasses(subject) {
+          document.getElementById("class-step-subject").textContent = subject;
+          var body = document.getElementById("class-list-body");
+          body.innerHTML = "";
+          bySubject[subject].forEach(function (row) {
+            var tr = document.createElement("tr");
+            tr.innerHTML =
+              "<td>" + row.student_group + "</td>" +
+              "<td>" + row.academic_term + "</td>" +
+              "<td>" + (row.schedule_date || "") + "</td>" +
+              "<td>" + row.total_students + "</td>" +
+              "<td>" + row.marks_entered + "</td>" +
+              "<td><span class=\"state " + (row.status === "Complete" ? "state-complete" : "state-progress") + "\">" + row.status + "</span></td>" +
+              "<td><a href=\"/marks-entry?plan=" + encodeURIComponent(row.name) + "\">Enter Marks</a></td>";
+            body.appendChild(tr);
+          });
+          document.getElementById("subject-step").style.display = "none";
+          document.getElementById("class-step").style.display = "block";
+        }
+
+        document.getElementById("back-to-subjects").addEventListener("click", function (e) {
+          e.preventDefault();
+          document.getElementById("class-step").style.display = "none";
+          document.getElementById("subject-step").style.display = "block";
+        });
+      })();
+    </script>
+    {% endif %}
 
   {% else %}
     <p class="empty">No dashboard is configured for your role yet.</p>
