@@ -79,10 +79,19 @@ def _build_profile(student_name):
 	)
 	student_group = frappe.get_doc("Student Group", group_row) if group_row else None
 
-	courses = []
-	if student_group and student_group.program:
-		program = frappe.get_doc("Program", student_group.program)
-		courses = [c.course for c in program.courses]
+	subjects = []
+	class_teacher_name = None
+	if student_group:
+		if student_group.class_teacher:
+			class_teacher_name = frappe.db.get_value("Instructor", student_group.class_teacher, "instructor_name")
+		if student_group.program:
+			program = frappe.get_doc("Program", student_group.program)
+			course_names = [c.course for c in program.courses]
+			teacher_by_course = _latest_examiner_by_course(student_group.name, course_names)
+			subjects = [
+				{"course": course, "teacher": teacher_by_course.get(course) or "Not yet assigned"}
+				for course in course_names
+			]
 
 	guardian_emails = [
 		frappe.db.get_value("Guardian", row.guardian, "email_address")
@@ -96,6 +105,28 @@ def _build_profile(student_name):
 		"student_name": student.student_name,
 		"student_group": student_group.name if student_group else None,
 		"program": student_group.program if student_group else None,
-		"courses": courses,
+		"class_teacher": class_teacher_name or "Not yet assigned",
+		"subjects": subjects,
 		"guardian_emails": guardian_emails,
 	}
+
+
+def _latest_examiner_by_course(student_group, course_names):
+	"""Best-known teacher per subject for this class: the examiner set on
+	that subject's most recent Assessment Plan, since that's the one real,
+	persisted subject-to-teacher link in the data model (Student Group
+	Instructor only lists the class's teachers as a flat pool, not which
+	subject each one teaches)."""
+	if not course_names:
+		return {}
+
+	plans = frappe.get_all(
+		"Assessment Plan",
+		filters={"student_group": student_group, "course": ["in", course_names], "examiner": ["is", "set"]},
+		fields=["course", "examiner", "creation"],
+		order_by="creation desc",
+	)
+	result = {}
+	for plan in plans:
+		result.setdefault(plan.course, frappe.db.get_value("Instructor", plan.examiner, "instructor_name"))
+	return result

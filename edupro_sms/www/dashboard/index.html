@@ -58,7 +58,7 @@
     <h2 id="classes">Classes</h2>
     <table>
       <thead>
-        <tr><th>Class</th><th>Program</th><th>Students</th><th>Teachers</th></tr>
+        <tr><th>Class</th><th>Program</th><th>Students</th><th>Class Teacher</th></tr>
       </thead>
       <tbody>
         {% for c in summary.classes %}
@@ -66,7 +66,7 @@
           <td>{{ c.name }}</td>
           <td>{{ c.program or "-" }}</td>
           <td>{{ c.student_count }}</td>
-          <td>{{ c.teachers }}</td>
+          <td>{{ c.class_teacher }}</td>
         </tr>
         {% endfor %}
       </tbody>

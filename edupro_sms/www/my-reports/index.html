@@ -23,6 +23,8 @@
 
     .my-reports .profile-row { display: flex; padding: 8px 0; border-bottom: 1px solid #eee; }
     .my-reports .profile-label { width: 160px; color: #666; font-weight: 600; }
+    .my-reports .subjects-heading { margin: 16px 0 6px; font-weight: 600; color: #666; }
+    .my-reports .subjects-table th { color: #666; font-size: 0.85em; text-transform: uppercase; }
     .my-reports .fees-placeholder {
       text-align: center; padding: 40px 20px; color: #777; border: 1px dashed #ccc; border-radius: 6px;
     }
@@ -89,8 +91,27 @@
     <div class="child-block">
       <div class="child-name">{{ p.student_name }}</div>
       <div class="profile-row"><div class="profile-label">Class</div><div>{{ p.student_group or "Not yet assigned" }}</div></div>
-      <div class="profile-row"><div class="profile-label">Subjects</div><div>{{ p.courses|join(", ") if p.courses else "Not yet assigned" }}</div></div>
+      <div class="profile-row"><div class="profile-label">Class Teacher</div><div>{{ p.class_teacher }}</div></div>
       <div class="profile-row"><div class="profile-label">Parent Email{{ "s" if p.guardian_emails|length > 1 else "" }}</div><div>{{ p.guardian_emails|join(", ") if p.guardian_emails else "Not on file" }}</div></div>
+
+      {% if p.subjects %}
+      <div class="subjects-heading">Subjects</div>
+      <table class="subjects-table">
+        <thead>
+          <tr><th>Subject</th><th>Teacher</th></tr>
+        </thead>
+        <tbody>
+          {% for s in p.subjects %}
+          <tr>
+            <td>{{ s.course }}</td>
+            <td>{{ s.teacher }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="profile-row"><div class="profile-label">Subjects</div><div>Not yet assigned</div></div>
+      {% endif %}
     </div>
     {% endfor %}
   </div>

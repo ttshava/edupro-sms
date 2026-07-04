@@ -28,21 +28,20 @@ def get_context(context):
 
 
 def _headmaster_summary():
-	groups = frappe.get_all("Student Group", fields=["name", "program"], order_by="name asc")
+	groups = frappe.get_all("Student Group", fields=["name", "program", "class_teacher"], order_by="name asc")
 
 	class_rows = []
 	for group in groups:
 		student_count = frappe.db.count("Student Group Student", {"parent": group.name, "active": 1})
-		instructors = frappe.get_all(
-			"Student Group Instructor", filters={"parent": group.name}, pluck="instructor"
-		)
-		teacher_names = [frappe.db.get_value("Instructor", i, "instructor_name") for i in instructors]
+		class_teacher_name = None
+		if group.class_teacher:
+			class_teacher_name = frappe.db.get_value("Instructor", group.class_teacher, "instructor_name")
 		class_rows.append(
 			{
 				"name": group.name,
 				"program": group.program,
 				"student_count": student_count,
-				"teachers": ", ".join(filter(None, teacher_names)) or "Unassigned",
+				"class_teacher": class_teacher_name or "Not assigned",
 			}
 		)
 
