@@ -219,7 +219,10 @@ doc_events = {
 # Version-controlled, reproducible across sites — see CODING_STANDARDS.md
 
 fixtures = [
-	{"dt": "Role", "filters": [["name", "in", ["Headmaster", "Class Teacher"]]]},
+	{
+		"dt": "Role",
+		"filters": [["name", "in", ["Headmaster", "Class Teacher", "Student", "Guardian", "Instructor"]]],
+	},
 	{"dt": "Grading Scale", "filters": [["name", "in", ["IGCSE Standard"]]]},
 	{
 		"dt": "Custom Field",
