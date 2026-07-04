@@ -433,6 +433,38 @@ YYYY-MM-DD.
   under their identity without touching their password) and, for a
   real click-through, a disposable QA multi-class teacher account
   added to 3 real classes and fully removed again afterward.
+- **Teacher dashboard and Enter Marks page substantially enriched**
+  from a mockup the owner supplied, with two scoping calls made where
+  the mockup implied more than the current architecture supports (the
+  owner didn't respond to a clarifying question, so the recommended/
+  lower-risk option was taken in both cases — see `DECISIONS.md` 0016):
+  - `/dashboard` (teacher role) gained a real summary bar (Academic
+    Year, Current Term — derived from whichever Academic Term's
+    start/end dates bracket today — Assigned Subjects, Total Students,
+    Marks Entered X/Y, Pending), and the Subject → Class step now
+    renders a card grid (icon, student count, progress bar, colored
+    Complete/Pending pill) instead of a plain table.
+  - Added a real "Grade Boundaries" reference table on both
+    `/dashboard` and `/marks-entry`, sourced live from the IGCSE
+    Standard Grading Scale's own intervals/descriptions (not
+    hardcoded), with a small cosmetic color-band mapping per grade.
+  - `/marks-entry` gained a header info block (Class/Subject/
+    Assessment Date/Status), a live client-side Grade column and
+    green/red pass-fail input styling as marks are typed (computed
+    from the same real grade boundaries), an Entered/Missing status
+    per row, a summary bar (Entered X/Y, Average, Pass Rate) with a
+    missing-marks warning, CSV export/import (round-trips via Student
+    ID, not name, so re-uploading is reliable), a Print button, and a
+    real grade-distribution bar chart computed from the marks already
+    on screen.
+  - **Not built, deliberately:** a fake notification bell (nothing
+    real behind it), attendance-style "Mark all present/absent" bulk
+    actions (wrong concept for a marks-only system), bulk grade-curve/
+    ±N adjustment tools, a new Draft → Submit-for-Approval → Request-
+    Revisions gate at the subject level (marks still submit directly
+    on Save, feeding the existing Report Card → Headmaster approval
+    flow unchanged), and a "Strong/Weak topic areas" analysis (no
+    per-topic data exists to support that claim).
 
 ---
 

@@ -676,3 +676,44 @@ verification feature, follow the same shape — random unguessable
 token on the document, a public page keyed by that token, and a
 deliberately narrow set of fields on that page. Don't reuse the
 document's own name as the token.
+
+## 0016 — Teacher dashboard mockup: kept the current submit-on-save model, CSV-only for bulk marks entry
+
+**Decision:** The owner supplied a detailed mockup for a richer teacher
+dashboard/marks-entry experience that implied two things beyond what
+exists today: (1) marks going through their own Draft → "Submit for
+Approval" → "Request Revisions" cycle, separate from the Report Card
+approval Headmaster already does, and (2) a set of "Bulk Operations"
+including attendance-style Mark All Present/Absent and grade-curve/±N
+adjustment tools. A clarifying question was asked about both; the
+owner didn't respond. Given the size of the ask and the genuine
+architectural fork on point (1), the lower-risk, recommended option
+from that question was taken for both rather than guessing at the
+more invasive one: marks still submit directly when a teacher clicks
+Save (no new approver, no new workflow states) — "Submit for Approval"
+in the mockup maps onto the existing Save action, which already feeds
+the real approval gate at the Report Card level (Class Teacher review
+→ Headmaster approve → publish). Bulk operations were limited to CSV
+export/import; attendance-style present/absent marking was dropped
+entirely (wrong concept for a marks-only system, no attendance data
+model exists), and grade-curve/±N tools were left out since "curve"
+has no agreed-on computation.
+
+**Why:** Introducing a second approval gate before the Report Card
+level would be a materially bigger, riskier change than the rest of
+the mockup — it needs new workflow states, a new reviewer screen, and
+rules for who can request revisions, none of which were specified.
+Building it on a guess risks locking in the wrong shape for a real
+school process. The visual/UX parts of the mockup (summary bar, class
+cards, live grade calculation, grade boundaries table, CSV round-trip,
+grade distribution chart) were all buildable from data that already
+exists and carried no such risk, so those went ahead without waiting
+for a response.
+
+**How to apply:** If the owner later confirms they do want a genuine
+subject-level approval gate, treat it as new scope, not a bug fix —
+it changes who can edit a mark after entry and needs its own workflow
+states (mirroring `Report Card`'s Pending Approval/Reviewed/Approved/
+Published pattern is the natural starting point, but distinct roles
+need deciding: does the Class Teacher approve each subject teacher's
+marks, or does this stay Headmaster-only?).

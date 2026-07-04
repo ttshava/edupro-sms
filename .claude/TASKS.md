@@ -328,6 +328,25 @@ replacements first, then removed Desk access — see `DECISIONS.md`
 - [x] Teacher dashboard reworked into a Subject → Class selector for
       teachers who teach the same subject across multiple classes
 
+## Teacher dashboard/Enter Marks enrichment ✅ done 2026-07-04
+
+- [x] Teacher dashboard summary bar (Academic Year, Current Term,
+      Assigned Subjects, Total Students, Marks Entered X/Y, Pending)
+- [x] Subject → Class step upgraded to a card grid (icon, progress
+      bar, Complete/Pending pill)
+- [x] Grade Boundaries reference table sourced from the real IGCSE
+      Standard Grading Scale, shown on both the dashboard and
+      Enter Marks page
+- [x] Enter Marks page: header info block, live client-side grade
+      calculation + pass/fail input coloring, Entered/Missing row
+      status, summary bar (Entered/Average/Pass Rate), CSV export/
+      import (by Student ID), Print button, real grade-distribution
+      chart from already-entered marks
+- [x] Deliberately skipped: fake notification bell, attendance-style
+      bulk actions, grade-curve/±N tools, a new subject-level Draft→
+      Submit-for-Approval gate, and fabricated topic-level analysis
+      (see `DECISIONS.md` 0016)
+
 ## Portal redesign: left-sidebar layout ✅ done 2026-07-03
 
 - [x] Shared `edupro_sms/templates/portal_base.html` sidebar shell,
