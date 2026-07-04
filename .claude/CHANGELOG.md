@@ -8,6 +8,17 @@ YYYY-MM-DD.
 
 ### Added
 
+- Rebranded the teacher-facing `/dashboard` and `/marks-entry` website
+  pages with the Edupro brand design system (red/gray palette, Inter font,
+  pill buttons, elevated cards, small dense font sizes, inline SVG
+  education icons replacing emoji). Scoped under a new `.edu-teacher`
+  wrapper class in `dashboard/index.html` so the Headmaster branch of the
+  same template is untouched; `marks-entry/index.html` is a single-role
+  page so its whole `<style>` block was redone in place. Verified in
+  browser with a disposable QA teacher account and a disposable QA
+  headmaster account (both since deleted); headmaster dashboard confirmed
+  unaffected. See `DECISIONS.md` 0020.
+
 - Project documentation scaffolding: `.claude/CLAUDE.md`,
   `PROJECT_CONTEXT.md`, `TASKS.md`, `DECISIONS.md`, `CODING_STANDARDS.md`,
   `CHANGELOG.md`, and `docs/01`–`10` skeletons.

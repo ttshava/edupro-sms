@@ -906,3 +906,45 @@ Term Mark/Exam Mark criteria pair and the scale from
 `get_grading_scale_for_program()`. If the owner ever asks to adjust
 which subjects belong to Arts vs. Commercials vs. Science, that's a
 one-line change to `Program.courses` per stream, not a structural one.
+
+## 0020 — Teacher-only rebrand of `/dashboard` and `/marks-entry`, scoped so Headmaster's view is untouched
+
+**Decision:** Applied the Edupro brand design system (from the separate
+`eduprodocs` marketing-site CSS/JS — red/gray palette, Inter font, pill
+buttons, elevated cards with hover-lift, inline Feather-style SVG icons)
+to the two pages an Instructor actually uses, and only those: the
+teacher branch of `www/dashboard/index.html` and all of
+`www/marks-entry/index.html`. Small font sizes and dense spacing per the
+request. Did not touch the Headmaster branch, the parent/student portal,
+or the shared `portal_base.html` sidebar shell — the request said
+"teacher dashboard pages," not a site-wide restyle.
+
+**Why:** `dashboard/index.html` renders both the Headmaster and Instructor
+views from one template with overlapping class names (`.stat-card`,
+`.class-card`, `.status-pill`). A global CSS rewrite would have silently
+changed the Headmaster view too. Wrapped the entire
+`{% elif dashboard_role == "teacher" %}` branch in a new `.edu-teacher`
+div and scoped all new brand rules under that selector, so higher
+specificity wins for teachers without editing a single Headmaster rule
+or emoji. `marks-entry/index.html` is single-role (teacher-only), so its
+whole `<style>` block and markup were redone directly.
+
+Icons are inline SVG defined via a Jinja `{% macro icon(name) %}` for
+server-rendered markup, plus matching JS string constants
+(`ICON_BOOK`, `ICON_CHECK`, etc.) for the parts of both pages that build
+HTML client-side (class cards, status cells, the missing-marks warning).
+No icon font/library dependency added.
+
+Verified in a real browser: created disposable QA accounts
+(`qa.brand.teacher@example.edupro.test` as an Instructor on the real
+Form 1 Purple class, `qa.brand.headmaster@example.edupro.test` with the
+Headmaster role), confirmed both rebranded pages render correctly and
+confirmed the Headmaster dashboard is pixel-identical to before, then
+deleted both accounts and their sessions.
+
+**How to apply:** If the brand redesign is later extended to
+`my-reports` or the Headmaster dashboard, reuse the same pattern — a
+role-scoped wrapper class per branch of a shared template, not a global
+selector — to avoid the same cross-role leakage risk. The
+`_GRADING_SCALE`/icon-macro approach here is a reasonable template for
+any future page that needs both server-rendered and JS-rendered icons.

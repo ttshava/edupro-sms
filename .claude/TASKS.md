@@ -367,6 +367,17 @@ replacements first, then removed Desk access — see `DECISIONS.md`
       clean so real teachers can start entering Term 2 marks
       (see `DECISIONS.md` 0019)
 
+## Teacher dashboard/Enter Marks Edupro rebrand ✅ done 2026-07-04
+
+- [x] Applied the Edupro brand design system (red/gray palette, Inter
+      font, pill buttons, elevated cards, small dense fonts, inline SVG
+      education icons) to the teacher branch of `/dashboard` and all of
+      `/marks-entry`
+- [x] Scoped under a new `.edu-teacher` wrapper so the same template's
+      Headmaster branch is untouched — verified with disposable QA
+      teacher + headmaster accounts, then deleted both (see
+      `DECISIONS.md` 0020)
+
 ## Parent/student dashboard redesign ✅ done 2026-07-04
 
 - [x] New "Overview" tab on `/my-reports`: compact stat-chip strip,
