@@ -558,6 +558,61 @@ YYYY-MM-DD.
     future `edupro_attendance` app, not in scope), a mass "Send
     Broadcast" email composer, and "Notify Teachers"/multi-term trend
     charts (same single-term data limitation noted above).
+- **Major restructuring: class taxonomy, dual Term/Exam marks, and a
+  real curriculum-board/grading-band system.** The single largest
+  change this project has taken in one batch — see `DECISIONS.md`
+  0019 for the full reasoning behind every non-obvious call made here.
+  - **Class list now matches the owner's exact spec.** Form 1
+    (Purple/Green/Blue) and Form 2 (Blue/Green) kept as-is — Form 1
+    Purple's 33 real students were completely untouched throughout.
+    Form 2 Purple and all of Form 3/4's old Blue/Green/Purple classes
+    were deleted (all sample data, confirmed via a real/sample student
+    audit before deleting anything). Form 3, 4, and a brand new Form 5
+    were rebuilt as Arts/Commercials/Science streams with genuinely
+    different subject lists per stream (mirroring the existing Upper 6
+    pattern — clearly a Claude-authored best-guess split, flagged for
+    the owner to adjust). Upper 6 Arts/Commercials/Science were
+    **renamed** (not recreated) to Form 6 Arts/Commercials/Science,
+    keeping their existing students/subjects. Net: 17 classes total.
+  - **Marks are now Term Mark + Exam Mark**, each out of 100 with its
+    own independently computed grade (reverting the earlier single-
+    Exam/100 consolidation from decision-batch "0016" — the owner
+    confirmed wiping and starting fresh rather than trying to migrate
+    the old single mark). This maps directly onto Education's existing
+    two-criteria-per-plan model (same shape as the original Test/Exam
+    split, just relabeled and reweighted 100/100 instead of 40/60) —
+    no new data model was needed, `marks_entry.py`'s save/load logic
+    was already criteria-agnostic. `/marks-entry` now shows a live
+    grade *per column*, not one combined grade.
+  - **Six curriculum Grading Scales added**, replacing the single
+    "IGCSE Standard" placeholder: Cambridge Form 1-2/O Level/A Level
+    and the ZIMSEC equivalents, entered verbatim from the owner's
+    tables (including literal quirks like Cambridge O Level's grade
+    *code* being "A*/A" for the whole 80-100 band, and "Ungraded" as
+    the bottom-band code rather than a description).
+  - **New curriculum-board + grading-band architecture.**
+    `School Settings.curriculum_board` (Cambridge/ZIMSEC, default
+    Cambridge) is the school-wide toggle the owner asked for. The
+    existing `Curriculum` doctype was repurposed from holding two
+    Cambridge-only records into three grading *bands* (Form 1-2/
+    O Level/A Level) linked from `Program.curriculum` — Form level
+    decides the band, the School Settings toggle decides the board;
+    `grading.get_grading_scale_for_program()` combines the two to
+    pick one of the six scales. Every class's real Assessment Plans
+    were rebuilt against the correct scale for its band.
+  - **Comments auto-load** from the grading scale's own Remark text
+    for a subject's overall grade (e.g. a Cambridge Form 1-2 "C"
+    auto-fills "Good") — populated when Report Cards are generated,
+    but a teacher's own manually-entered comment is never overwritten.
+  - **Delivered empty, matching "teacher must start entering marks."**
+    All 222 Assessment Plans across all 17 classes (including Form 1
+    Purple's real roster) were created with zero marks entered — this
+    was verified end-to-end first (real marks entered for a disposable
+    sample class, taken through generate → approve → publish, print
+    format and live grade columns confirmed correct in a real browser
+    session) and then that test data was fully wiped again so the
+    delivered state is genuinely ready for real teachers to log in and
+    start entering Term 2 marks themselves.
 
 ---
 

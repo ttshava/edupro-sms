@@ -798,3 +798,111 @@ without claiming a precise event log that doesn't exist.
 actually requested (not implied by a mockup), the real fix is enabling
 `track_changes` on `Report Card` (or a dedicated audit log doctype),
 not trying to reverse-engineer it from `modified` timestamps.
+
+## 0019 — Class taxonomy rebuild, Term Mark + Exam Mark, and a real curriculum-board/grading-band system
+
+**Decision:** This was an explicit, direct instruction (not a mockup to
+scope down) covering four separate structural changes at once. Two
+clarifying questions were asked first and answered before touching
+anything: (1) Form 3/4/5/6 streams get genuinely different subject
+lists per stream, mirroring the existing Upper 6 pattern; (2) Form 1
+Purple's real students' already-published Term 2 data gets wiped and
+re-entered from scratch rather than migrated, once marks become
+Term Mark + Exam Mark.
+
+**1. Class list.** Audited real-vs-sample data *before* deleting
+anything (`Student.user` domain: `@firstclasshigh.ac.zw` = real,
+`@example.edupro.test` = sample) — only Form 1 Purple had real
+students (33); every other class was sample data from earlier
+batches. That made the "delete anything not in the list" instruction
+low-risk: Form 2 Purple and the old Form 3/4 Blue/Green/Purple classes
+were deleted outright (sample data only); Upper 6 Arts/Commercials/
+Science were **renamed** to Form 6 (not recreated, so their existing
+students/subjects survived); Form 3, 4, and a new Form 5 were rebuilt
+as Arts/Commercials/Science streams with distinct subject lists
+mirroring Upper 6's split (a Claude-authored best-guess, explicitly
+flagged — the owner may want to adjust which subjects land in which
+stream). Net result: 17 classes, exactly matching the spec.
+
+**2. Term Mark + Exam Mark.** This is a partial reversal of the
+"0016" decision batch, which had consolidated a Test(40)+Exam(60)
+split down to a single Exam(100) criterion. The new spec
+(`Term Mark = 90% A | Exam Mark = 81% A`, shown separately) maps onto
+the *exact same* two-criteria-per-Assessment-Plan model Education
+already provides — just two criteria weighted 100/100 instead of
+40/60, with each keeping its own independently-computed grade (which
+Education's `Assessment Result.validate_grade()` already computes per
+detail row — nothing new to build there). `marks_entry.py` was already
+criteria-agnostic on save/load, so only the *display* needed
+reworking: `/marks-entry` now renders a live grade next to each mark
+column instead of one combined grade, and Report Card's per-subject
+row gained explicit `term_mark`/`term_grade`/`exam_mark`/`exam_grade`
+fields (`Report Card Assessment Result`) so the print format can show
+both columns without re-deriving them from the underlying Assessment
+Result each time.
+
+**3. Six curriculum Grading Scales.** Cambridge Form 1-2/O Level/
+A Level and the ZIMSEC equivalents, entered **verbatim** from the
+owner's tables rather than "corrected" toward real-world Cambridge
+conventions. Two literal quirks worth remembering if this needs
+touching again: Cambridge O Level's 80-100% band has grade *code*
+"A*/A" as one merged band (not split into a real A*-at-90+ vs
+A-at-80-89 the way actual Cambridge IGCSE works) because that's
+exactly what the owner's table showed as a single row; and its bottom
+band's grade code is literally "Ungraded" (not a description of an
+"F" grade — "Ungraded" IS the code in that column). Follow the table
+literally if it's ever revised, don't assume real-world conventions.
+
+**4. Curriculum board + grading band.** Added
+`School Settings.curriculum_board` (Cambridge/ZIMSEC Select, default
+Cambridge per the instruction) as the single school-wide toggle the
+owner asked for — repurposing a field that already existed
+(`curriculum`, previously a single-option "IGCSE" Select nobody read)
+rather than adding a new one. The existing `Curriculum` doctype
+(previously 2 records: "Cambridge IGCSE...", "Cambridge AS Level")
+was repurposed into exactly 3 **grading bands** (Form 1-2/O Level/
+A Level) linked from `Program.curriculum` — Form level decides the
+band regardless of which board the school runs; the School Settings
+toggle decides the board. `edupro_sms/grading.py`'s
+`get_grading_scale_for_program()` combines the two via a lookup dict
+into one of the six scale names. Every real Assessment Plan was
+rebuilt referencing the correct scale for its Program's band.
+
+**5. Comments auto-load, but don't clobber a manual one.** A Report
+Card subject row's `comment` is filled from the grading scale's own
+`grade_description` (the "Remark" column) for that subject's overall
+grade, only when no comment was already present — `result.comment or
+get_grade_description(...)`. This is the same Remark text already
+being stored as `Grading Scale Interval.grade_description`, so no new
+data structure was needed for it.
+
+**6. Delivered empty, on purpose.** "Teacher must start entering
+marks. Enable it" was taken literally: after rebuilding everything,
+one disposable sample class (Form 2 Green) had real Term Mark + Exam
+Mark scores entered through the actual `save_marks()` function, was
+taken through generate → Review → Approve → Publish, and the print
+format / live grade columns / auto-loaded comments were all confirmed
+correct in a real logged-in browser session — *then that test data was
+fully deleted again*, leaving all 222 Assessment Plans (across all 17
+classes, Form 1 Purple included) with zero marks entered. The
+verification proves the pipeline works; the empty end state is what
+"enable it" actually asked for.
+
+**Why wipe-then-verify-then-wipe-again instead of just trusting the
+code:** this batch touched the marks schema, the grading scale lookup,
+the Report Card generation logic, and the print format all at once —
+a single wrong wire-up (wrong scale, wrong criteria name, a fetch_from
+gotcha like the ones already on record) would have been invisible
+until a real teacher hit it. Cheaper to prove it once on disposable
+data than to ship it unverified.
+
+**How to apply:** If a new Form level or stream is ever added, follow
+this same three-step shape: (a) create the Program with the right
+`curriculum` band link, (b) create the Student Group referencing it
+(and remember to set `academic_term` explicitly — the `fetch_from`
+gotcha on record since 0006/0009 bit this batch too, on the newly
+created Form 3/4/5 groups), (c) create its Assessment Plans with the
+Term Mark/Exam Mark criteria pair and the scale from
+`get_grading_scale_for_program()`. If the owner ever asks to adjust
+which subjects belong to Arts vs. Commercials vs. Science, that's a
+one-line change to `Program.courses` per stream, not a structural one.

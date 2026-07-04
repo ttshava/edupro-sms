@@ -347,6 +347,26 @@ replacements first, then removed Desk access — see `DECISIONS.md`
       Submit-for-Approval gate, and fabricated topic-level analysis
       (see `DECISIONS.md` 0016)
 
+## Class restructure, Term/Exam marks, curriculum bands ✅ done 2026-07-04
+
+- [x] Class list rebuilt to spec: Form 1 (Purple/Green/Blue), Form 2
+      (Blue/Green), Form 3/4/5/6 each split into Arts/Commercials/
+      Science (17 classes total) — Form 1 Purple's 33 real students
+      untouched throughout
+- [x] Marks changed from single Exam/100 back to Term Mark + Exam
+      Mark, each out of 100 with its own grade
+- [x] Six curriculum Grading Scales (Cambridge/ZIMSEC × Form 1-2/
+      O Level/A Level), entered verbatim from the owner's tables
+- [x] `School Settings.curriculum_board` toggle (default Cambridge) +
+      repurposed `Curriculum` doctype as the 3 grading bands, combined
+      via `grading.get_grading_scale_for_program()`
+- [x] Comments auto-load from the grading scale's Remark text on
+      Report Card generation, without overwriting a manual comment
+- [x] All 222 Assessment Plans across all 17 classes recreated empty,
+      verified end-to-end with disposable test data first, then wiped
+      clean so real teachers can start entering Term 2 marks
+      (see `DECISIONS.md` 0019)
+
 ## Parent/student dashboard redesign ✅ done 2026-07-04
 
 - [x] New "Overview" tab on `/my-reports`: compact stat-chip strip,
