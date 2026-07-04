@@ -40,6 +40,8 @@ def _class_students(student_group):
 
 @frappe.whitelist()
 def get_entry_data(assessment_plan):
+	from edupro_sms.edupro_sms.grading import get_grade_boundaries
+
 	plan = frappe.get_doc("Assessment Plan", assessment_plan)
 	if not _can_access_plan(plan):
 		frappe.throw(_("You are not permitted to enter marks for this class."), frappe.PermissionError)
@@ -55,6 +57,7 @@ def get_entry_data(assessment_plan):
 	existing_by_student = {e.student: e for e in existing}
 
 	rows = []
+	entered_count = 0
 	for s in students:
 		result = existing_by_student.get(s.student)
 		scores = {}
@@ -65,6 +68,8 @@ def get_entry_data(assessment_plan):
 				fields=["assessment_criteria", "score"],
 			)
 			scores = {d.assessment_criteria: d.score for d in details}
+		if result and result.docstatus == 1:
+			entered_count += 1
 		rows.append(
 			{
 				"student": s.student,
@@ -80,9 +85,14 @@ def get_entry_data(assessment_plan):
 			"course": plan.course,
 			"student_group": plan.student_group,
 			"academic_term": plan.academic_term,
+			"schedule_date": str(plan.schedule_date) if plan.schedule_date else None,
+			"entered_count": entered_count,
+			"total_count": len(rows),
+			"status": "Complete" if rows and entered_count >= len(rows) else "In Progress",
 		},
 		"criteria": criteria,
 		"rows": rows,
+		"grade_boundaries": get_grade_boundaries(),
 	}
 
 

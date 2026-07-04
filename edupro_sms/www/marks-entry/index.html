@@ -14,20 +14,75 @@
     .marks-entry input.score-input {
       width: 70px; padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 1em;
     }
+    .marks-entry input.score-input.pass { border-color: #1e8449; background: #f2faf5; }
+    .marks-entry input.score-input.fail { border-color: #c0392b; background: #fdf2f1; }
     .marks-entry .row-status { color: #666; font-size: 0.9em; }
-    .marks-entry #save-btn {
-      background: #1a5276; color: #fff; border: none; padding: 10px 22px;
-      border-radius: 4px; font-size: 1em; cursor: pointer;
+    .marks-entry .row-status.entered { color: #1e8449; }
+    .marks-entry .row-status.missing { color: #c0392b; }
+    .marks-entry #save-btn, .marks-entry .btn-secondary {
+      padding: 10px 22px; border-radius: 4px; font-size: 1em; cursor: pointer; border: none; margin: 4px 6px 4px 0;
     }
+    .marks-entry #save-btn { background: #1a5276; color: #fff; }
     .marks-entry #save-btn:hover { background: #154360; }
+    .marks-entry .btn-secondary { background: #eee; color: #333; }
+    .marks-entry .btn-secondary:hover { background: #ddd; }
     .marks-entry #save-status { margin: 10px 0; font-weight: 600; }
     .marks-entry .save-ok { color: #1e8449; }
     .marks-entry .save-error { color: #c0392b; }
     .marks-entry .back-link { display: block; margin-top: 18px; }
+
+    .marks-entry .entry-header {
+      display: flex; flex-wrap: wrap; gap: 20px; border: 1px solid #ddd; border-radius: 6px;
+      padding: 12px 16px; margin-bottom: 18px; background: #f8f9fa;
+    }
+    .marks-entry .entry-header .label { color: #666; font-size: 0.85em; }
+    .marks-entry .entry-header .value { font-weight: 600; }
+    .marks-entry .status-pill { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.8em; font-weight: 600; }
+    .status-pill.complete { background: #d4edda; color: #155724; }
+    .status-pill.pending { background: #f8d7da; color: #721c24; }
+
+    .marks-entry .summary-bar {
+      border: 1px solid #ddd; border-radius: 6px; padding: 12px 16px; margin-bottom: 14px;
+      display: flex; gap: 24px; flex-wrap: wrap;
+    }
+    .marks-entry .summary-bar .item { font-size: 0.95em; }
+    .marks-entry .summary-bar .item strong { color: #1a5276; }
+    .marks-entry .missing-warning { color: #c0392b; font-weight: 600; margin-bottom: 10px; }
+
+    .marks-entry .grade-boundaries-table td, .marks-entry .grade-boundaries-table th { text-align: center; }
+    .marks-entry .grade-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; }
+    .grade-dot.green { background: #1e8449; }
+    .grade-dot.blue { background: #1a5276; }
+    .grade-dot.yellow { background: #d4ac0d; }
+    .grade-dot.orange { background: #ca6f1e; }
+    .grade-dot.red { background: #c0392b; }
+
+    .marks-entry .dist-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .marks-entry .dist-label { width: 26px; font-weight: 600; }
+    .marks-entry .dist-track { flex: 1; background: #eee; border-radius: 6px; height: 16px; overflow: hidden; }
+    .marks-entry .dist-fill { background: #1a5276; height: 100%; }
+    .marks-entry .dist-count { width: 130px; color: #666; font-size: 0.85em; }
+
+    @media print {
+      .portal-sidebar, .marks-entry #save-btn, .marks-entry .btn-secondary,
+      .marks-entry .back-link, #save-status { display: none !important; }
+    }
   </style>
 
   <h1>Enter Marks</h1>
   <p class="sub">{{ data.plan.course }} &middot; {{ data.plan.student_group }} &middot; {{ data.plan.academic_term }}</p>
+
+  <div class="entry-header">
+    <div><div class="label">Class</div><div class="value">{{ data.plan.student_group }}</div></div>
+    <div><div class="label">Subject</div><div class="value">{{ data.plan.course }}</div></div>
+    <div><div class="label">Assessment Date</div><div class="value">{{ data.plan.schedule_date or "-" }}</div></div>
+    <div>
+      <div class="label">Status</div>
+      <div class="value">
+        <span class="status-pill {{ 'complete' if data.plan.status == 'Complete' else 'pending' }}">{{ data.plan.status }}</span>
+      </div>
+    </div>
+  </div>
 
   <div id="save-status"></div>
 
@@ -38,6 +93,7 @@
         {% for c in data.criteria %}
         <th>{{ c.assessment_criteria }} (max {{ c.maximum_score|int }})</th>
         {% endfor %}
+        <th>Grade</th>
         <th>Status</th>
       </tr>
     </thead>
@@ -52,70 +108,259 @@
                  value="{{ row.scores.get(c.assessment_criteria, '') }}">
         </td>
         {% endfor %}
-        <td class="row-status">
-          {% if row.existing_docstatus == 1 %}Submitted
-          {% elif row.existing_docstatus == 0 %}Draft
-          {% else %}Not entered{% endif %}
-        </td>
+        <td class="row-grade">-</td>
+        <td class="row-status">Not entered</td>
       </tr>
       {% endfor %}
       {% if not data.rows %}
-      <tr><td colspan="{{ data.criteria|length + 2 }}" class="row-status">No students in this class.</td></tr>
+      <tr><td colspan="{{ data.criteria|length + 3 }}" class="row-status">No students in this class.</td></tr>
       {% endif %}
     </tbody>
   </table>
 
+  <div class="summary-bar" id="summary-bar">
+    <div class="item">Entered: <strong id="summary-entered">0</strong>/<span id="summary-total">0</span></div>
+    <div class="item">Average: <strong id="summary-average">-</strong></div>
+    <div class="item">Pass Rate: <strong id="summary-pass-rate">-</strong></div>
+  </div>
+  <div class="missing-warning" id="missing-warning" style="display: none;"></div>
+
   <button id="save-btn">Save Marks</button>
+  <button class="btn-secondary" id="export-csv-btn">Export CSV</button>
+  <button class="btn-secondary" id="import-csv-btn">Import CSV</button>
+  <input type="file" id="import-csv-file" accept=".csv" style="display: none;">
+  <button class="btn-secondary" id="print-btn">Print</button>
   <a class="back-link" href="/dashboard">&larr; Back to Dashboard</a>
+
+  {% if data.rows %}
+  <h2>Class Performance</h2>
+  <div id="grade-distribution"></div>
+
+  <h2>Grade Boundaries (IGCSE Standard)</h2>
+  <table class="grade-boundaries-table">
+    <thead>
+      <tr><th>Grade</th><th>Range</th><th>Color</th><th>Performance Level</th></tr>
+    </thead>
+    <tbody>
+      {% for g in data.grade_boundaries %}
+      <tr>
+        <td><strong>{{ g.grade_code }}</strong></td>
+        <td>{{ g.low|int }}&ndash;{{ g.high|int }}</td>
+        <td><span class="grade-dot {{ g.color }}"></span></td>
+        <td>{{ g.description }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
 </div>
 
 <script>
-  document.getElementById("save-btn").addEventListener("click", function () {
-    var entries = [];
-    document.querySelectorAll(".marks-entry tbody tr[data-student]").forEach(function (tr) {
-      var scores = {};
-      tr.querySelectorAll(".score-input").forEach(function (input) {
+  (function () {
+    var boundaries = {{ data.grade_boundaries | tojson }};
+    var criteriaMax = {{ data.criteria | tojson }};
+    var totalMax = criteriaMax.reduce(function (sum, c) { return sum + c.maximum_score; }, 0);
+
+    function gradeFor(pct) {
+      for (var i = 0; i < boundaries.length; i++) {
+        if (pct >= boundaries[i].low) return boundaries[i].grade_code;
+      }
+      return boundaries.length ? boundaries[boundaries.length - 1].grade_code : "-";
+    }
+
+    function recalcRow(tr) {
+      var inputs = tr.querySelectorAll(".score-input");
+      var total = 0, filled = 0;
+      inputs.forEach(function (input) {
+        input.classList.remove("pass", "fail");
         if (input.value !== "") {
-          scores[input.dataset.criteria] = input.value;
+          filled++;
+          total += parseFloat(input.value) || 0;
         }
       });
-      entries.push({ student: tr.dataset.student, scores: scores });
+      var gradeCell = tr.querySelector(".row-grade");
+      var statusCell = tr.querySelector(".row-status");
+      var complete = filled === inputs.length && inputs.length > 0;
+      if (complete) {
+        var pct = totalMax ? (total / totalMax) * 100 : 0;
+        var grade = gradeFor(pct);
+        gradeCell.textContent = grade;
+        statusCell.textContent = "✅ Entered";
+        statusCell.className = "row-status entered";
+        inputs.forEach(function (input) { input.classList.add(pct >= 50 ? "pass" : "fail"); });
+        return { complete: true, pct: pct };
+      }
+      gradeCell.textContent = "-";
+      statusCell.textContent = filled > 0 ? "⏳ Incomplete" : "🔴 Missing";
+      statusCell.className = "row-status missing";
+      return { complete: false, pct: null };
+    }
+
+    function renderDistribution(gradeCounts, totalEntered) {
+      var container = document.getElementById("grade-distribution");
+      if (!container) return;
+      container.innerHTML = "";
+      boundaries.forEach(function (b) {
+        var count = gradeCounts[b.grade_code] || 0;
+        var pct = totalEntered ? Math.round((count / totalEntered) * 100) : 0;
+        var row = document.createElement("div");
+        row.className = "dist-row";
+        row.innerHTML =
+          "<div class=\"dist-label\">" + b.grade_code + "</div>" +
+          "<div class=\"dist-track\"><div class=\"dist-fill\" style=\"width:" + pct + "%\"></div></div>" +
+          "<div class=\"dist-count\">" + count + " students (" + pct + "%)</div>";
+        container.appendChild(row);
+      });
+    }
+
+    function recalcAll() {
+      var rows = document.querySelectorAll(".marks-entry tbody tr[data-student]");
+      var entered = 0, total = 0, sumPct = 0, passCount = 0;
+      var gradeCounts = {};
+      rows.forEach(function (tr) {
+        total++;
+        var result = recalcRow(tr);
+        if (result.complete) {
+          entered++;
+          sumPct += result.pct;
+          if (result.pct >= 50) passCount++;
+          var grade = tr.querySelector(".row-grade").textContent;
+          gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
+        }
+      });
+      document.getElementById("summary-entered").textContent = entered;
+      document.getElementById("summary-total").textContent = total;
+      document.getElementById("summary-average").textContent = entered ? (sumPct / entered).toFixed(1) + "%" : "-";
+      document.getElementById("summary-pass-rate").textContent = entered ? Math.round((passCount / entered) * 100) + "%" : "-";
+
+      var warning = document.getElementById("missing-warning");
+      var missing = total - entered;
+      if (missing > 0) {
+        warning.style.display = "block";
+        warning.textContent = "⚠️ " + missing + " student(s) missing marks";
+      } else {
+        warning.style.display = "none";
+      }
+
+      renderDistribution(gradeCounts, entered);
+    }
+
+    document.querySelectorAll(".score-input").forEach(function (input) {
+      input.addEventListener("input", recalcAll);
+    });
+    recalcAll();
+
+    document.getElementById("save-btn").addEventListener("click", function () {
+      var entries = [];
+      document.querySelectorAll(".marks-entry tbody tr[data-student]").forEach(function (tr) {
+        var scores = {};
+        tr.querySelectorAll(".score-input").forEach(function (input) {
+          if (input.value !== "") {
+            scores[input.dataset.criteria] = input.value;
+          }
+        });
+        entries.push({ student: tr.dataset.student, scores: scores });
+      });
+
+      var statusEl = document.getElementById("save-status");
+      statusEl.className = "";
+      statusEl.textContent = "Saving...";
+
+      fetch("/api/method/edupro_sms.edupro_sms.marks_entry.save_marks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Frappe-CSRF-Token": "{{ csrf_token }}",
+        },
+        body: JSON.stringify({
+          assessment_plan: "{{ data.plan.name }}",
+          entries: entries,
+        }),
+      })
+        .then(function (r) {
+          return r.json().then(function (body) { return { ok: r.ok, body: body }; });
+        })
+        .then(function (result) {
+          if (result.ok) {
+            var saved = result.body.message ? result.body.message.saved : 0;
+            statusEl.textContent = "Saved " + saved + " result(s).";
+            statusEl.className = "save-ok";
+            setTimeout(function () { window.location.reload(); }, 900);
+          } else {
+            var msg = (result.body.exception || result.body._server_messages || "Could not save marks.");
+            statusEl.textContent = "Error: " + msg;
+            statusEl.className = "save-error";
+          }
+        })
+        .catch(function (err) {
+          statusEl.textContent = "Error: " + err;
+          statusEl.className = "save-error";
+        });
     });
 
-    var statusEl = document.getElementById("save-status");
-    statusEl.className = "";
-    statusEl.textContent = "Saving...";
+    document.getElementById("print-btn").addEventListener("click", function () {
+      window.print();
+    });
 
-    fetch("/api/method/edupro_sms.edupro_sms.marks_entry.save_marks", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Frappe-CSRF-Token": "{{ csrf_token }}",
-      },
-      body: JSON.stringify({
-        assessment_plan: "{{ data.plan.name }}",
-        entries: entries,
-      }),
-    })
-      .then(function (r) {
-        return r.json().then(function (body) { return { ok: r.ok, body: body }; });
-      })
-      .then(function (result) {
-        if (result.ok) {
-          var saved = result.body.message ? result.body.message.saved : 0;
-          statusEl.textContent = "Saved " + saved + " result(s).";
-          statusEl.className = "save-ok";
-          setTimeout(function () { window.location.reload(); }, 900);
-        } else {
-          var msg = (result.body.exception || result.body._server_messages || "Could not save marks.");
-          statusEl.textContent = "Error: " + msg;
-          statusEl.className = "save-error";
-        }
-      })
-      .catch(function (err) {
-        statusEl.textContent = "Error: " + err;
-        statusEl.className = "save-error";
+    function csvEscape(value) {
+      value = String(value == null ? "" : value);
+      if (/[",\n]/.test(value)) return "\"" + value.replace(/"/g, "\"\"") + "\"";
+      return value;
+    }
+
+    document.getElementById("export-csv-btn").addEventListener("click", function () {
+      var header = ["Student ID", "Student Name"].concat(criteriaMax.map(function (c) { return c.assessment_criteria; }));
+      var lines = [header.map(csvEscape).join(",")];
+      document.querySelectorAll(".marks-entry tbody tr[data-student]").forEach(function (tr) {
+        var name = tr.children[0].textContent;
+        var row = [tr.dataset.student, name];
+        tr.querySelectorAll(".score-input").forEach(function (input) { row.push(input.value); });
+        lines.push(row.map(csvEscape).join(","));
       });
-  });
+      var blob = new Blob([lines.join("\n")], { type: "text/csv" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "{{ data.plan.course }}-{{ data.plan.student_group }}-marks.csv".replace(/\s+/g, "_");
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById("import-csv-btn").addEventListener("click", function () {
+      document.getElementById("import-csv-file").click();
+    });
+
+    document.getElementById("import-csv-file").addEventListener("change", function (e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        var lines = String(reader.result).split(/\r?\n/).filter(function (l) { return l.trim() !== ""; });
+        var header = lines[0].split(",").map(function (h) { return h.trim(); });
+        var criteriaCols = header.slice(2);
+        var byStudent = {};
+        for (var i = 1; i < lines.length; i++) {
+          var cols = lines[i].split(",");
+          byStudent[cols[0]] = cols.slice(2);
+        }
+        document.querySelectorAll(".marks-entry tbody tr[data-student]").forEach(function (tr) {
+          var values = byStudent[tr.dataset.student];
+          if (!values) return;
+          tr.querySelectorAll(".score-input").forEach(function (input, idx) {
+            var colIdx = criteriaCols.indexOf(input.dataset.criteria);
+            if (colIdx !== -1 && values[colIdx] !== undefined && values[colIdx] !== "") {
+              input.value = values[colIdx];
+            }
+          });
+        });
+        recalcAll();
+        var statusEl = document.getElementById("save-status");
+        statusEl.className = "save-ok";
+        statusEl.textContent = "CSV imported -- review the marks below, then click Save Marks.";
+        e.target.value = "";
+      };
+      reader.readAsText(file);
+    });
+  })();
 </script>
 {% endblock %}

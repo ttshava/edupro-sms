@@ -19,12 +19,52 @@ def get_context(context):
 		context.pending_report_cards = get_pending_report_cards()
 		context.csrf_token = frappe.sessions.get_csrf_token()
 	elif "Instructor" in roles:
+		from edupro_sms.edupro_sms.grading import get_grade_boundaries
+
 		context.dashboard_role = "teacher"
 		context.classes = _teacher_classes()
+		context.teacher_summary = _teacher_summary(context.classes)
+		context.grade_boundaries = get_grade_boundaries()
 	else:
 		context.dashboard_role = None
 
 	context.title = "Dashboard"
+
+
+def _current_academic_term():
+	today = frappe.utils.today()
+	term = frappe.db.get_value(
+		"Academic Term", {"term_start_date": ["<=", today], "term_end_date": [">=", today]}, "name"
+	)
+	if not term:
+		# Between terms (holidays) -- fall back to the most recently started one.
+		term = frappe.db.get_value(
+			"Academic Term", {"term_start_date": ["<=", today]}, "name", order_by="term_start_date desc"
+		)
+	return term
+
+
+def _teacher_summary(classes: list[dict]) -> dict:
+	term = _current_academic_term()
+	academic_year = frappe.db.get_value("Academic Term", term, "academic_year") if term else None
+
+	assigned_subjects = {row["course"] for row in classes}
+	assigned_groups = {row["student_group"] for row in classes}
+	total_students = sum(
+		frappe.db.count("Student Group Student", {"parent": group, "active": 1}) for group in assigned_groups
+	)
+	marks_entered = sum(row["marks_entered"] for row in classes)
+	marks_expected = sum(row["total_students"] for row in classes)
+
+	return {
+		"academic_year": academic_year,
+		"current_term": term,
+		"assigned_subjects": len(assigned_subjects),
+		"total_students": total_students,
+		"marks_entered": marks_entered,
+		"marks_expected": marks_expected,
+		"marks_pending": marks_expected - marks_entered,
+	}
 
 
 def _headmaster_summary():
