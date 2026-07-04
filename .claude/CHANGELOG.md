@@ -391,6 +391,48 @@ YYYY-MM-DD.
   Also hit the same "new User comes out disabled" bug on this batch
   of 28 accounts (as seen on the earlier 38-teacher import) — same
   fix, explicit `enabled=1` + `update_password()`.
+- **Marks simplified to a single Exam out of 100** per subject,
+  replacing the Test(40)+Exam(60) split. Since 40+60 already summed to
+  100, this was a clean consolidation, not a rescoring: migrated all
+  288 Assessment Plans' criteria to one `Exam`/100 row and merged all
+  1258 existing Assessment Result Detail rows (summing the old Test+Exam
+  scores) directly via ORM inserts against the already-submitted
+  (docstatus=1) documents — bypassing the normal cancel/amend dance,
+  since this was a controlled internal migration, not a user edit.
+  Verified a sample Report Card's total/average against a fresh
+  recomputation from its Assessment Results: unchanged, as expected,
+  since no total or maximum actually changed. `marks-entry` and the
+  Assessment Result controller were already criteria-agnostic, so no
+  application code changes were needed there.
+- **Student/Guardian "My Reports" Grades tab simplified** to three
+  columns — Term, Status (Published/Pending), View/Print — dropping
+  Average/Grade/Position from the summary list (still available on the
+  printed report card itself).
+- **QR authenticity code added to the report card print format**
+  (bottom-right, "Scan to verify"). Added a `verification_code` field
+  to `Report Card` (random `secrets.token_hex(8)`, set the moment a
+  card is first Published — deliberately not the predictable `RC-...`
+  doc name, so the QR can't be used to enumerate other students'
+  reports), a new public `/verify-report-card?code=...` page (no login
+  required) showing only student name, class, term, overall grade, and
+  average — full subject-by-subject marks stay behind the portal login.
+  QR image is generated server-side (`qrcode` package, added as an
+  app dependency) and exposed to the Jinja print format via a
+  `hooks.py` `jinja.methods` entry. Backfilled verification codes for
+  the 61 already-Published report cards, since the code is only set
+  going forward by `on_update_after_submit`.
+- **Teacher dashboard reworked from a flat table into a two-step
+  Subject → Class selector** (`/dashboard`), for teachers who teach the
+  same subject across several classes (e.g. Mathematics in Form 1
+  Purple, Form 1 Blue, and Form 3 Green) or several subjects across
+  several classes. Backend scoping already supported this correctly
+  (`teacher_permissions._assigned_student_groups` returns every
+  Student Group tied to the Instructor); this was purely a UI change,
+  grouping the same permission-scoped rows by subject client-side.
+  Verified against a real 13-class teacher (server-rendered the page
+  under their identity without touching their password) and, for a
+  real click-through, a disposable QA multi-class teacher account
+  added to 3 real classes and fully removed again afterward.
 
 ---
 

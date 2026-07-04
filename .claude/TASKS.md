@@ -315,6 +315,19 @@ replacements first, then removed Desk access — see `DECISIONS.md`
       count drop (Form 1: 22→7) mid-rollout, audited every class
       afterward to confirm nothing else was affected
 
+## Marks/reporting refinements ✅ done 2026-07-04
+
+- [x] Marks simplified to a single Exam out of 100 per subject
+      (was Test/40 + Exam/60) — migrated all 288 Assessment Plans and
+      1258 existing Assessment Result rows, no Report Card totals
+      changed since 40+60 already summed to 100
+- [x] My Reports Grades tab simplified to Term / Status
+      (Published/Pending) / View/Print
+- [x] QR authenticity code on the report card print format, linking to
+      a public no-login `/verify-report-card` page (minimal info only)
+- [x] Teacher dashboard reworked into a Subject → Class selector for
+      teachers who teach the same subject across multiple classes
+
 ## Portal redesign: left-sidebar layout ✅ done 2026-07-03
 
 - [x] Shared `edupro_sms/templates/portal_base.html` sidebar shell,

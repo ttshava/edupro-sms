@@ -646,3 +646,33 @@ touching the `add_to_apps_screen`/`default_app` mechanism from 0013 at
 all, it "just worked" once `user_type` changed. Confirmed Administrator
 and both flipped accounts (Headmaster, Teacher) all still land in the
 right place after a full restart, not just before it.
+
+## 0015 — Report card QR code links to a public minimal-info verify page, not the full printview
+
+**Decision:** The anti-forgery QR code added to the IGCSE Report Card
+print format encodes a link to a new public (no-login) `/verify-
+report-card?code=...` page that shows only student name, class, term,
+overall grade, and average percentage — not the full subject-by-
+subject mark breakdown, and not a link straight into the existing
+`/printview` (which requires login and, if that login wall were ever
+loosened, would expose everything). The `code` is a random
+`secrets.token_hex(8)` stored in a new `Report Card.verification_code`
+field, set once at first Publish — deliberately not the document's own
+`RC-{student}-{term}` name, which is guessable/enumerable.
+
+**Why:** The point of a scan-to-verify feature is letting a third party
+(an employer, another school, a skeptical relative) confirm a printed
+report card is genuine without needing a portal account, while not
+turning the QR code into a way to pull a student's full academic record
+off a piece of paper that could be lost, photocopied, or photographed
+by anyone. A minimal public confirmation page is the standard pattern
+for this class of feature (diploma/certificate verification services
+work the same way) and was chosen over the two alternatives considered:
+linking straight to the printview (fails the point above) or a bare
+code with no page at all (asks too much of whoever is checking).
+
+**How to apply:** If any other document ever needs a similar QR/
+verification feature, follow the same shape — random unguessable
+token on the document, a public page keyed by that token, and a
+deliberately narrow set of fields on that page. Don't reuse the
+document's own name as the token.
