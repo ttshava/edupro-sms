@@ -318,6 +318,57 @@ YYYY-MM-DD.
   sidebar in place, hiding the "Enter Marks" link off-screen — fixed
   with a `display:block`/`overflow-x:auto` rule so wide tables scroll
   within their own box instead of breaking the page layout.
+- **First real school data loaded: subjects-per-class, students, staff.**
+  Applied a real ZIMSEC/Cambridge subject-per-Program breakdown (Form
+  1-4 get the full 22-subject O-Level offering; the three U6 streams
+  get real A-Level-style subsets). Imported all 33 real Form 1 Purple
+  students from the school's own register (`form 1 p.xlsx` — "p" =
+  Purple) with real names/DOB/address/emergency-contact, and all 38
+  real teaching staff from `staff.html` with real emails, assigned as
+  Student Group Instructor across classes by subject. Added a
+  `Curriculum` DocType + `Program.curriculum` link (Cambridge IGCSE for
+  Form 1-4, Cambridge AS Level for the U6 streams), since
+  `School Settings.curriculum` is a single whole-school field that
+  can't hold two different curricula. Deleted the old sample data
+  (Form 4A/4B, its students/marks/report cards) it replaced.
+  Root-caused and fixed a real, recurring bug found along the way:
+  Education's stock Student/Guardian/Instructor/Headmaster/Class
+  Teacher roles all ship with `desk_access=1`, so Frappe's own User
+  controller was silently re-flipping every portal account back to
+  System User (with an extra "Desk User" role) on every save — not a
+  one-off import glitch. Fixed at the role level
+  (`desk_access=0`, added to the Role fixture export) instead of
+  fighting it per-account. Also hit and fixed a second, unrelated bug:
+  hard-deleting a User with an active session crashes the *entire
+  site* for that session's cookie (`DoesNotExistError` on session
+  resume) until the stale session is cleared from both the DB
+  `tabSessions` table and Frappe's Redis session cache — happened twice
+  (once from deleting the old sample headmaster, once from the earlier
+  sample-student cleanup) before being fully swept.
+- **Term 2 2026 report cards generated, approved, and made real for
+  Form 1 Purple end-to-end.** Created and submitted 22 Term 2
+  Assessment Plans (Exam/Test criteria, one subject per day starting
+  2026-07-03, skipping weekends), entered marks for all 726
+  student×subject combinations via the real `save_marks` teacher
+  workflow (synthetic scores — no real Term 2 exam data exists yet),
+  generated all 33 Report Cards, and walked them through
+  Review → Approve → Publish using the real website workflow
+  (re-verified the Approve/Publish buttons live in-browser, not just
+  via script) — confirmed visible as Published to both a real student
+  and a real parent. Every Form class now has a distinct real class
+  teacher (`Student Group.class_teacher`), each granted the "Class
+  Teacher" role for the Review step. Headmaster dashboard's "Teachers"
+  column (a full comma-joined list) renamed to "Class Teacher" showing
+  just the one homeroom teacher; Student/Guardian Profile tab's
+  subjects moved from an unreadable comma-separated string to a proper
+  Subject/Teacher table (sourced from each subject's most recent
+  Assessment Plan.examiner, the one real persisted subject-to-teacher
+  link in the data model) plus the student's Class Teacher.
+  Also caught the same `fetch_from`-can-silently-zero-a-field gotcha
+  already on record (`DECISIONS.md` 0006/0009): Assessment Plan's
+  `academic_term` fetches from `Student Group.academic_term`, which was
+  blank, so newly-created plans silently lost their term until the
+  Student Group's term was set and the plans backfilled.
 
 ---
 

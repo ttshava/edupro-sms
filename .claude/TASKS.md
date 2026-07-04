@@ -288,6 +288,27 @@ replacements first, then removed Desk access — see `DECISIONS.md`
 - [x] ~~Login footer still reads "Powered by ERPNext"~~ — rebranded
       2026-07-03 (footer redesign, see Changelog)
 
+## First real school data + Term 2 report cards end-to-end ✅ done 2026-07-03
+
+- [x] Real subject-per-Program breakdown applied (Form 1-4 full
+      O-Level offering; U6 streams get real A-Level subsets)
+- [x] All 33 Form 1 Purple students imported from the real register
+- [x] All 38 real teaching staff imported, assigned by subject
+- [x] `Curriculum` DocType + `Program.curriculum` (Cambridge IGCSE /
+      Cambridge AS Level) — School Settings' single curriculum field
+      can't hold two curricula at once
+- [x] Root-caused and fixed: Student/Guardian/Instructor/Headmaster/
+      Class Teacher roles all ship with `desk_access=1`, silently
+      re-flipping portal accounts to System User on every save — fixed
+      at the role level, not per-account
+- [x] Term 2 2026: 22 Assessment Plans created+activated, 726 marks
+      entered via the real teacher workflow, 33 Report Cards generated
+      and taken through Review → Approve → Publish on the real website
+      UI, confirmed visible to a real student and parent
+- [x] Every class has a real, distinct Class Teacher; Headmaster
+      dashboard and student Profile tab updated to show it plus a
+      presentable Subject/Teacher table
+
 ## Portal redesign: left-sidebar layout ✅ done 2026-07-03
 
 - [x] Shared `edupro_sms/templates/portal_base.html` sidebar shell,
