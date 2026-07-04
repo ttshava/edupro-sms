@@ -6,62 +6,106 @@
 {% endblock %}
 
 {% block portal_content %}
+{% macro icon(name, cls="") %}{% if name == "book" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+{% elif name == "users" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+{% elif name == "calendar" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+{% elif name == "check-circle" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+{% elif name == "alert-circle" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+{% elif name == "save" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+{% elif name == "download" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+{% elif name == "upload" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+{% elif name == "printer" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+{% elif name == "arrow-left" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+{% elif name == "bar-chart" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+{% elif name == "graduation-cap" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+{% elif name == "alert-triangle" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+{% endif %}{% endmacro %}
 <div class="marks-entry">
   <style>
-    .marks-entry .sub { color: #666; margin-bottom: 20px; }
-    .marks-entry table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-    .marks-entry th, .marks-entry td { padding: 8px; border-bottom: 1px solid #eee; text-align: left; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    .marks-entry {
+      --edu-red: #FF0527; --edu-red-dark: #c8021e; --edu-red-light: #fff0f2;
+      --edu-dark: #0f172a; --edu-gray-700: #374151; --edu-gray-600: #4b5563;
+      --edu-gray-500: #6b7280; --edu-gray-300: #d1d5db; --edu-gray-200: #e5e7eb;
+      --edu-gray-100: #f3f4f6; --edu-gray-50: #f9fafb;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13px;
+    }
+    .marks-entry .edu-icon { width: 14px; height: 14px; flex-shrink: 0; vertical-align: -2px; }
+    .marks-entry h1 { font-size: 1.25rem; font-weight: 800; color: var(--edu-dark); }
+    .marks-entry h2 { font-size: 0.95rem; color: var(--edu-dark); display: flex; align-items: center; gap: 6px; }
+    .marks-entry h2 .edu-icon { width: 16px; height: 16px; color: var(--edu-red); }
+    .marks-entry .sub { color: var(--edu-gray-500); margin-bottom: 16px; font-size: 0.82rem; display: flex; align-items: center; gap: 6px; }
+    .marks-entry .sub .edu-icon { color: var(--edu-red); }
+    .marks-entry table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 0.8rem; }
+    .marks-entry th, .marks-entry td { padding: 6px 8px; border-bottom: 1px solid var(--edu-gray-100); text-align: left; }
+    .marks-entry th { font-size: 0.68rem; text-transform: uppercase; letter-spacing: .4px; color: var(--edu-gray-500); font-weight: 700; }
     .marks-entry input.score-input {
-      width: 70px; padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 1em;
+      width: 60px; padding: 4px 6px; border: 1px solid var(--edu-gray-300); border-radius: 6px; font-size: 0.82rem;
+      font-family: inherit;
     }
-    .marks-entry input.score-input.pass { border-color: #1e8449; background: #f2faf5; }
-    .marks-entry input.score-input.fail { border-color: #c0392b; background: #fdf2f1; }
-    .marks-entry .row-status { color: #666; font-size: 0.9em; }
-    .marks-entry .row-status.entered { color: #1e8449; }
-    .marks-entry .row-status.missing { color: #c0392b; }
+    .marks-entry input.score-input.pass { border-color: #16a34a; background: #f0fdf4; }
+    .marks-entry input.score-input.fail { border-color: var(--edu-red); background: var(--edu-red-light); }
+    .marks-entry .row-status { color: var(--edu-gray-500); font-size: 0.78rem; display: flex; align-items: center; gap: 4px; }
+    .marks-entry .row-status.entered { color: #15803d; }
+    .marks-entry .row-status.missing { color: var(--edu-red-dark); }
+
     .marks-entry #save-btn, .marks-entry .btn-secondary {
-      padding: 10px 22px; border-radius: 4px; font-size: 1em; cursor: pointer; border: none; margin: 4px 6px 4px 0;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 40px; font-size: 0.78rem; font-weight: 600;
+      cursor: pointer; border: 1.5px solid transparent; margin: 3px 4px 3px 0; font-family: inherit;
+      transition: all .18s ease;
     }
-    .marks-entry #save-btn { background: #1a5276; color: #fff; }
-    .marks-entry #save-btn:hover { background: #154360; }
-    .marks-entry .btn-secondary { background: #eee; color: #333; }
-    .marks-entry .btn-secondary:hover { background: #ddd; }
-    .marks-entry #save-status { margin: 10px 0; font-weight: 600; }
-    .marks-entry .save-ok { color: #1e8449; }
-    .marks-entry .save-error { color: #c0392b; }
-    .marks-entry .back-link { display: block; margin-top: 18px; }
+    .marks-entry #save-btn { background: var(--edu-red); color: #fff; border-color: var(--edu-red); }
+    .marks-entry #save-btn:hover { background: var(--edu-red-dark); border-color: var(--edu-red-dark); }
+    .marks-entry .btn-secondary { background: #fff; color: var(--edu-gray-700); border-color: var(--edu-gray-200); }
+    .marks-entry .btn-secondary:hover { border-color: var(--edu-red); color: var(--edu-red); }
+    .marks-entry #save-status { margin: 10px 0; font-weight: 600; font-size: 0.82rem; }
+    .marks-entry .save-ok { color: #15803d; }
+    .marks-entry .save-error { color: var(--edu-red-dark); }
+    .marks-entry .back-link { display: inline-flex; align-items: center; gap: 5px; margin-top: 16px; font-size: 0.8rem; font-weight: 600; color: var(--edu-red); }
 
     .marks-entry .entry-header {
-      display: flex; flex-wrap: wrap; gap: 20px; border: 1px solid #ddd; border-radius: 6px;
-      padding: 12px 16px; margin-bottom: 18px; background: #f8f9fa;
+      display: flex; flex-wrap: wrap; gap: 18px; border: 1px solid var(--edu-gray-200); border-radius: 10px;
+      padding: 10px 16px; margin-bottom: 16px; background: var(--edu-gray-50);
     }
-    .marks-entry .entry-header .label { color: #666; font-size: 0.85em; }
-    .marks-entry .entry-header .value { font-weight: 600; }
-    .marks-entry .status-pill { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.8em; font-weight: 600; }
-    .status-pill.complete { background: #d4edda; color: #155724; }
-    .status-pill.pending { background: #f8d7da; color: #721c24; }
+    .marks-entry .entry-header .label {
+      color: var(--edu-gray-500); font-size: 0.66rem; text-transform: uppercase; letter-spacing: .4px; font-weight: 700;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .marks-entry .entry-header .label .edu-icon { width: 11px; height: 11px; color: var(--edu-red); }
+    .marks-entry .entry-header .value { font-weight: 700; font-size: 0.85rem; color: var(--edu-dark); }
+    .marks-entry .status-pill {
+      display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700;
+    }
+    .marks-entry .status-pill .edu-icon { width: 11px; height: 11px; }
+    .status-pill.complete { background: #d1fae5; color: #065f46; }
+    .status-pill.pending { background: var(--edu-red-light); color: var(--edu-red-dark); }
 
     .marks-entry .summary-bar {
-      border: 1px solid #ddd; border-radius: 6px; padding: 12px 16px; margin-bottom: 14px;
-      display: flex; gap: 24px; flex-wrap: wrap;
+      border: 1px solid var(--edu-gray-200); border-radius: 10px; padding: 10px 16px; margin-bottom: 12px;
+      display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.82rem;
     }
-    .marks-entry .summary-bar .item { font-size: 0.95em; }
-    .marks-entry .summary-bar .item strong { color: #1a5276; }
-    .marks-entry .missing-warning { color: #c0392b; font-weight: 600; margin-bottom: 10px; }
+    .marks-entry .summary-bar .item strong { color: var(--edu-red); }
+    .marks-entry .missing-warning {
+      color: var(--edu-red-dark); font-weight: 600; margin-bottom: 10px; font-size: 0.8rem;
+      display: flex; align-items: center; gap: 5px;
+    }
 
     .marks-entry .grade-boundaries-table td, .marks-entry .grade-boundaries-table th { text-align: center; }
-    .marks-entry .grade-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; }
-    .grade-dot.green { background: #1e8449; }
-    .grade-dot.blue { background: #1a5276; }
+    .marks-entry .grade-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+    .grade-dot.green { background: #16a34a; }
+    .grade-dot.blue { background: var(--edu-red); }
     .grade-dot.yellow { background: #d4ac0d; }
     .grade-dot.orange { background: #ca6f1e; }
-    .grade-dot.red { background: #c0392b; }
+    .grade-dot.red { background: var(--edu-red-dark); }
 
-    .marks-entry .dist-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-    .marks-entry .dist-label { width: 26px; font-weight: 600; }
-    .marks-entry .dist-track { flex: 1; background: #eee; border-radius: 6px; height: 16px; overflow: hidden; }
-    .marks-entry .dist-fill { background: #1a5276; height: 100%; }
-    .marks-entry .dist-count { width: 130px; color: #666; font-size: 0.85em; }
+    .marks-entry .dist-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+    .marks-entry .dist-label { width: 24px; font-weight: 700; font-size: 0.78rem; }
+    .marks-entry .dist-track { flex: 1; background: var(--edu-gray-100); border-radius: 6px; height: 12px; overflow: hidden; }
+    .marks-entry .dist-fill { background: var(--edu-red); height: 100%; transition: width .3s ease; }
+    .marks-entry .dist-count { width: 120px; color: var(--edu-gray-500); font-size: 0.75rem; }
 
     @media print {
       .portal-sidebar, .marks-entry #save-btn, .marks-entry .btn-secondary,
@@ -70,16 +114,18 @@
   </style>
 
   <h1>Enter Marks</h1>
-  <p class="sub">{{ data.plan.course }} &middot; {{ data.plan.student_group }} &middot; {{ data.plan.academic_term }}</p>
+  <p class="sub">{{ icon("book") }}{{ data.plan.course }} &middot; {{ data.plan.student_group }} &middot; {{ data.plan.academic_term }}</p>
 
   <div class="entry-header">
-    <div><div class="label">Class</div><div class="value">{{ data.plan.student_group }}</div></div>
-    <div><div class="label">Subject</div><div class="value">{{ data.plan.course }}</div></div>
-    <div><div class="label">Assessment Date</div><div class="value">{{ data.plan.schedule_date or "-" }}</div></div>
+    <div><div class="label">{{ icon("graduation-cap") }} Class</div><div class="value">{{ data.plan.student_group }}</div></div>
+    <div><div class="label">{{ icon("book") }} Subject</div><div class="value">{{ data.plan.course }}</div></div>
+    <div><div class="label">{{ icon("calendar") }} Assessment Date</div><div class="value">{{ data.plan.schedule_date or "-" }}</div></div>
     <div>
       <div class="label">Status</div>
       <div class="value">
-        <span class="status-pill {{ 'complete' if data.plan.status == 'Complete' else 'pending' }}">{{ data.plan.status }}</span>
+        <span class="status-pill {{ 'complete' if data.plan.status == 'Complete' else 'pending' }}">
+          {{ icon("check-circle") if data.plan.status == "Complete" else icon("alert-circle") }} {{ data.plan.status }}
+        </span>
       </div>
     </div>
   </div>
@@ -126,18 +172,18 @@
   </div>
   <div class="missing-warning" id="missing-warning" style="display: none;"></div>
 
-  <button id="save-btn">Save Marks</button>
-  <button class="btn-secondary" id="export-csv-btn">Export CSV</button>
-  <button class="btn-secondary" id="import-csv-btn">Import CSV</button>
+  <button id="save-btn">{{ icon("save") }} Save Marks</button>
+  <button class="btn-secondary" id="export-csv-btn">{{ icon("download") }} Export CSV</button>
+  <button class="btn-secondary" id="import-csv-btn">{{ icon("upload") }} Import CSV</button>
   <input type="file" id="import-csv-file" accept=".csv" style="display: none;">
-  <button class="btn-secondary" id="print-btn">Print</button>
-  <a class="back-link" href="/dashboard">&larr; Back to Dashboard</a>
+  <button class="btn-secondary" id="print-btn">{{ icon("printer") }} Print</button>
+  <a class="back-link" href="/dashboard">{{ icon("arrow-left") }} Back to Dashboard</a>
 
   {% if data.rows %}
-  <h2>Class Performance</h2>
+  <h2>{{ icon("bar-chart") }}Class Performance</h2>
   <div id="grade-distribution"></div>
 
-  <h2>Grade Boundaries ({{ data.plan.grading_scale }})</h2>
+  <h2>{{ icon("graduation-cap") }}Grade Boundaries ({{ data.plan.grading_scale }})</h2>
   <table class="grade-boundaries-table">
     <thead>
       <tr><th>Grade</th><th>Range</th><th>Color</th><th>Performance Level</th></tr>
@@ -161,6 +207,11 @@
     var boundaries = {{ data.grade_boundaries | tojson }};
     var criteriaMax = {{ data.criteria | tojson }};
     var totalMax = criteriaMax.reduce(function (sum, c) { return sum + c.maximum_score; }, 0);
+
+    var ICON_CHECK = '<svg class="edu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+    var ICON_CLOCK = '<svg class="edu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+    var ICON_ALERT = '<svg class="edu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    var ICON_TRIANGLE = '<svg class="edu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
 
     function gradeFor(pct) {
       for (var i = 0; i < boundaries.length; i++) {
@@ -191,11 +242,11 @@
       var complete = filled === inputs.length && inputs.length > 0;
       if (complete) {
         var pct = totalMax ? (total / totalMax) * 100 : 0;
-        statusCell.textContent = "✅ Entered";
+        statusCell.innerHTML = ICON_CHECK + " Entered";
         statusCell.className = "row-status entered";
         return { complete: true, pct: pct };
       }
-      statusCell.textContent = filled > 0 ? "⏳ Incomplete" : "🔴 Missing";
+      statusCell.innerHTML = filled > 0 ? (ICON_CLOCK + " Incomplete") : (ICON_ALERT + " Missing");
       statusCell.className = "row-status missing";
       return { complete: false, pct: null };
     }
@@ -241,7 +292,7 @@
       var missing = total - entered;
       if (missing > 0) {
         warning.style.display = "block";
-        warning.textContent = "⚠️ " + missing + " student(s) missing marks";
+        warning.innerHTML = ICON_TRIANGLE + " " + missing + " student(s) missing marks";
       } else {
         warning.style.display = "none";
       }

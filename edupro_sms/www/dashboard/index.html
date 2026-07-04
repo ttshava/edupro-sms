@@ -13,7 +13,115 @@
 {% endblock %}
 
 {% block portal_content %}
+{% macro icon(name, cls="") %}{% if name == "calendar" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+{% elif name == "term" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+{% elif name == "book" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+{% elif name == "users" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+{% elif name == "check-circle" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+{% elif name == "clock" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+{% elif name == "alert-circle" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+{% elif name == "chevron-right" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+{% elif name == "bar-chart" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+{% elif name == "graduation-cap" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+{% elif name == "arrow-left" %}<svg class="edu-icon {{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+{% endif %}{% endmacro %}
 <div class="edupro-dashboard">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    html { scroll-behavior: smooth; }
+
+    .edu-teacher {
+      --edu-red: #FF0527;
+      --edu-red-dark: #c8021e;
+      --edu-red-light: #fff0f2;
+      --edu-dark: #0f172a;
+      --edu-gray-700: #374151;
+      --edu-gray-600: #4b5563;
+      --edu-gray-500: #6b7280;
+      --edu-gray-300: #d1d5db;
+      --edu-gray-200: #e5e7eb;
+      --edu-gray-100: #f3f4f6;
+      --edu-gray-50: #f9fafb;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13px;
+    }
+    .edu-teacher .edu-icon { width: 14px; height: 14px; flex-shrink: 0; vertical-align: -2px; }
+    .edu-teacher h2 { color: var(--edu-dark); }
+    .edu-teacher h2 .edu-icon { width: 16px; height: 16px; color: var(--edu-red); margin-right: 6px; }
+
+    /* Compact stat chips */
+    .edu-teacher .stat-cards { display: flex; gap: 10px; flex-wrap: wrap; }
+    .edu-teacher .stat-card {
+      border: 1px solid var(--edu-gray-200); border-radius: 10px; padding: 10px 16px; min-width: 100px;
+      text-align: left; background: var(--white, #fff); transition: all .18s ease; display: flex; align-items: center; gap: 10px;
+    }
+    .edu-teacher .stat-card:hover { border-color: var(--edu-red); box-shadow: 0 4px 14px rgba(255,5,39,.08); }
+    .edu-teacher .stat-card .stat-icon {
+      width: 30px; height: 30px; border-radius: 8px; background: var(--edu-red-light); color: var(--edu-red);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .edu-teacher .stat-card .stat-icon .edu-icon { width: 16px; height: 16px; }
+    .edu-teacher .stat-value { font-size: 1.05rem; font-weight: 800; color: var(--edu-dark); line-height: 1.15; }
+    .edu-teacher .stat-label { color: var(--edu-gray-500); font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+
+    /* Subject step buttons -> small red-outline pills */
+    .edu-teacher .step-hint { color: var(--edu-gray-600); margin-bottom: 10px; font-size: 0.8rem; }
+    .edu-teacher .subject-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .edu-teacher .subject-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      border: 1.5px solid var(--edu-red); background: #fff; color: var(--edu-red);
+      padding: 7px 14px; border-radius: 40px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+      font-family: inherit; transition: all .18s ease;
+    }
+    .edu-teacher .subject-btn:hover { background: var(--edu-red); color: #fff; transform: translateY(-1px); }
+
+    /* Class cards */
+    .edu-teacher .class-card-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+    .edu-teacher .class-card {
+      border: 1px solid var(--edu-gray-200); border-radius: 12px; padding: 14px; width: 176px;
+      transition: all .18s ease; background: #fff;
+    }
+    .edu-teacher .class-card:hover { border-color: var(--edu-red); box-shadow: 0 6px 20px rgba(0,0,0,.08); transform: translateY(-2px); }
+    .edu-teacher .class-card .icon {
+      width: 32px; height: 32px; border-radius: 8px; background: var(--edu-red-light); color: var(--edu-red);
+      display: flex; align-items: center; justify-content: center; margin-bottom: 8px;
+    }
+    .edu-teacher .class-card .icon .edu-icon { width: 16px; height: 16px; }
+    .edu-teacher .class-card .class-name { font-weight: 700; font-size: 0.85rem; margin: 2px 0 1px; color: var(--edu-dark); }
+    .edu-teacher .class-card .term-name { color: var(--edu-gray-500); font-size: 0.7rem; margin-bottom: 8px; }
+    .edu-teacher .class-card .student-count {
+      color: var(--edu-gray-600); font-size: 0.72rem; margin-bottom: 6px; display: flex; align-items: center; gap: 5px;
+    }
+    .edu-teacher .progress-track { background: var(--edu-gray-100); border-radius: 6px; height: 5px; overflow: hidden; margin-bottom: 5px; }
+    .edu-teacher .progress-fill { background: var(--edu-red); height: 100%; transition: width .3s ease; }
+    .edu-teacher .class-card .pct { font-size: 0.68rem; color: var(--edu-gray-500); margin-bottom: 8px; }
+    .edu-teacher .status-pill {
+      display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px;
+      font-size: 0.68rem; font-weight: 700;
+    }
+    .edu-teacher .status-pill .edu-icon { width: 11px; height: 11px; }
+    .edu-teacher .status-pill.complete { background: #d1fae5; color: #065f46; }
+    .edu-teacher .status-pill.pending { background: var(--edu-red-light); color: var(--edu-red-dark); }
+    .edu-teacher .class-card a {
+      display: inline-flex; align-items: center; gap: 3px; margin-top: 10px; font-size: 0.75rem;
+      font-weight: 700; color: var(--edu-red);
+    }
+    .edu-teacher .class-card a .edu-icon { width: 12px; height: 12px; }
+
+    /* Grade boundaries */
+    .edu-teacher h3 { font-size: 0.82rem; margin-top: 14px; margin-bottom: 5px; color: var(--edu-gray-700); font-weight: 700; }
+    .edu-teacher table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    .edu-teacher th, .edu-teacher td { padding: 6px 8px; border-bottom: 1px solid var(--edu-gray-100); text-align: left; }
+    .edu-teacher th { font-size: 0.68rem; text-transform: uppercase; letter-spacing: .4px; color: var(--edu-gray-500); font-weight: 700; }
+    .edu-teacher .grade-boundaries-table td, .edu-teacher .grade-boundaries-table th { text-align: center; }
+    .edu-teacher .grade-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+    .edu-teacher .grade-dot.green { background: #16a34a; }
+    .edu-teacher .grade-dot.blue { background: var(--edu-red); }
+    .edu-teacher .grade-dot.yellow { background: #d4ac0d; }
+    .edu-teacher .grade-dot.orange { background: #ca6f1e; }
+    .edu-teacher .grade-dot.red { background: var(--edu-red-dark); }
+    .edu-teacher .empty { color: var(--edu-gray-500); padding: 12px 0; font-size: 0.8rem; }
+  </style>
   <style>
     html { scroll-behavior: smooth; }
     .edupro-dashboard h2 { font-size: 1.1em; margin-top: 28px; margin-bottom: 10px; color: #1a5276; scroll-margin-top: 20px; }
@@ -270,16 +378,17 @@
     </script>
 
   {% elif dashboard_role == "teacher" %}
+  <div class="edu-teacher">
     <div id="overview" class="stat-cards">
-      <div class="stat-card"><div class="stat-value">{{ teacher_summary.academic_year or "-" }}</div><div class="stat-label">Academic Year</div></div>
-      <div class="stat-card"><div class="stat-value">{{ teacher_summary.current_term or "-" }}</div><div class="stat-label">Current Term</div></div>
-      <div class="stat-card"><div class="stat-value">{{ teacher_summary.assigned_subjects }}</div><div class="stat-label">Assigned Subjects</div></div>
-      <div class="stat-card"><div class="stat-value">{{ teacher_summary.total_students }}</div><div class="stat-label">Total Students</div></div>
-      <div class="stat-card"><div class="stat-value">{{ teacher_summary.marks_entered }}/{{ teacher_summary.marks_expected }}</div><div class="stat-label">Marks Entered</div></div>
-      <div class="stat-card"><div class="stat-value">{{ teacher_summary.marks_pending }}</div><div class="stat-label">Pending</div></div>
+      <div class="stat-card"><div class="stat-icon">{{ icon("calendar") }}</div><div><div class="stat-value">{{ teacher_summary.academic_year or "-" }}</div><div class="stat-label">Academic Year</div></div></div>
+      <div class="stat-card"><div class="stat-icon">{{ icon("term") }}</div><div><div class="stat-value">{{ teacher_summary.current_term or "-" }}</div><div class="stat-label">Current Term</div></div></div>
+      <div class="stat-card"><div class="stat-icon">{{ icon("book") }}</div><div><div class="stat-value">{{ teacher_summary.assigned_subjects }}</div><div class="stat-label">Assigned Subjects</div></div></div>
+      <div class="stat-card"><div class="stat-icon">{{ icon("users") }}</div><div><div class="stat-value">{{ teacher_summary.total_students }}</div><div class="stat-label">Total Students</div></div></div>
+      <div class="stat-card"><div class="stat-icon">{{ icon("check-circle") }}</div><div><div class="stat-value">{{ teacher_summary.marks_entered }}/{{ teacher_summary.marks_expected }}</div><div class="stat-label">Marks Entered</div></div></div>
+      <div class="stat-card"><div class="stat-icon">{{ icon("clock") }}</div><div><div class="stat-value">{{ teacher_summary.marks_pending }}</div><div class="stat-label">Pending</div></div></div>
     </div>
 
-    <h2 id="my-classes">Your Classes &amp; Subjects</h2>
+    <h2 id="my-classes">{{ icon("graduation-cap") }}Your Classes &amp; Subjects</h2>
 
     {% if not classes %}
     <p class="empty">No classes assigned yet.</p>
@@ -291,7 +400,7 @@
 
     <div id="class-step" style="display: none;">
       <p class="step-hint">
-        <a href="#" id="back-to-subjects">&larr; Subjects</a> &middot; <strong id="class-step-subject"></strong>
+        <a href="#" id="back-to-subjects">{{ icon("arrow-left") }} Subjects</a> &middot; <strong id="class-step-subject"></strong>
       </p>
       <div id="class-card-grid" class="class-card-grid"></div>
     </div>
@@ -305,12 +414,18 @@
           (bySubject[row.course] = bySubject[row.course] || []).push(row);
         });
 
+        var ICON_BOOK = '<svg class="edu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
+        var ICON_USERS = '<svg class="edu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>';
+        var ICON_CHECK = '<svg class="edu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+        var ICON_ALERT = '<svg class="edu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+        var ICON_CHEVRON = '<svg class="edu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+
         var subjectList = document.getElementById("subject-list");
         Object.keys(bySubject).sort().forEach(function (subject) {
           var btn = document.createElement("button");
           btn.type = "button";
           btn.className = "subject-btn";
-          btn.textContent = subject + " (" + bySubject[subject].length + ")";
+          btn.innerHTML = ICON_BOOK + " " + subject + " (" + bySubject[subject].length + ")";
           btn.addEventListener("click", function () { showClasses(subject); });
           subjectList.appendChild(btn);
         });
@@ -325,14 +440,14 @@
             var card = document.createElement("div");
             card.className = "class-card";
             card.innerHTML =
-              "<div class=\"icon\">📘</div>" +
+              "<div class=\"icon\">" + ICON_BOOK + "</div>" +
               "<div class=\"class-name\">" + row.student_group + "</div>" +
               "<div class=\"term-name\">" + row.academic_term + (row.schedule_date ? " &middot; " + row.schedule_date : "") + "</div>" +
-              "<div class=\"student-count\">" + row.total_students + " Students</div>" +
+              "<div class=\"student-count\">" + ICON_USERS + " " + row.total_students + " Students</div>" +
               "<div class=\"progress-track\"><div class=\"progress-fill\" style=\"width:" + pct + "%\"></div></div>" +
               "<div class=\"pct\">" + pct + "% Entered</div>" +
-              "<span class=\"status-pill " + (isComplete ? "complete" : "pending") + "\">" + (isComplete ? "✅ Complete" : "🔴 Pending") + "</span>" +
-              "<a href=\"/marks-entry?plan=" + encodeURIComponent(row.name) + "\">Enter Marks &rarr;</a>";
+              "<span class=\"status-pill " + (isComplete ? "complete" : "pending") + "\">" + (isComplete ? ICON_CHECK + " Complete" : ICON_ALERT + " Pending") + "</span>" +
+              "<a href=\"/marks-entry?plan=" + encodeURIComponent(row.name) + "\">Enter Marks " + ICON_CHEVRON + "</a>";
             grid.appendChild(card);
           });
           document.getElementById("subject-step").style.display = "none";
@@ -348,7 +463,7 @@
     </script>
     {% endif %}
 
-    <h2 id="grade-boundaries">Grade Boundaries</h2>
+    <h2 id="grade-boundaries">{{ icon("bar-chart") }}Grade Boundaries</h2>
     {% for entry in grade_boundaries_by_scale %}
     <h3>{{ entry.scale }}</h3>
     <table class="grade-boundaries-table">
@@ -370,6 +485,7 @@
     {% if not grade_boundaries_by_scale %}
     <p class="empty">No classes assigned yet.</p>
     {% endif %}
+  </div>
 
   {% else %}
     <p class="empty">No dashboard is configured for your role yet.</p>
