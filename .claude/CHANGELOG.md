@@ -465,6 +465,50 @@ YYYY-MM-DD.
     on Save, feeding the existing Report Card → Headmaster approval
     flow unchanged), and a "Strong/Weak topic areas" analysis (no
     per-topic data exists to support that claim).
+- **Parent/student "My Reports" page redesigned** with a new default
+  "Overview" tab from an owner-supplied mockup, built from real data
+  only (existing Grades/Profile/Fees tabs kept as-is):
+  - Compact stat-chip strip (Academic Year, Current Term, Children/
+    Class, Reports Available, New — unread badge that clears itself,
+    see below) instead of large padded cards, per the "slick, space-
+    saving" brief.
+  - Guardian with 2+ children gets a clickable child-card grid
+    (avatar initial, class, latest average, Active/Inactive) that
+    jumps to that child's detail block; a Guardian with one child or
+    a Student viewing themself skips straight to the detail block.
+  - Per child: compact stat chips (Average/Grade/Position/Subjects/
+    a derived 1-5 star rating), a Subject Performance table (Score/
+    Grade/Pass-Fail/Teacher Comment), View/Print/Download (reusing
+    the existing printview) and a new "Email to Parent" resend action.
+  - Wired up `Report Card.viewed_by_parent_at` — a field that already
+    existed but nothing ever set — so the "New Reports" badge behaves
+    like a real notification indicator: it counts unviewed published
+    reports, then marks them viewed the moment the Overview page
+    shows them, clearing before the next visit.
+  - Progress-over-terms panel only renders once 2+ published terms
+    exist for a student; today that's every student (only Term 2 2026
+    exists school-wide), so it shows an honest "not enough history
+    yet" note rather than fabricating a trend.
+  - **Not built, deliberately** (same reasoning as the teacher
+    dashboard batch above — real subsystems the mockup implied but a
+    "redesign" request doesn't justify building unprompted): self-
+    service "Add Child", parent-teacher messaging, meeting/slot
+    booking, a generic notifications/alerts feed, and email-preference
+    toggles. See `DECISIONS.md` 0017.
+  - **Root-caused and fixed a real pre-existing bug** while building
+    the denser Subject Performance table: the shared portal shell's
+    `.portal-main table { display: block; }` rule (added earlier to
+    let wide tables scroll instead of breaking the layout) silently
+    splits `<thead>` and `<tbody>` into two independent anonymous
+    tables that size their columns separately — harmless on tables
+    where every column happens to need similar width, but a 5-column
+    table with very differently-sized content renders data visibly
+    under the WRONG headers. Confirmed via `getBoundingClientRect()`
+    on header vs. data cells before/after the fix. Replaced it with
+    the standard pattern (a `.table-scroll` wrapper div added by a
+    small script in `portal_base.html`, table itself left as a real
+    `<table>`) — fixes every table across the whole portal, not just
+    the new one.
 
 ---
 

@@ -347,6 +347,23 @@ replacements first, then removed Desk access — see `DECISIONS.md`
       Submit-for-Approval gate, and fabricated topic-level analysis
       (see `DECISIONS.md` 0016)
 
+## Parent/student dashboard redesign ✅ done 2026-07-04
+
+- [x] New "Overview" tab on `/my-reports`: compact stat-chip strip,
+      child-card grid for multi-child guardians, per-child stat chips
+      + Subject Performance table + View/Print/Email actions
+- [x] Wired up the previously-unused `viewed_by_parent_at` field for
+      a real "New Reports" badge
+- [x] Progress-over-terms panel gracefully shows "not enough history
+      yet" until a second term is published (honest, not fabricated)
+- [x] Deliberately skipped: self-service Add Child, parent-teacher
+      messaging, meeting booking, generic notifications feed, email
+      preference toggles (see `DECISIONS.md` 0017)
+- [x] Root-caused and fixed a real pre-existing bug: shared portal
+      table CSS (`display: block` on `<table>`) silently misaligned
+      any table with unevenly-sized columns — fixed portal-wide via a
+      `.table-scroll` wrapper in `portal_base.html`
+
 ## Portal redesign: left-sidebar layout ✅ done 2026-07-03
 
 - [x] Shared `edupro_sms/templates/portal_base.html` sidebar shell,

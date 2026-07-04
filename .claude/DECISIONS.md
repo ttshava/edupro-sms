@@ -717,3 +717,38 @@ states (mirroring `Report Card`'s Pending Approval/Reviewed/Approved/
 Published pattern is the natural starting point, but distinct roles
 need deciding: does the Class Teacher approve each subject teacher's
 marks, or does this stay Headmaster-only?).
+
+## 0017 — Parent/student dashboard mockup: built the redesign, skipped the subsystems it implied
+
+**Decision:** Same pattern as 0016, one week apart. The owner's parent/
+student dashboard mockup was mostly a genuine "make it slick and
+space-saving" visual redesign — that part was built in full (compact
+stat chips, child cards, per-child academic summary, subject
+performance table, progress panel, resend-email action). But the
+mockup also implied several subsystems that don't exist and weren't
+separately requested: self-service "Add Child" (security-sensitive —
+letting a parent link themselves to any student needs an approval
+step, not a free-form add), a parent-teacher messaging inbox, meeting/
+slot booking, a generic notifications & alerts feed (the mockup's
+sample items — "Parent-Teacher Meeting Saturday", "Academic Calendar
+Update" — have no backing data model at all), and granular email
+preference toggles. None of these were built.
+
+**Why:** Same reasoning as 0016 — a "redesign the dashboard" request
+doesn't license inventing new subsystems with security implications
+(self-service child linking) or no real data to drive them
+(notifications feed, messaging). Where a small real feature already
+had a ready-made hook, it was built: `Report Card.viewed_by_parent_at`
+existed as a field but nothing ever set it, so the "New Reports" badge
+was wired up properly instead of faking a notification count.
+
+**How to apply:** If the owner asks for any of the skipped pieces
+specifically, treat each as its own scoped feature, not a dashboard
+tweak:
+- Add Child needs an approval workflow (Guardian requests a link,
+  Headmaster/admin confirms it's correct) — never silent/instant.
+- Messaging needs a new DocType (thread + message rows) and its own
+  permission model, not a stretch of Report Card comments.
+- Notifications needs a real event source per item shown, not
+  placeholder text — don't build the feed until there's something
+  real to put in it beyond "New Reports" (which already exists now).
