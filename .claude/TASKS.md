@@ -308,6 +308,12 @@ replacements first, then removed Desk access — see `DECISIONS.md`
 - [x] Every class has a real, distinct Class Teacher; Headmaster
       dashboard and student Profile tab updated to show it plus a
       presentable Subject/Teacher table
+- [x] Frappe favicon replaced with the school's own
+- [x] Term 2 rolled out to the other 14 classes with 2 Shona-named
+      sample students each (61 students / 61 published report cards
+      school-wide) — caught and fixed an unexplained Program subject
+      count drop (Form 1: 22→7) mid-rollout, audited every class
+      afterward to confirm nothing else was affected
 
 ## Portal redesign: left-sidebar layout ✅ done 2026-07-03
 

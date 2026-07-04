@@ -369,6 +369,28 @@ YYYY-MM-DD.
   `academic_term` fetches from `Student Group.academic_term`, which was
   blank, so newly-created plans silently lost their term until the
   Student Group's term was set and the plans backfilled.
+- **Replaced the Frappe favicon** with the school's own
+  (`Website Settings.favicon`), uploaded as a public file.
+- **Term 2 rolled out to the other 14 classes**, each with 2 sample
+  students (real Shona name combinations, clearly `@example.edupro.test`
+  to distinguish from the real `@firstclasshigh.ac.zw` Form 1 Purple
+  roster) — same full cycle as Form 1 Purple: Assessment Plans
+  created+activated, marks entered, Report Cards generated and taken
+  through Review → Approve → Publish, all 15 classes now consistent
+  (61 students, 61 published Term 2 report cards school-wide).
+  Caught a real, unexplained data issue mid-rollout: the "Form 1"
+  Program had silently dropped from 22 subjects to 7 sometime between
+  the previous session and this one (root cause not identified —
+  no Version log entries exist for Program, and nothing in this
+  session's own scripts explains it) — Form 2/3/4 and both U6 Programs
+  were unaffected. Restored the full subject list and redid Form 1
+  Green/Blue's Term 2 data (safe to fully redo since it was fresh
+  sample data from the same session), then audited every class's
+  subject/plan/student/published-card counts against its Program to
+  confirm nothing else was quietly wrong before calling this done.
+  Also hit the same "new User comes out disabled" bug on this batch
+  of 28 accounts (as seen on the earlier 38-teacher import) — same
+  fix, explicit `enabled=1` + `update_password()`.
 
 ---
 
