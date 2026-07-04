@@ -11,6 +11,11 @@
   "total_score",
   "maximum_score",
   "grade",
+  "column_break_term_exam",
+  "term_mark",
+  "term_grade",
+  "exam_mark",
+  "exam_grade",
   "comment"
  ],
  "fields": [
@@ -48,9 +53,34 @@
    "label": "Grade"
   },
   {
+   "fieldname": "column_break_term_exam",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "term_mark",
+   "fieldtype": "Float",
+   "label": "Term Mark"
+  },
+  {
+   "fieldname": "term_grade",
+   "fieldtype": "Data",
+   "label": "Term Grade"
+  },
+  {
+   "fieldname": "exam_mark",
+   "fieldtype": "Float",
+   "label": "Exam Mark"
+  },
+  {
+   "fieldname": "exam_grade",
+   "fieldtype": "Data",
+   "label": "Exam Grade"
+  },
+  {
    "fieldname": "comment",
    "fieldtype": "Small Text",
-   "label": "Comment"
+   "label": "Comment",
+   "description": "Auto-filled from the grading scale's remark for this subject's overall grade when the report card is generated; teachers can still edit it."
   }
  ],
  "grid_page_length": 50,

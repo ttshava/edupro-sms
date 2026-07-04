@@ -92,8 +92,8 @@
         <th>Student</th>
         {% for c in data.criteria %}
         <th>{{ c.assessment_criteria }} (max {{ c.maximum_score|int }})</th>
+        <th>{{ c.assessment_criteria }} Grade</th>
         {% endfor %}
-        <th>Grade</th>
         <th>Status</th>
       </tr>
     </thead>
@@ -105,15 +105,16 @@
         <td>
           <input type="number" step="0.5" min="0" max="{{ c.maximum_score }}"
                  class="score-input" data-criteria="{{ c.assessment_criteria }}"
+                 data-max="{{ c.maximum_score }}"
                  value="{{ row.scores.get(c.assessment_criteria, '') }}">
         </td>
+        <td class="row-grade" data-criteria-grade="{{ c.assessment_criteria }}">-</td>
         {% endfor %}
-        <td class="row-grade">-</td>
         <td class="row-status">Not entered</td>
       </tr>
       {% endfor %}
       {% if not data.rows %}
-      <tr><td colspan="{{ data.criteria|length + 3 }}" class="row-status">No students in this class.</td></tr>
+      <tr><td colspan="{{ data.criteria|length * 2 + 2 }}" class="row-status">No students in this class.</td></tr>
       {% endif %}
     </tbody>
   </table>
@@ -136,7 +137,7 @@
   <h2>Class Performance</h2>
   <div id="grade-distribution"></div>
 
-  <h2>Grade Boundaries (IGCSE Standard)</h2>
+  <h2>Grade Boundaries ({{ data.plan.grading_scale }})</h2>
   <table class="grade-boundaries-table">
     <thead>
       <tr><th>Grade</th><th>Range</th><th>Color</th><th>Performance Level</th></tr>
@@ -173,24 +174,27 @@
       var total = 0, filled = 0;
       inputs.forEach(function (input) {
         input.classList.remove("pass", "fail");
+        var gradeCell = tr.querySelector('.row-grade[data-criteria-grade="' + input.dataset.criteria + '"]');
         if (input.value !== "") {
           filled++;
-          total += parseFloat(input.value) || 0;
+          var score = parseFloat(input.value) || 0;
+          total += score;
+          var critPct = input.dataset.max > 0 ? (score / input.dataset.max) * 100 : 0;
+          var critGrade = gradeFor(critPct);
+          if (gradeCell) gradeCell.textContent = critGrade;
+          input.classList.add(critPct >= 50 ? "pass" : "fail");
+        } else if (gradeCell) {
+          gradeCell.textContent = "-";
         }
       });
-      var gradeCell = tr.querySelector(".row-grade");
       var statusCell = tr.querySelector(".row-status");
       var complete = filled === inputs.length && inputs.length > 0;
       if (complete) {
         var pct = totalMax ? (total / totalMax) * 100 : 0;
-        var grade = gradeFor(pct);
-        gradeCell.textContent = grade;
         statusCell.textContent = "✅ Entered";
         statusCell.className = "row-status entered";
-        inputs.forEach(function (input) { input.classList.add(pct >= 50 ? "pass" : "fail"); });
         return { complete: true, pct: pct };
       }
-      gradeCell.textContent = "-";
       statusCell.textContent = filled > 0 ? "⏳ Incomplete" : "🔴 Missing";
       statusCell.className = "row-status missing";
       return { complete: false, pct: null };
@@ -224,7 +228,7 @@
           entered++;
           sumPct += result.pct;
           if (result.pct >= 50) passCount++;
-          var grade = tr.querySelector(".row-grade").textContent;
+          var grade = gradeFor(result.pct);
           gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
         }
       });

@@ -17,6 +17,7 @@
   <style>
     html { scroll-behavior: smooth; }
     .edupro-dashboard h2 { font-size: 1.1em; margin-top: 28px; margin-bottom: 10px; color: #1a5276; scroll-margin-top: 20px; }
+    .edupro-dashboard h3 { font-size: 0.95em; margin-top: 16px; margin-bottom: 6px; color: #444; }
 
     .edupro-dashboard .stat-cards { display: flex; gap: 14px; flex-wrap: wrap; }
     .edupro-dashboard .stat-card {
@@ -347,13 +348,15 @@
     </script>
     {% endif %}
 
-    <h2 id="grade-boundaries">Grade Boundaries (IGCSE Standard)</h2>
+    <h2 id="grade-boundaries">Grade Boundaries</h2>
+    {% for entry in grade_boundaries_by_scale %}
+    <h3>{{ entry.scale }}</h3>
     <table class="grade-boundaries-table">
       <thead>
         <tr><th>Grade</th><th>Range</th><th>Color</th><th>Performance Level</th></tr>
       </thead>
       <tbody>
-        {% for g in grade_boundaries %}
+        {% for g in entry.rows %}
         <tr>
           <td><strong>{{ g.grade_code }}</strong></td>
           <td>{{ g.low|int }}&ndash;{{ g.high|int }}</td>
@@ -363,6 +366,10 @@
         {% endfor %}
       </tbody>
     </table>
+    {% endfor %}
+    {% if not grade_boundaries_by_scale %}
+    <p class="empty">No classes assigned yet.</p>
+    {% endif %}
 
   {% else %}
     <p class="empty">No dashboard is configured for your role yet.</p>

@@ -35,7 +35,7 @@ def _columns():
 def _rows():
 	plans = frappe.get_list(
 		"Assessment Plan",
-		fields=["name", "student_group", "course", "academic_term", "schedule_date"],
+		fields=["name", "student_group", "course", "academic_term", "schedule_date", "grading_scale"],
 		order_by="student_group asc, course asc",
 	)
 
@@ -53,6 +53,7 @@ def _rows():
 				"course": plan.course,
 				"academic_term": plan.academic_term,
 				"schedule_date": plan.schedule_date,
+				"grading_scale": plan.grading_scale,
 				"total_students": total_students,
 				"marks_entered": marks_entered,
 				"status": status,

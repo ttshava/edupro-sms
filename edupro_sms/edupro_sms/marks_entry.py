@@ -86,13 +86,14 @@ def get_entry_data(assessment_plan):
 			"student_group": plan.student_group,
 			"academic_term": plan.academic_term,
 			"schedule_date": str(plan.schedule_date) if plan.schedule_date else None,
+			"grading_scale": plan.grading_scale,
 			"entered_count": entered_count,
 			"total_count": len(rows),
 			"status": "Complete" if rows and entered_count >= len(rows) else "In Progress",
 		},
 		"criteria": criteria,
 		"rows": rows,
-		"grade_boundaries": get_grade_boundaries(),
+		"grade_boundaries": get_grade_boundaries(plan.grading_scale),
 	}
 
 

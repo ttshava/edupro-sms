@@ -21,7 +21,13 @@ def get_context(context):
 		context.dashboard_role = "teacher"
 		context.classes = _teacher_classes()
 		context.teacher_summary = _teacher_summary(context.classes)
-		context.grade_boundaries = get_grade_boundaries()
+		# A teacher can teach across more than one grading band (e.g. both an
+		# O Level and an A Level class), so show boundaries for every scale
+		# actually in use across their classes, not one hardcoded default.
+		scales_in_use = sorted({row["grading_scale"] for row in context.classes if row.get("grading_scale")})
+		context.grade_boundaries_by_scale = [
+			{"scale": scale, "rows": get_grade_boundaries(scale)} for scale in scales_in_use
+		]
 	else:
 		context.dashboard_role = None
 
@@ -58,6 +64,7 @@ def _headmaster_summary():
 
 	from edupro_sms.edupro_sms.academic_calendar import get_current_term
 	from edupro_sms.edupro_sms.class_review import get_class_summary_rows, get_recent_activity, get_subject_analysis
+	from edupro_sms.edupro_sms.grading import DEFAULT_GRADING_SCALE
 
 	term = get_current_term()
 	academic_year = frappe.db.get_value("Academic Term", term, "academic_year") if term else None
@@ -76,7 +83,10 @@ def _headmaster_summary():
 
 	averages = [r["average_percentage"] for r in class_rows if r["average_percentage"] is not None]
 	overall_average = (sum(averages) / len(averages)) if averages else None
-	overall_grade = get_grade("IGCSE Standard", overall_average) if overall_average is not None else None
+	# Whole-school average spans every grading band, so there's no single
+	# scale that's strictly "correct" here -- fall back to the default one
+	# just to express the number as a letter grade too.
+	overall_grade = get_grade(DEFAULT_GRADING_SCALE, overall_average) if overall_average is not None else None
 
 	return {
 		"academic_year": academic_year,

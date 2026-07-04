@@ -10,6 +10,8 @@ from frappe.utils import flt
 
 from education.education.api import get_grade
 
+from edupro_sms.edupro_sms.grading import DEFAULT_GRADING_SCALE, get_grade_description
+
 
 class ReportCard(Document):
 	def on_update_after_submit(self):
@@ -184,7 +186,7 @@ def _generate_for_student(student: str, group, academic_term: str, required_cour
 	total_score = sum(flt(r.total_score) for r in results)
 	maximum_score = sum(flt(r.maximum_score) for r in results)
 	average_percentage = (total_score / maximum_score * 100) if maximum_score else 0
-	grading_scale = results[0].grading_scale if results else "IGCSE Standard"
+	grading_scale = results[0].grading_scale if results else DEFAULT_GRADING_SCALE
 	overall_grade = get_grade(grading_scale, average_percentage)
 
 	existing_name = frappe.db.get_value(
@@ -202,17 +204,7 @@ def _generate_for_student(student: str, group, academic_term: str, required_cour
 	report_card.overall_grade = overall_grade
 	report_card.set(
 		"assessment_results",
-		[
-			{
-				"assessment_result": r.name,
-				"course": r.course,
-				"total_score": r.total_score,
-				"maximum_score": r.maximum_score,
-				"grade": r.grade,
-				"comment": r.comment,
-			}
-			for r in results
-		],
+		[_subject_row(r) for r in results],
 	)
 
 	if is_new:
@@ -221,6 +213,37 @@ def _generate_for_student(student: str, group, academic_term: str, required_cour
 		report_card.save()
 
 	return {"name": report_card.name, "is_new": is_new}
+
+
+def _subject_row(result) -> dict:
+	"""One Report Card Assessment Result row -- the overall subject
+	score/grade (unchanged from before) plus the Term Mark/Exam Mark
+	breakdown pulled from the underlying Assessment Result's own detail
+	rows, and a comment auto-filled from the grade's Remark text unless
+	a teacher already wrote a specific one in."""
+	details = frappe.get_all(
+		"Assessment Result Detail",
+		filters={"parent": result.name},
+		fields=["assessment_criteria", "score", "maximum_score", "grade"],
+	)
+	by_criteria = {d.assessment_criteria: d for d in details}
+	term = by_criteria.get("Term Mark")
+	exam = by_criteria.get("Exam Mark")
+
+	comment = result.comment or get_grade_description(result.grading_scale, result.grade)
+
+	return {
+		"assessment_result": result.name,
+		"course": result.course,
+		"total_score": result.total_score,
+		"maximum_score": result.maximum_score,
+		"grade": result.grade,
+		"term_mark": term.score if term else None,
+		"term_grade": term.grade if term else None,
+		"exam_mark": exam.score if exam else None,
+		"exam_grade": exam.grade if exam else None,
+		"comment": comment,
+	}
 
 
 def _calculate_positions(student_group: str, academic_term: str):
