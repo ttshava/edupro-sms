@@ -364,6 +364,26 @@ replacements first, then removed Desk access — see `DECISIONS.md`
       any table with unevenly-sized columns — fixed portal-wide via a
       `.table-scroll` wrapper in `portal_base.html`
 
+## Headmaster dashboard redesign ✅ done 2026-07-04
+
+- [x] Summary strip (Academic Year/Term, Classes, Teachers, Students,
+      Reports Published, Pending Approval, real Overall Grade)
+- [x] Class Performance Overview table with filter + CSV export,
+      linking to a new `/class-review` drill-down page
+- [x] `/class-review`: class stats, grade distribution, ranked
+      student list
+- [x] Per-class rollup of Pending Approvals + bulk
+      `apply_class_report_card_action` (loops the existing per-card
+      `apply_workflow`, no new workflow states) — verified end-to-end
+      on 2 sample report cards, restored to their original state after
+- [x] Real Subject Performance Analysis (Strong/Weak subjects from
+      per-Course averages) and Recent Activity (real modified
+      timestamps + workflow_state, since Report Card has no change
+      tracking enabled)
+- [x] Deliberately skipped: fake notification bell, a separate
+      Headmaster Comments log, the Attendance/Behavior report builder,
+      mass broadcast email, "Notify Teachers" (see `DECISIONS.md` 0018)
+
 ## Portal redesign: left-sidebar layout ✅ done 2026-07-03
 
 - [x] Shared `edupro_sms/templates/portal_base.html` sidebar shell,

@@ -509,6 +509,55 @@ YYYY-MM-DD.
     small script in `portal_base.html`, table itself left as a real
     `<table>`) — fixes every table across the whole portal, not just
     the new one.
+- **Headmaster dashboard redesigned** from another owner-supplied
+  mockup, same "build the real redesign, skip the implied subsystems"
+  discipline as decisions 0016/0017 (full reasoning in `DECISIONS.md`
+  0018):
+  - Summary strip: Academic Year, Current Term, Classes, Teachers,
+    Students, Reports Published X/Y, Pending Approval, and a real
+    Overall Grade computed from every class's average — no fabricated
+    term-over-term trend arrows (only one term of real data exists
+    school-wide).
+  - **Class Performance Overview** table: one row per class (teacher,
+    students, average %, grade, Complete/In Progress/Pending status),
+    with a client-side filter box and CSV export, each row linking
+    into a new drill-down page.
+  - New `/class-review?group=X` page: class stats (average, grade,
+    pass rate, position among all classes this term), a real grade-
+    distribution bar chart, and every student ranked by average with
+    a link to their own published report.
+  - **Report Approval Workflow** replaced the old flat per-student
+    Pending Approvals table with a per-class rollup (X awaiting
+    Approve, Y awaiting Publish) plus a new bulk
+    `apply_class_report_card_action` (in `approvals.py`) that loops
+    the *same* `apply_workflow` call already used for individual
+    report cards over every card in a class currently in the right
+    state — no new workflow/state machine, just a bulk wrapper around
+    the existing one. Verified end-to-end on 2 sample-data report
+    cards (temporarily rolled back to Reviewed, bulk-Approved, bulk-
+    Published, landing back at their real Published state).
+  - **Subject Performance Analysis** (Strong Subjects / Improvement
+    Areas): real per-Course averages across every submitted
+    Assessment Result this term — unlike the per-topic "Algebra vs.
+    Geometry" analysis skipped for the teacher dashboard, whole-
+    subject averages (Mathematics, Physics, ...) are genuinely
+    computable from existing data.
+  - **Recent Activity**: discovered `Report Card` doesn't have change
+    tracking enabled (zero rows in Frappe's own `Version` log despite
+    61 real workflow transitions this session), so a planned
+    "reconstruct the exact event history" approach was dropped in
+    favor of what's actually verifiable — each card's own `modified`
+    timestamp + current `workflow_state` ("X's report is now
+    Published"), plus classes whose assessment date has passed with
+    zero marks entered.
+  - **Not built, deliberately:** a fake notification bell, a separate
+    freeform "Headmaster Comments" log (duplicates the per-Report-
+    Card comment fields that already exist), the elaborate Report
+    Generation builder with Attendance/Behavior toggles (no
+    attendance/behavior data model exists at all -- literally a
+    future `edupro_attendance` app, not in scope), a mass "Send
+    Broadcast" email composer, and "Notify Teachers"/multi-term trend
+    charts (same single-term data limitation noted above).
 
 ---
 

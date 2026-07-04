@@ -752,3 +752,49 @@ tweak:
 - Notifications needs a real event source per item shown, not
   placeholder text — don't build the feed until there's something
   real to put in it beyond "New Reports" (which already exists now).
+
+## 0018 — Headmaster dashboard mockup: bulk-approve reuses the existing workflow, no new subsystems
+
+**Decision:** Third round of the same mockup pattern (0016 teacher
+dashboard, 0017 parent dashboard). The owner's headmaster mockup
+implied: a per-class "Approve All" (real, and cheap — see below), a
+separate freeform "Headmaster Comments" running log, an elaborate
+Report Generation builder with Attendance/Behavior toggles, a mass
+"Send Broadcast" email composer, and a "Notify Teachers" action. Built
+the genuinely real parts (Class Performance Overview, a `/class-review`
+drill-down, per-class Pending Approvals rollup, real Subject
+Performance Analysis, real Recent Activity), skipped the rest.
+
+**Why "Approve All" was safe to build, unlike the subject-level
+approval gate skipped in 0016:** this one isn't a new workflow at
+all — `apply_class_report_card_action` (`approvals.py`) just loops the
+*same* `apply_workflow` call the individual Approve/Reject/Publish
+buttons already make, filtered to whichever Report Cards in a class
+are currently in the right state. No new states, no new roles, no new
+data model. That's the dividing line worth remembering: bulk-applying
+an *existing* action to many documents is safe to build on request;
+inventing a *new* approval gate is not.
+
+**Why the rest was skipped:** a "Headmaster Comments" log would
+duplicate the per-Report-Card `class_teacher_comment`/
+`headmaster_comment` fields that already exist with no clear separate
+purpose. Attendance/Behavior toggles have literally no data model —
+attendance is `edupro_attendance`, a whole future app per
+`CLAUDE.md`'s own roadmap, not in scope for a dashboard redesign. Mass
+broadcast email and "Notify Teachers" are new communication
+subsystems with real misuse/rate-limit risk, same reasoning as
+skipping parent-teacher messaging in 0017.
+
+**Real gap found while building Recent Activity:** `Report Card` has
+no change tracking enabled — `tabVersion` has zero rows for it despite
+61 real workflow transitions this session. There is no way to
+reconstruct exact "who approved what when" history from current data.
+Recent Activity instead shows each card's real `modified` timestamp +
+current `workflow_state` ("X's report is now Published"), which is
+honest about what actually happened (last touched, now in this state)
+without claiming a precise event log that doesn't exist.
+
+**How to apply:** If precise approval-history auditing is ever
+actually requested (not implied by a mockup), the real fix is enabling
+`track_changes` on `Report Card` (or a dedicated audit log doctype),
+not trying to reverse-engineer it from `modified` timestamps.
