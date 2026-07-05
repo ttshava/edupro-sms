@@ -9,6 +9,18 @@ backups/*
 !logs/.gitkeep
 !backups/.gitkeep
 
+# apps/edupro_sms is OUR custom app -- the actual source code for every
+# feature in this project. It was excluded by the apps/* rule above for
+# the project's whole history; un-ignore it explicitly so it's finally
+# version-controlled. (Other apps under apps/ -- frappe/erpnext/education
+# -- are vendored inside the Docker image itself, never bind-mounted to
+# the host, so apps/* still correctly excludes anything else that shows
+# up there.)
+!apps/edupro_sms
+
 *.log
 *.pid
 .env
+
+# Note: apps/edupro_sms/.gitignore (inside the app itself, from
+# `bench new-app`) already excludes __pycache__/*.pyc/etc within it.
