@@ -1,0 +1,289 @@
+{% extends "templates/web.html" %}
+
+{% block title %} Add Student {% endblock %}
+
+{% block content %}
+
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-6 offset-lg-3">
+
+            <!-- Header -->
+            <div class="mb-5">
+                <h1 class="mb-2" style="color: #d62828; font-weight: 700;">
+                    <i class="fa fa-plus-circle"></i> Add New Student
+                </h1>
+                <p class="text-muted">Enter student details below. All fields marked with * are required.</p>
+            </div>
+
+            <!-- Form -->
+            <div class="card" style="border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div class="card-body">
+                    <form id="addStudentForm" onsubmit="submitForm(event)">
+
+                        <!-- Student Name -->
+                        <div class="mb-3">
+                            <label for="studentName" class="form-label">
+                                Student Name <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="studentName" name="student_name"
+                                   placeholder="Full name (First Last)" required>
+                            <small class="form-text text-muted">Enter the student's full name</small>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="mb-3">
+                            <label for="studentEmail" class="form-label">
+                                Email <span class="text-danger">*</span>
+                            </label>
+                            <input type="email" class="form-control" id="studentEmail" name="email"
+                                   placeholder="student@school.edu" required>
+                            <small class="form-text text-muted">Must be unique and in valid email format</small>
+                        </div>
+
+                        <!-- Admission Number -->
+                        <div class="mb-3">
+                            <label for="admissionNumber" class="form-label">
+                                Admission Number <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="admissionNumber" name="admission_number"
+                                   placeholder="e.g., STU2026001" required>
+                            <small class="form-text text-muted">Unique student ID (must be unique)</small>
+                        </div>
+
+                        <!-- Date of Birth -->
+                        <div class="mb-3">
+                            <label for="dateOfBirth" class="form-label">
+                                Date of Birth <span class="text-muted">(Optional)</span>
+                            </label>
+                            <input type="date" class="form-control" id="dateOfBirth" name="dob">
+                            <small class="form-text text-muted">Format: YYYY-MM-DD</small>
+                        </div>
+
+                        <!-- Gender -->
+                        <div class="mb-3">
+                            <label for="gender" class="form-label">
+                                Gender <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="gender" name="gender" required>
+                                <option value="">-- Select Gender --</option>
+                                <option value="M">Male</option>
+                                <option value="F">Female</option>
+                            </select>
+                        </div>
+
+                        <!-- Boarding Type -->
+                        <div class="mb-3">
+                            <label for="boardingType" class="form-label">
+                                Boarding Type <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="boardingType" name="boarding_type" required>
+                                <option value="">-- Select Boarding Type --</option>
+                                <option value="Day Boarder">Day Boarder</option>
+                                <option value="Full Boarder">Full Boarder</option>
+                            </select>
+                        </div>
+
+                        <!-- Program (Optional) -->
+                        <div class="mb-3">
+                            <label for="program" class="form-label">
+                                Program <span class="text-muted">(Optional)</span>
+                            </label>
+                            <select class="form-select" id="program" name="program">
+                                <option value="">-- Select Program --</option>
+                            </select>
+                            <small class="form-text text-muted">Can be added later during enrollment</small>
+                        </div>
+
+                        <!-- Student Group (Optional) -->
+                        <div class="mb-3">
+                            <label for="studentGroup" class="form-label">
+                                Class / Student Group <span class="text-muted">(Optional)</span>
+                            </label>
+                            <select class="form-select" id="studentGroup" name="student_group">
+                                <option value="">-- Select Class --</option>
+                            </select>
+                            <small class="form-text text-muted">Can be added during enrollment</small>
+                        </div>
+
+                        <!-- Divider -->
+                        <hr class="my-4">
+
+                        <!-- Buttons -->
+                        <div class="d-flex gap-2">
+                            <a href="/bursar-students" class="btn btn-outline-secondary flex-grow-1">
+                                <i class="fa fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary flex-grow-1" id="submitBtn">
+                                <i class="fa fa-check-circle"></i> Create Student
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+
+            <!-- Help Text -->
+            <div class="alert alert-info mt-4">
+                <strong>💡 After Creating:</strong>
+                <ul class="mb-0 mt-2">
+                    <li>You can enroll the student in a program</li>
+                    <li>You can link the student to a guardian</li>
+                    <li>The student can then access their portal</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadPrograms();
+    loadClasses();
+});
+
+function loadPrograms() {
+    frappe.call({
+        method: 'frappe.client.get_list',
+        args: {
+            doctype: 'Program',
+            fields: ['name'],
+            limit_page_length: 100
+        },
+        callback: function(r) {
+            if (r.message) {
+                const select = document.getElementById('program');
+                r.message.forEach(prog => {
+                    const option = document.createElement('option');
+                    option.value = prog.name;
+                    option.textContent = prog.name;
+                    select.appendChild(option);
+                });
+            }
+        }
+    });
+}
+
+function loadClasses() {
+    frappe.call({
+        method: 'frappe.client.get_list',
+        args: {
+            doctype: 'Student Group',
+            fields: ['name'],
+            limit_page_length: 100
+        },
+        callback: function(r) {
+            if (r.message) {
+                const select = document.getElementById('studentGroup');
+                r.message.forEach(cls => {
+                    const option = document.createElement('option');
+                    option.value = cls.name;
+                    option.textContent = cls.name;
+                    select.appendChild(option);
+                });
+            }
+        }
+    });
+}
+
+function submitForm(event) {
+    event.preventDefault();
+
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Creating...';
+
+    const formData = {
+        student_name: document.getElementById('studentName').value,
+        email: document.getElementById('studentEmail').value,
+        admission_number: document.getElementById('admissionNumber').value,
+        dob: document.getElementById('dateOfBirth').value || null,
+        gender: document.getElementById('gender').value,
+        boarding_type: document.getElementById('boardingType').value,
+        program: document.getElementById('program').value || null,
+        student_group: document.getElementById('studentGroup').value || null
+    };
+
+    frappe.call({
+        method: 'edupro_sms.bursar_student_management.create_student',
+        args: {
+            student_name: formData.student_name,
+            email: formData.email,
+            dob: formData.dob,
+            gender: formData.gender,
+            admission_number: formData.admission_number,
+            boarding_type: formData.boarding_type
+        },
+        callback: function(r) {
+            if (r.message && r.message.success) {
+                const studentId = r.message.student_id;
+
+                // Enroll if program selected
+                if (formData.program) {
+                    frappe.call({
+                        method: 'edupro_sms.bursar_student_management.enroll_student',
+                        args: {
+                            student_id: studentId,
+                            program: formData.program,
+                            student_group: formData.student_group
+                        },
+                        callback: function(r2) {
+                            frappe.msgprint(`Student created and enrolled successfully!<br>Student ID: ${studentId}`);
+                            setTimeout(() => {
+                                window.location.href = '/bursar-students';
+                            }, 2000);
+                        }
+                    });
+                } else {
+                    frappe.msgprint(`Student created successfully!<br>Student ID: ${studentId}`);
+                    setTimeout(() => {
+                        window.location.href = '/bursar-students';
+                    }, 2000);
+                }
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa fa-check-circle"></i> Create Student';
+            }
+        }
+    });
+}
+</script>
+
+<!-- Styles -->
+<style>
+.form-control, .form-select {
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #d62828;
+    box-shadow: 0 0 0 0.2rem rgba(214, 40, 40, 0.25);
+}
+
+.form-label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.card {
+    border-radius: 8px;
+}
+
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.alert {
+    border-radius: 6px;
+}
+
+.text-danger {
+    color: #d62828 !important;
+}
+</style>
+
+{% endblock %}

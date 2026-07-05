@@ -1,0 +1,443 @@
+{% extends "base_template.html" %}
+
+{% block title %}My Dashboard — Student Portal{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid mt-4">
+    <!-- Dashboard Header -->
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <h2>
+                <i class="fas fa-graduation-cap"></i> My Dashboard
+            </h2>
+            <p class="text-muted">Welcome! View your grades, fees, and reports here.</p>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4" id="summary-cards">
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <h6 class="card-title">Current Term</h6>
+                    <h4 class="mb-0" id="current-term">Loading...</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <h6 class="card-title">GPA</h6>
+                    <h4 class="mb-0" id="gpa">--</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <h6 class="card-title">Class Position</h6>
+                    <h4 class="mb-0" id="position">--</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <h6 class="card-title">Outstanding Fees</h6>
+                    <h4 class="mb-0" id="outstanding">$0</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="row">
+        <div class="col-lg-12">
+            <ul class="nav nav-tabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#grades">Grades</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#reports">Reports</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#fees">Fees</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#account">Account</a>
+                </li>
+            </ul>
+
+            <div class="tab-content mt-3">
+                <!-- Grades Tab -->
+                <div class="tab-pane fade show active" id="grades">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Grades</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Filter by Term:</label>
+                                <select class="form-select" id="term-filter" style="max-width: 300px;">
+                                    <option value="">All Terms</option>
+                                </select>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="grades-table">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Subject</th>
+                                            <th class="text-center">Term Mark</th>
+                                            <th class="text-center">Exam Mark</th>
+                                            <th class="text-center">Total</th>
+                                            <th class="text-center">Grade</th>
+                                            <th>Comment</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="grades-tbody">
+                                        <tr><td colspan="6" class="text-center text-muted">Loading...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="grades-average" class="alert alert-info mt-3" style="display:none;">
+                                <strong>Term Average:</strong> <span id="term-avg-value">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reports Tab -->
+                <div class="tab-pane fade" id="reports">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Report Cards</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="reports-list">
+                                <p class="text-muted">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fees Tab -->
+                <div class="tab-pane fade" id="fees">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">My Fees</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="fees-table">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Term</th>
+                                            <th>Program</th>
+                                            <th class="text-end">Amount</th>
+                                            <th class="text-end">Paid</th>
+                                            <th class="text-end">Balance</th>
+                                            <th>Status</th>
+                                            <th>Due Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="fees-tbody">
+                                        <tr><td colspan="7" class="text-center text-muted">Loading...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="fees-summary" class="alert alert-secondary mt-3" style="display:none;">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <strong>Total Amount:</strong> <span id="total-amount">$0</span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Total Paid:</strong> <span id="total-paid">$0</span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Outstanding:</strong> <span id="total-outstanding">$0</span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Collection %:</strong> <span id="collection-pct">0%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Tab -->
+                <div class="tab-pane fade" id="account">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Account Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <h6>Change Password</h6>
+                            <form id="password-form" class="mt-3">
+                                <div class="form-group mb-3">
+                                    <label for="current-pwd" class="form-label">Current Password</label>
+                                    <input type="password" class="form-control" id="current-pwd" required>
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="new-pwd" class="form-label">New Password</label>
+                                    <input type="password" class="form-control" id="new-pwd" required>
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="confirm-pwd" class="form-label">Confirm Password</label>
+                                    <input type="password" class="form-control" id="confirm-pwd" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Change Password</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .stat-card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #0d6efd;
+    }
+
+    .stat-card h4 {
+        color: #0d6efd;
+        font-weight: 600;
+    }
+
+    .card {
+        border: none;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+
+    .nav-tabs {
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .nav-tabs .nav-link {
+        color: #666;
+        border: none;
+        border-bottom: 3px solid transparent;
+    }
+
+    .nav-tabs .nav-link.active {
+        background: none;
+        color: #0d6efd;
+        border-bottom: 3px solid #0d6efd;
+    }
+
+    .badge-status {
+        font-size: 0.85rem;
+    }
+
+    table th {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .report-card-link {
+        display: inline-block;
+        padding: 10px 15px;
+        background: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        margin-bottom: 10px;
+        transition: all 0.3s;
+    }
+
+    .report-card-link:hover {
+        background: #e7f3ff;
+        border-color: #0d6efd;
+    }
+</style>
+
+<script>
+    let dashboardData = {};
+
+    // Load dashboard on page load
+    window.addEventListener('load', loadDashboard);
+
+    function loadDashboard() {
+        // Load student dashboard
+        frappe.call({
+            method: 'edupro_sms.student_portal_api.get_student_dashboard',
+            callback: function(r) {
+                if (r.message) {
+                    dashboardData = r.message;
+                    updateSummaryCards(r.message);
+                    loadGrades();
+                    loadReports();
+                    loadFees();
+                }
+            }
+        });
+    }
+
+    function updateSummaryCards(data) {
+        document.getElementById('current-term').textContent = data.current_term || 'N/A';
+        document.getElementById('gpa').textContent = data.gpa || '--';
+        document.getElementById('position').textContent = data.class_position || '--';
+    }
+
+    function loadGrades() {
+        frappe.call({
+            method: 'edupro_sms.student_portal_api.get_student_grades',
+            callback: function(r) {
+                if (r.message && r.message.grades) {
+                    displayGrades(r.message.grades, r.message.term_average);
+                }
+            }
+        });
+    }
+
+    function displayGrades(grades, average) {
+        let html = '';
+        grades.forEach(grade => {
+            const badgeClass = grade.grade === 'A' ? 'bg-success' :
+                              grade.grade === 'B' ? 'bg-info' :
+                              grade.grade === 'C' ? 'bg-warning' : 'bg-danger';
+
+            html += `
+                <tr>
+                    <td><strong>${grade.subject}</strong></td>
+                    <td class="text-center">${grade.term_mark}</td>
+                    <td class="text-center">${grade.exam_mark}</td>
+                    <td class="text-center"><strong>${grade.total_mark}</strong></td>
+                    <td class="text-center"><span class="badge ${badgeClass}">${grade.grade}</span></td>
+                    <td><small>${grade.teacher_comment || '-'}</small></td>
+                </tr>
+            `;
+        });
+
+        document.getElementById('grades-tbody').innerHTML = html || '<tr><td colspan="6" class="text-center text-muted">No grades available</td></tr>';
+
+        if (average > 0) {
+            document.getElementById('term-avg-value').textContent = average.toFixed(2) + '%';
+            document.getElementById('grades-average').style.display = 'block';
+        }
+    }
+
+    function loadReports() {
+        frappe.call({
+            method: 'edupro_sms.student_portal_api.get_student_reports',
+            callback: function(r) {
+                if (r.message && r.message.reports) {
+                    displayReports(r.message.reports);
+                }
+            }
+        });
+    }
+
+    function displayReports(reports) {
+        let html = '';
+        if (reports.length === 0) {
+            html = '<p class="text-muted">No report cards available yet.</p>';
+        } else {
+            reports.forEach(report => {
+                html += `
+                    <div class="report-card-link">
+                        <div style="margin-bottom: 5px;">
+                            <strong>${report.academic_term}</strong>
+                            <small class="text-muted">(${report.created})</small>
+                        </div>
+                        <a href="${report.download_url}" class="btn btn-sm btn-primary me-2" download>
+                            <i class="fas fa-download"></i> Download PDF
+                        </a>
+                        <a href="${report.print_url}" class="btn btn-sm btn-outline-primary" target="_blank">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                    </div>
+                `;
+            });
+        }
+        document.getElementById('reports-list').innerHTML = html;
+    }
+
+    function loadFees() {
+        frappe.call({
+            method: 'edupro_sms.student_portal_api.get_student_fees',
+            callback: function(r) {
+                if (r.message && r.message.current_fees) {
+                    displayFees(r.message);
+                }
+            }
+        });
+    }
+
+    function displayFees(data) {
+        let html = '';
+        data.current_fees.forEach(fee => {
+            const statusBadge = fee.status === 'Paid' ? 'bg-success' :
+                               fee.status === 'Partial' ? 'bg-warning' : 'bg-danger';
+
+            html += `
+                <tr>
+                    <td>${fee.academic_term}</td>
+                    <td>${fee.program}</td>
+                    <td class="text-end">$${parseFloat(fee.amount).toLocaleString()}</td>
+                    <td class="text-end">$${parseFloat(fee.paid).toLocaleString()}</td>
+                    <td class="text-end"><strong>$${parseFloat(fee.balance).toLocaleString()}</strong></td>
+                    <td><span class="badge ${statusBadge}">${fee.status}</span></td>
+                    <td>${fee.due_date}</td>
+                </tr>
+            `;
+        });
+
+        document.getElementById('fees-tbody').innerHTML = html || '<tr><td colspan="7" class="text-center text-muted">No fees found</td></tr>';
+
+        if (data.current_fees.length > 0) {
+            document.getElementById('total-amount').textContent = '$' + parseFloat(data.total_amount).toLocaleString();
+            document.getElementById('total-paid').textContent = '$' + parseFloat(data.total_paid).toLocaleString();
+            document.getElementById('total-outstanding').textContent = '$' + parseFloat(data.outstanding).toLocaleString();
+            document.getElementById('collection-pct').textContent = data.collection_percentage + '%';
+            document.getElementById('outstanding').textContent = '$' + parseFloat(data.outstanding).toLocaleString();
+            document.getElementById('fees-summary').style.display = 'block';
+        }
+    }
+
+    // Password change
+    document.getElementById('password-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const current = document.getElementById('current-pwd').value;
+        const newPwd = document.getElementById('new-pwd').value;
+        const confirm = document.getElementById('confirm-pwd').value;
+
+        if (newPwd !== confirm) {
+            alert('Passwords do not match');
+            return;
+        }
+
+        frappe.call({
+            method: 'frappe.client.set_value',
+            args: {
+                doctype: 'User',
+                name: '{{ user_name }}',
+                fieldname: 'new_password',
+                value: newPwd
+            },
+            callback: function(r) {
+                alert('Password changed successfully');
+                document.getElementById('password-form').reset();
+            }
+        });
+    });
+
+    // Term filter
+    document.getElementById('term-filter').addEventListener('change', function() {
+        const term = this.value;
+        frappe.call({
+            method: 'edupro_sms.student_portal_api.get_student_grades',
+            args: { academic_term: term || null },
+            callback: function(r) {
+                if (r.message && r.message.grades) {
+                    displayGrades(r.message.grades, r.message.term_average);
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

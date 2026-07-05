@@ -1,0 +1,281 @@
+{% extends "base_template.html" %}
+
+{% block title %}Analytics — Headmaster Dashboard{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid mt-4">
+    <h2><i class="fas fa-chart-bar"></i> Advanced Analytics</h2>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <label class="form-label">Academic Year</label>
+            <select class="form-select" id="year-filter">
+                {% for year in academic_years %}
+                <option value="{{ year.name }}">{{ year.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Program</label>
+            <select class="form-select" id="program-filter">
+                <option value="">All Programs</option>
+                {% for prog in programs %}
+                <option value="{{ prog.name }}">{{ prog.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-primary w-100" id="load-btn">Load Analytics</button>
+        </div>
+    </div>
+
+    <!-- Trends Chart -->
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">Academic Trends</h5></div>
+                <div class="card-body">
+                    <canvas id="trends-chart" height="80"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subject Comparison -->
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">Subject Performance Comparison</h5></div>
+                <div class="card-body">
+                    <canvas id="subject-chart" height="80"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- At-Risk Students Table -->
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">At-Risk Students (Below 50%)</h5></div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="at-risk-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Student Name</th>
+                                    <th class="text-center">Average</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="at-risk-tbody">
+                                <tr><td colspan="4" class="text-center text-muted">Select filters and load</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Alerts -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-success text-white"><h5 class="mb-0">Improving Students</h5></div>
+                <div class="card-body" id="improving-list">
+                    <p class="text-muted">Select filters and load</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white"><h5 class="mb-0">Declining Students</h5></div>
+                <div class="card-body" id="declining-list">
+                    <p class="text-muted">Select filters and load</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+<style>
+    .card {
+        border: none;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f5f5f5;
+    }
+
+    .badge-critical {
+        background-color: #dc3545;
+    }
+
+    .badge-at-risk {
+        background-color: #ffc107;
+    }
+</style>
+
+<script>
+    let charts = {};
+    let analyticsData = {};
+
+    // Event listeners
+    document.getElementById('load-btn').addEventListener('click', loadAnalytics);
+
+    // Auto-load on page load
+    window.addEventListener('load', loadAnalytics);
+
+    function loadAnalytics() {
+        const year = document.getElementById('year-filter').value;
+        const program = document.getElementById('program-filter').value || null;
+
+        if (!year) {
+            alert('Please select an academic year');
+            return;
+        }
+
+        // Load all data in parallel
+        Promise.all([
+            callAPI('get_academic_trends', { academic_year: year }),
+            callAPI('get_at_risk_students', { academic_term: null }),
+            callAPI('get_performance_alerts', { program: program }),
+            callAPI('get_subject_comparison', { academic_term: null, program: program })
+        ]).then(results => {
+            if (results[0]) updateTrendsChart(results[0]);
+            if (results[1]) updateAtRiskTable(results[1]);
+            if (results[2]) updateAlerts(results[2]);
+            if (results[3]) updateSubjectChart(results[3]);
+        });
+    }
+
+    function callAPI(method, args) {
+        return new Promise((resolve, reject) => {
+            frappe.call({
+                method: `edupro_sms.analytics_api.${method}`,
+                args: args,
+                callback: r => resolve(r.message),
+                error: e => reject(e)
+            });
+        });
+    }
+
+    function updateTrendsChart(data) {
+        const ctx = document.getElementById('trends-chart').getContext('2d');
+
+        if (charts.trends) charts.trends.destroy();
+
+        charts.trends = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.trends.map(t => t.term),
+                datasets: [{
+                    label: 'Class Average',
+                    data: data.trends.map(t => t.class_average),
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 6,
+                    pointBackgroundColor: '#0d6efd'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: true, position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `Average: ${ctx.parsed.y.toFixed(1)}%`
+                        }
+                    }
+                },
+                scales: {
+                    y: { min: 0, max: 100, ticks: { callback: v => v + '%' } }
+                }
+            }
+        });
+    }
+
+    function updateSubjectChart(data) {
+        const ctx = document.getElementById('subject-chart').getContext('2d');
+
+        if (charts.subject) charts.subject.destroy();
+
+        charts.subject = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.subjects.map(s => s.subject),
+                datasets: [{
+                    label: 'Subject Average',
+                    data: data.subjects.map(s => s.average),
+                    backgroundColor: '#28a745'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: { min: 0, max: 100 }
+                }
+            }
+        });
+    }
+
+    function updateAtRiskTable(data) {
+        let html = '';
+        if (data.at_risk && data.at_risk.length > 0) {
+            data.at_risk.forEach(student => {
+                const badgeClass = student.status === 'Critical' ? 'badge-critical' : 'badge-at-risk';
+                html += `
+                    <tr>
+                        <td><strong>${student.student_name}</strong></td>
+                        <td class="text-center"><strong>${student.average}%</strong></td>
+                        <td><span class="badge ${badgeClass}">${student.status}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-info" onclick="alert('Contact teacher for ${student.student_name}')">
+                                Alert Teacher
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        } else {
+            html = '<tr><td colspan="4" class="text-center text-muted">No at-risk students</td></tr>';
+        }
+        document.getElementById('at-risk-tbody').innerHTML = html;
+    }
+
+    function updateAlerts(data) {
+        let improvingHtml = '';
+        if (data.improving && data.improving.length > 0) {
+            data.improving.forEach(student => {
+                improvingHtml += `<div class="mb-2"><strong>${student.student_name}</strong><br><small>${student.previous_avg.toFixed(1)}% → ${student.current_avg.toFixed(1)}%</small></div>`;
+            });
+        } else {
+            improvingHtml = '<p class="text-muted">No improving students</p>';
+        }
+        document.getElementById('improving-list').innerHTML = improvingHtml;
+
+        let decliningHtml = '';
+        if (data.declining && data.declining.length > 0) {
+            data.declining.forEach(student => {
+                decliningHtml += `<div class="mb-2"><strong>${student.student_name}</strong><br><small>${student.previous_avg.toFixed(1)}% → ${student.current_avg.toFixed(1)}%</small></div>`;
+            });
+        } else {
+            decliningHtml = '<p class="text-muted">No declining students</p>';
+        }
+        document.getElementById('declining-list').innerHTML = decliningHtml;
+    }
+</script>
+{% endblock %}

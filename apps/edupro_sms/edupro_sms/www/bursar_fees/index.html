@@ -1,0 +1,306 @@
+{% extends "templates/portal_base.html" %}
+{% import "templates/includes/icons.html" as icons %}
+
+{% block sidebar_nav %}
+<a href="/bursar">{{ icons.icon("home") }} Dashboard</a>
+<a href="/bursar_fees" class="{{ 'active' if active_nav == 'fees' else '' }}">{{ icons.icon("dollar-sign") }} Fees</a>
+<a href="/bursar_billing">{{ icons.icon("term") }} Billing</a>
+<a href="/bursar-students">{{ icons.icon("graduation-cap") }} Students</a>
+{% endblock %}
+
+{% block portal_content %}
+<style>
+  /* Page-specific layout only -- colors/fonts/spacing come from the
+     standard theme in portal_base.html. */
+  .fees-table td.num, .fees-table th.num { text-align: right; }
+  .fees-table .balance-cell { font-weight: 800; }
+  .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+</style>
+
+<h1>Student Fees</h1>
+<p class="user-line">{{ frappe.session.user }}</p>
+
+<div class="filter-bar">
+  <input type="text" id="search-input" class="filter-input" placeholder="Search by student name">
+  <select id="boarding-filter" class="filter-select">
+    <option value="">All Boarding Types</option>
+    {% for bt in boarding_types %}
+    <option value="{{ bt }}">{{ bt }}</option>
+    {% endfor %}
+  </select>
+  <select id="status-filter" class="filter-select">
+    <option value="">All Status</option>
+    <option value="Billed">Billed</option>
+    <option value="Partially Paid">Partially Paid</option>
+    <option value="Paid">Paid</option>
+  </select>
+  <select id="term-filter" class="filter-select">
+    <option value="">All Terms</option>
+    {% for term in academic_terms %}
+    <option value="{{ term.name }}">{{ term.name }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn btn-secondary" id="reset-filters-btn">{{ icons.icon("arrow-left") }} Reset Filters</button>
+</div>
+
+<div id="summary-chip" class="chip" style="display:none;margin-bottom:12px;"></div>
+
+<table id="fees-table" class="fees-table">
+  <thead>
+    <tr>
+      <th>Student</th>
+      <th>Student ID</th>
+      <th>Boarding Type</th>
+      <th>Term</th>
+      <th class="num">Amount</th>
+      <th>Status</th>
+      <th>Due Date</th>
+      <th class="num">Balance</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody id="fees-tbody">
+    <tr><td colspan="9" class="empty">Loading fees...</td></tr>
+  </tbody>
+</table>
+
+<div id="pagination-bar" style="display:none;margin-top:14px;">
+  <button class="btn btn-secondary" id="prev-btn">{{ icons.icon("arrow-left") }} Previous</button>
+  <span class="user-line" id="page-info" style="display:inline;"></span>
+  <button class="btn btn-secondary" id="next-btn">Next {{ icons.icon("chevron-right") }}</button>
+</div>
+
+<script>
+  let currentPage = 0;
+  const ITEMS_PER_PAGE = 20;
+  let allFees = [];
+  let totalFees = 0;
+
+  const ICON_CHECK = '{{ icons.icon("check-circle") }}';
+  const ICON_CLOCK = '{{ icons.icon("clock") }}';
+  const ICON_ALERT = '{{ icons.icon("alert-circle") }}';
+  const ICON_MANAGE = '{{ icons.icon("edit") }}';
+  const ICON_PRINT = '{{ icons.icon("printer") }}';
+  const ICON_PAY = '{{ icons.icon("dollar-sign") }}';
+  const ICON_SAVE = '{{ icons.icon("save") }}';
+
+  function csrfHeaders() {
+    return { "Content-Type": "application/json", "X-Frappe-CSRF-Token": "{{ csrf_token }}" };
+  }
+
+  function statusPill(status) {
+    if (status === "Paid") return '<span class="pill pill-green">' + ICON_CHECK + 'Paid</span>';
+    if (status === "Partially Paid") return '<span class="pill pill-amber">' + ICON_CLOCK + 'Partially Paid</span>';
+    return '<span class="pill pill-red">' + ICON_ALERT + 'Billed</span>';
+  }
+
+  function money(n) {
+    return "$" + (parseFloat(n) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  document.getElementById("search-input").addEventListener("input", function () { currentPage = 0; loadFees(); });
+  document.getElementById("boarding-filter").addEventListener("change", function () { currentPage = 0; loadFees(); });
+  document.getElementById("status-filter").addEventListener("change", function () { currentPage = 0; loadFees(); });
+  document.getElementById("term-filter").addEventListener("change", function () { currentPage = 0; loadFees(); });
+  document.getElementById("reset-filters-btn").addEventListener("click", function () {
+    document.getElementById("search-input").value = "";
+    document.getElementById("boarding-filter").value = "";
+    document.getElementById("status-filter").value = "";
+    document.getElementById("term-filter").value = "";
+    currentPage = 0;
+    loadFees();
+  });
+  document.getElementById("prev-btn").addEventListener("click", function () { if (currentPage > 0) { currentPage--; renderPage(); } });
+  document.getElementById("next-btn").addEventListener("click", function () {
+    if ((currentPage + 1) * ITEMS_PER_PAGE < allFees.length) { currentPage++; renderPage(); }
+  });
+
+  function loadFees() {
+    document.getElementById("fees-tbody").innerHTML = '<tr><td colspan="9" class="empty">Loading fees...</td></tr>';
+
+    const params = {
+      boarding_type: document.getElementById("boarding-filter").value || null,
+      status: document.getElementById("status-filter").value || null,
+      academic_term: document.getElementById("term-filter").value || null,
+      search: document.getElementById("search-input").value || null,
+      limit: 1000,
+      offset: 0,
+    };
+
+    fetch("/api/method/edupro_sms.fee_entry_api.get_student_fees", {
+      method: "POST",
+      headers: csrfHeaders(),
+      body: JSON.stringify(params),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (body) {
+        const msg = body.message || {};
+        allFees = msg.fees || [];
+        totalFees = msg.total || 0;
+
+        const chip = document.getElementById("summary-chip");
+        chip.style.display = "inline-flex";
+        chip.innerHTML = allFees.length
+          ? "Showing <strong>" + Math.min(ITEMS_PER_PAGE, allFees.length) + "</strong> of <strong>" + totalFees + "</strong> fees"
+          : (msg.error ? "Error: " + msg.error : "No fees match your filters");
+
+        renderPage();
+      })
+      .catch(function () {
+        document.getElementById("fees-tbody").innerHTML = '<tr><td colspan="9" class="empty">Error loading fees. Please refresh and try again.</td></tr>';
+      });
+  }
+
+  function renderPage() {
+    const start = currentPage * ITEMS_PER_PAGE;
+    const pageFees = allFees.slice(start, start + ITEMS_PER_PAGE);
+    const tbody = document.getElementById("fees-tbody");
+
+    if (pageFees.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty">No fees to display. Try resetting your filters.</td></tr>';
+      document.getElementById("pagination-bar").style.display = "none";
+      return;
+    }
+
+    let html = "";
+    for (const fee of pageFees) {
+      const balance = fee.balance != null ? fee.balance : fee.amount;
+      html += '<tr data-fee="' + fee.name + '">'
+        + "<td><strong>" + fee.student_name + "</strong><br><small>" + (fee.email || "-") + "</small></td>"
+        + "<td>" + fee.student + "</td>"
+        + "<td>" + fee.boarding_type + "</td>"
+        + "<td>" + fee.academic_term + "</td>"
+        + '<td class="num">' + money(fee.amount) + "</td>"
+        + "<td>" + statusPill(fee.status) + "</td>"
+        + "<td>" + (fee.due_date || "N/A") + "</td>"
+        + '<td class="num balance-cell">' + money(balance) + "</td>"
+        + '<td class="row-actions">'
+        + '<button class="btn btn-secondary toggle-detail-btn" data-fee="' + fee.name + '">' + ICON_MANAGE + "Manage</button>"
+        + '<a class="btn btn-secondary" href="/printview?doctype=Student&name=' + encodeURIComponent(fee.student) + '&format=Fee%20Statement&no_letterhead=0" target="_blank">' + ICON_PRINT + "Statement</a>"
+        + "</td>"
+        + "</tr>"
+        + '<tr class="detail-row" id="detail-row-' + fee.name + '">'
+        + '<td colspan="9"><div class="detail-panel" id="detail-panel-' + fee.name + '">'
+        + '<div class="detail-section">'
+        + "<h3>Record Payment</h3>"
+        + (balance > 0
+          ? '<div class="detail-field"><label>Amount Paid</label><input type="number" min="0.01" max="' + balance + '" step="0.01" class="payment-amount-input"></div>'
+            + '<div><button class="btn btn-primary record-payment-btn" data-fee="' + fee.name + '">' + ICON_PAY + 'Record</button><span class="field-status payment-status"></span></div>'
+          : '<p class="empty">Fully paid, no balance outstanding.</p>')
+        + "</div>"
+        + '<div class="detail-section">'
+        + "<h3>Adjust Fee Amount</h3>"
+        + '<div class="detail-field"><label>New Amount</label><input type="number" min="0" step="0.01" class="edit-amount-input" placeholder="' + fee.amount + '"></div>'
+        + '<div><button class="btn btn-secondary save-fee-btn" data-fee="' + fee.name + '">' + ICON_SAVE + 'Save</button><span class="field-status edit-status"></span></div>'
+        + "</div>"
+        + "</div></td></tr>";
+    }
+    tbody.innerHTML = html;
+
+    document.querySelectorAll(".toggle-detail-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        document.getElementById("detail-panel-" + btn.dataset.fee).classList.toggle("open");
+      });
+    });
+
+    document.querySelectorAll(".record-payment-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () { recordPayment(btn); });
+    });
+
+    document.querySelectorAll(".save-fee-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () { saveFee(btn); });
+    });
+
+    const totalPages = Math.ceil(allFees.length / ITEMS_PER_PAGE) || 1;
+    document.getElementById("page-info").textContent = "Page " + (currentPage + 1) + " of " + totalPages;
+    document.getElementById("pagination-bar").style.display = allFees.length > ITEMS_PER_PAGE ? "block" : "none";
+    document.getElementById("prev-btn").disabled = currentPage === 0;
+    document.getElementById("next-btn").disabled = currentPage >= totalPages - 1;
+  }
+
+  function recordPayment(btn) {
+    const feeId = btn.dataset.fee;
+    const panel = document.getElementById("detail-panel-" + feeId);
+    const amountInput = panel.querySelector(".payment-amount-input");
+    const statusEl = panel.querySelector(".payment-status");
+
+    const amount = parseFloat(amountInput.value);
+    if (!amount || amount <= 0) {
+      statusEl.textContent = "Enter a valid amount.";
+      statusEl.className = "field-status payment-status save-error";
+      return;
+    }
+
+    btn.disabled = true;
+    statusEl.textContent = "Saving...";
+    statusEl.className = "field-status payment-status";
+
+    fetch("/api/method/edupro_sms.fee_entry_api.record_payment", {
+      method: "POST",
+      headers: csrfHeaders(),
+      body: JSON.stringify({ fee_id: feeId, amount: amount }),
+    })
+      .then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
+      .then(function (result) {
+        const msg = result.body.message;
+        if (result.ok && msg && msg.success) {
+          statusEl.textContent = "Recorded. Balance: " + money(msg.new_balance);
+          statusEl.className = "field-status payment-status save-ok";
+          setTimeout(function () { window.location.reload(); }, 900);
+        } else {
+          btn.disabled = false;
+          statusEl.textContent = "Error: " + ((msg && msg.error) || result.body.exception || "Could not record payment.");
+          statusEl.className = "field-status payment-status save-error";
+        }
+      })
+      .catch(function (err) {
+        btn.disabled = false;
+        statusEl.textContent = "Error: " + err;
+        statusEl.className = "field-status payment-status save-error";
+      });
+  }
+
+  function saveFee(btn) {
+    const feeId = btn.dataset.fee;
+    const panel = document.getElementById("detail-panel-" + feeId);
+    const amountInput = panel.querySelector(".edit-amount-input");
+    const statusEl = panel.querySelector(".edit-status");
+
+    if (!amountInput.value) {
+      statusEl.textContent = "Enter a new amount.";
+      statusEl.className = "field-status edit-status save-error";
+      return;
+    }
+
+    btn.disabled = true;
+    statusEl.textContent = "Saving...";
+    statusEl.className = "field-status edit-status";
+
+    fetch("/api/method/edupro_sms.fee_entry_api.update_student_fee", {
+      method: "POST",
+      headers: csrfHeaders(),
+      body: JSON.stringify({ fee_id: feeId, amount: amountInput.value }),
+    })
+      .then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
+      .then(function (result) {
+        const msg = result.body.message;
+        if (result.ok && msg && msg.success) {
+          statusEl.textContent = "Saved.";
+          statusEl.className = "field-status edit-status save-ok";
+          setTimeout(function () { window.location.reload(); }, 900);
+        } else {
+          btn.disabled = false;
+          statusEl.textContent = "Error: " + ((msg && msg.error) || result.body.exception || "Could not save.");
+          statusEl.className = "field-status edit-status save-error";
+        }
+      })
+      .catch(function (err) {
+        btn.disabled = false;
+        statusEl.textContent = "Error: " + err;
+        statusEl.className = "field-status edit-status save-error";
+      });
+  }
+
+  loadFees();
+</script>
+{% endblock %}

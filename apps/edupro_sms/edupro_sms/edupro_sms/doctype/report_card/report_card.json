@@ -1,0 +1,323 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:RC-{student}-{academic_term}",
+ "creation": "2026-07-03 22:45:35.815844",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "student",
+  "student_name",
+  "student_group",
+  "column_break_1",
+  "academic_year",
+  "academic_term",
+  "workflow_state",
+  "section_break_results",
+  "assessment_results",
+  "section_break_totals",
+  "total_score",
+  "maximum_score",
+  "column_break_2",
+  "average_percentage",
+  "overall_grade",
+  "column_break_3",
+  "position",
+  "number_of_students",
+  "section_break_comments",
+  "class_teacher_comment",
+  "conduct_remark",
+  "headmaster_comment",
+  "rejection_reason",
+  "section_break_delivery",
+  "pdf",
+  "column_break_4",
+  "sent_to_parent_at",
+  "viewed_by_parent_at",
+  "verification_code",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "student",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Student",
+   "options": "Student",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "student.student_name",
+   "fieldname": "student_name",
+   "fieldtype": "Data",
+   "label": "Student Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "student_group",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Class",
+   "options": "Student Group",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "student_group.academic_year",
+   "fieldname": "academic_year",
+   "fieldtype": "Link",
+   "label": "Academic Year",
+   "options": "Academic Year",
+   "read_only": 1
+  },
+  {
+   "fieldname": "academic_term",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Academic Term",
+   "options": "Academic Term",
+   "reqd": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Status",
+   "no_copy": 1,
+   "options": "Workflow State",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_results",
+   "fieldtype": "Section Break",
+   "label": "Subject Results"
+  },
+  {
+   "fieldname": "assessment_results",
+   "fieldtype": "Table",
+   "label": "Subject Results",
+   "options": "Report Card Assessment Result"
+  },
+  {
+   "fieldname": "section_break_totals",
+   "fieldtype": "Section Break",
+   "label": "Overall"
+  },
+  {
+   "fieldname": "total_score",
+   "fieldtype": "Float",
+   "label": "Total Score",
+   "read_only": 1
+  },
+  {
+   "fieldname": "maximum_score",
+   "fieldtype": "Float",
+   "label": "Maximum Score",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "average_percentage",
+   "fieldtype": "Percent",
+   "label": "Average Percentage",
+   "read_only": 1
+  },
+  {
+   "fieldname": "overall_grade",
+   "fieldtype": "Data",
+   "label": "Overall Grade",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "position",
+   "fieldtype": "Int",
+   "label": "Class Position",
+   "read_only": 1
+  },
+  {
+   "fieldname": "number_of_students",
+   "fieldtype": "Int",
+   "label": "Number of Students",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_comments",
+   "fieldtype": "Section Break",
+   "label": "Comments"
+  },
+  {
+   "fieldname": "class_teacher_comment",
+   "fieldtype": "Small Text",
+   "label": "Class Teacher Comment"
+  },
+  {
+   "description": "Conduct/attitude remark for this term -- separate from the academic comment above.",
+   "fieldname": "conduct_remark",
+   "fieldtype": "Small Text",
+   "label": "Conduct"
+  },
+  {
+   "fieldname": "headmaster_comment",
+   "fieldtype": "Small Text",
+   "label": "Headmaster Comment"
+  },
+  {
+   "depends_on": "eval:doc.workflow_state=='Rejected'",
+   "fieldname": "rejection_reason",
+   "fieldtype": "Small Text",
+   "label": "Rejection Reason"
+  },
+  {
+   "fieldname": "section_break_delivery",
+   "fieldtype": "Section Break",
+   "label": "Delivery"
+  },
+  {
+   "fieldname": "pdf",
+   "fieldtype": "Attach",
+   "label": "Report Card PDF",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sent_to_parent_at",
+   "fieldtype": "Datetime",
+   "label": "Sent to Parent At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "viewed_by_parent_at",
+   "fieldtype": "Datetime",
+   "label": "Viewed by Parent At",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "Random token set the moment this report card is first Published — encoded in the print format's QR code so anyone scanning it can confirm authenticity at /verify-report-card without seeing the full mark breakdown.",
+   "fieldname": "verification_code",
+   "fieldtype": "Data",
+   "label": "Verification Code",
+   "no_copy": 1,
+   "print_hide": 1,
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Report Card",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Report Card",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-07-03 22:51:59.787393",
+ "modified_by": "Administrator",
+ "module": "Edupro SMS",
+ "name": "Report Card",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Headmaster",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Class Teacher",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Student",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Guardian",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
