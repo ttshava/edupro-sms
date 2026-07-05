@@ -11,7 +11,7 @@
   should work, dev rules, coding conventions, sprint tracking, decision
   log. It does not duplicate module specifications.
 - Full functional spec source: EduPro School Management System –
-  Academic Reporting documentation (IGCSE), ingested into `docs/01`–`11`.
+  Academic Reporting + Finance documentation, ingested into `docs/01`–`12`.
 
 ## Project
 
@@ -108,12 +108,13 @@ Summary:
 
 - [`docs/01_Project_Overview.md`](../docs/01_Project_Overview.md) — system identity, MVP in/out scope, success metrics
 - [`docs/02_Database.md`](../docs/02_Database.md) — entity relationships, multi-tenancy model, storage
-- [`docs/03_DocTypes.md`](../docs/03_DocTypes.md) — every DocType, fields, IGCSE grading rules
-- [`docs/04_Workflows.md`](../docs/04_Workflows.md) — marks entry/approval + report generation workflows
-- [`docs/05_Print_Formats.md`](../docs/05_Print_Formats.md) — report card layout/print spec
+- [`docs/03_DocTypes.md`](../docs/03_DocTypes.md) — every DocType, fields, IGCSE grading rules, finance doctypes
+- [`docs/04_Workflows.md`](../docs/04_Workflows.md) — marks entry/approval + report generation workflows, special case handling
+- [`docs/05_Print_Formats.md`](../docs/05_Print_Formats.md) — report card layout/print spec, fee statement
 - [`docs/06_Email_System.md`](../docs/06_Email_System.md) — parent email templates and triggers
 - [`docs/07_Testing.md`](../docs/07_Testing.md) — test scenarios and acceptance criteria
 - [`docs/08_Deployment.md`](../docs/08_Deployment.md) — performance targets, deployment checklist, security, support
 - [`docs/09_API.md`](../docs/09_API.md) — API/auth conventions
 - [`docs/10_User_Guide.md`](../docs/10_User_Guide.md) — end-user walkthroughs per role
-- [`docs/11_Roles_And_Permissions.md`](../docs/11_Roles_And_Permissions.md) — role capability matrix
+- [`docs/11_Roles_And_Permissions.md`](../docs/11_Roles_And_Permissions.md) — role capability matrix, bursar role
+- [`docs/12_Finance_Billing.md`](../docs/12_Finance_Billing.md) — school fees system, billing model, payment tracking, ledger

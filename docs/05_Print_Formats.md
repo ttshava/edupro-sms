@@ -36,7 +36,19 @@ template yet); Download/Print/Email action buttons in the portal context
 here since `generate_report_cards` (docs/03, docs/04) already produces
 the aggregated data our print format needs directly from `Report Card`.
 
-## 5.2 Marks Entry Screen (Desk, reference layout)
+## 5.2 Fee Statement Print Format (built Sprint 8+)
+
+`Fee Statement` — a Frappe Print Format (Jinja/HTML+CSS) on the `Student Fee` DocType. Renders as a student ledger statement showing the running Debit/Credit/Balance for a single student across all their fees and payments (sourced from `Student Ledger Entry` records).
+
+Layout, top to bottom (all implemented):
+
+1. **Header** — school name + motto from `School Settings`, "FEE STATEMENT".
+2. **Student details block** — student name, admission number, class.
+3. **Ledger table** — one row per `Student Ledger Entry` (ordered by `posting_datetime` ASC): Date, Description, Debit (amount owed), Credit (amount paid), Balance (running).
+4. **Summary block** — total owed, total paid, balance due.
+5. **Footer** — bursar contact details from `School Settings`.
+
+## 5.3 Marks Entry Screen (Desk, reference layout)
 
 Not a Print Format, but documented here since it's the primary
 data-entry surface teachers use — implement as a custom Desk page/list
@@ -54,7 +66,7 @@ assigned Student Group + Course:
 - Inline validation: flag students with missing marks before allowing
   Submit for Approval.
 
-## 5.3 PDF Generation Notes
+## 5.4 PDF Generation Notes
 
 - Uses Frappe's native Print Format → PDF rendering (wkhtmltopdf under the
   hood), not a separate PDF library — keeps it inside the framework's

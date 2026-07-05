@@ -21,13 +21,13 @@ school.
 | Class | `Student Group` | one Student Group per class/section; `group_based_on = Batch`. **Custom Field added (Sprint 4):** `class_teacher` (Link → Instructor) — Education's `Student Group Instructor` child table has no lead/primary flag, so this is a dedicated field for permission scoping and the approval workflow's "Class Teacher" step. Fixture: `edupro_sms/fixtures/custom_field.json`. |
 | Subject | `Course` | one Course per IGCSE subject |
 | Teacher | `Instructor` | |
-| Student | `Student` | |
+| Student | `Student` | **Custom Field added (Sprint 8+):** `boarding_type` (Select: Day Boarder/Full Boarder) — used for fee calculation in the finance module (`docs/12_Finance_Billing.md`) |
 | Parent/Guardian | `Guardian` + `Student Guardian` (child table on Student) | already supports multiple guardians per student |
 | Enrollment / Subject Allocation | `Program Enrollment` + `Program Enrollment Course` | `Program` = a curriculum track (see Stream decision below); enrollment links a Student to a Program for an Academic Year, with a Program Enrollment Course row per subject |
 | Grade Boundary | `Grading Scale` + `Grading Scale Interval` | one Grading Scale record holds all IGCSE grade intervals (A*–F); interval uses a single `threshold` percent per row (ranges are implied between consecutive thresholds), not an explicit min/max pair |
 | Assessment weighting default | `Course.assessment_criteria` (child table, `Course Assessment Criteria`) | **correction (Sprint 3):** Test 40%/Exam 60% weighting is natively supported *per Course* via this child table (`assessment_criteria` Link + `weightage` Percent) — not something that only lives on the Assessment Plan. Set once per Course; each term's Assessment Plan should mirror it. |
 | Assessment | `Assessment Plan` + `Assessment Plan Criteria` (child table) | one Assessment Plan per Class+Subject+Term. **Correction (Sprint 5):** the Plan's criteria child table uses raw `maximum_score` (points, e.g. Test=40/Exam=60 on a 100-point scale), not `weightage` (Percent) like Course does — the two are related but different fields; when creating a Plan, convert the Course's percentage weighting into actual points for that term's total. **Also (Sprint 5):** `Assessment Plan` models a literal scheduled exam session (`schedule_date`/`from_time`/`to_time` are required) and Education blocks overlapping time slots for the same Student Group — each subject within a class needs its own date/time slot; different classes can safely share slots. |
-| Marks | `Assessment Result` + `Assessment Result Detail` (child table) | one Assessment Result per Student per Assessment Plan; `details` child table holds per-criteria (Test/Exam) scores. `total_score`/`grade`/per-criteria `grade` are all auto-calculated in `AssessmentResult.validate()` from the linked Grading Scale — confirmed via the controller source and a live test record (verified 35+52=87/100 → grade A, matching the 80–89 band), no custom calculation code needed. `special_case` Custom Field (Absent/Exempt/Medical Withdrawal) added Sprint 5. |
+| Marks | `Assessment Result` + `Assessment Result Detail` (child table) | one Assessment Result per Student per Assessment Plan; `details` child table holds per-criteria (Test/Exam) scores. `total_score`/`grade`/per-criteria `grade` are all auto-calculated in `AssessmentResult.validate()` from the linked Grading Scale — confirmed via the controller source and a live test record (verified 35+52=87/100 → grade A, matching the 80–89 band), no custom calculation code needed. `special_case` Custom Field (Absent/Exempt/Medical Withdrawal) added Sprint 5 — **implementation status (Sprint 8+):** Absent/Exempt/Medical Withdrawal now affect Report Card calculations correctly (see `docs/04_Workflows.md` §4.3). |
 
 **Stream decision (Sprint 3, `.claude/DECISIONS.md`):** not a Custom
 Field. Each stream (Science/Commerce/Arts/General) is its own `Program`
@@ -52,9 +52,9 @@ Nothing in Education covers this — still needed for per-site branding.
 | address | Small Text | |
 | phone | Data | |
 | email | Data | |
-| logo | Attach Image | used in print formats/emails |
+| logo | Attach Image | used in print formats/emails; must be set to public so Guest users can view it on `/login` |
 | motto | Data | |
-| curriculum | Select | default `IGCSE` |
+| curriculum_board | Select | Cambridge / ZIMSEC (default Cambridge) — determines which set of grading scales are active for this school |
 | timezone | Select | |
 | status | Select | Active / Inactive / Suspended |
 
@@ -67,8 +67,7 @@ per-subject, so `Assessment Result` stays a simple submit-per-subject
 doctype with no custom workflow of its own. Full state machine in
 `docs/04_Workflows.md`.
 
-`special_case` (Select: none/Absent/Exempt/Medical Withdrawal) — Custom
-Field on `Assessment Result`, built Sprint 5.
+`special_case` (Select: none/Absent/Exempt/Medical Withdrawal) — Custom Field on `Assessment Result`, built Sprint 5. Affects Report Card generation (Sprint 8+): Absent/Exempt/Medical Withdrawal entries are now correctly handled per `docs/04_Workflows.md` §4.3.
 
 ### Report Card *(built Sprint 6 — `is_submittable`, one per Student + Academic Term)*
 
@@ -96,6 +95,80 @@ Workflow states map `doc_status` so **Approved and Published are real
 submitted/locked records** (docstatus=1), not just a status label —
 verified by attempting an edit post-Published and getting
 `UpdateAfterSubmitError`.
+
+### Class Subject Assignment *(built Sprint 8+ — many per Class/Subject/Academic Year)*
+
+Maps the relationship: which Instructor teaches which Course to which Student Group in which Academic Year. Used for permission scoping (an Instructor sees only their assigned classes/subjects) and for data entry routing (teacher sees only their assigned marks-entry forms).
+
+| Field | Type | Notes |
+|---|---|---|
+| student_group | Link → Student Group | the class |
+| course | Link → Course | the subject |
+| academic_year | Link → Academic Year | |
+| instructor | Link → Instructor | the assigned teacher |
+| instructor_name | Data | fetch_from instructor.instructor_name, read-only |
+
+**Naming:** Hash-based (no business key). **Permissions:** System Manager (full CRUD), Headmaster (create/read/write/share), Instructor (read-only).
+
+### Curriculum *(built Sprint 3, repurposed in Sprint 8+ for grading bands)*
+
+**Not** the academic program/stream (that's `Program`). Instead, represents a **grading band** — a set of curriculum/Form level mappings for applying the correct Grading Scale.
+
+Originally intended as: `"Cambridge IGCSE"`, `"Cambridge AS Level"` (2 records).
+Repurposed in `.claude/DECISIONS.md` 0019 to: `"Form 1-2"`, `"O Level"`, `"A Level"` (3 grading bands).
+
+| Field | Type | Notes |
+|---|---|---|
+| name | Data | e.g. "Form 1-2", "O Level", "A Level" |
+| title | Data | descriptive label |
+
+Referenced by `Program.curriculum` (Link field) — enables the grading scale lookup in `edupro_sms/grading.py::get_grading_scale_for_program()` to select the correct scale for a student based on their Program's band + the school's `curriculum_board` setting.
+
+---
+
+## Finance Module (built Sprint 8+, documented in `docs/12_Finance_Billing.md`)
+
+Two DocTypes implement the school fees system:
+
+### Student Fee *(one per Student + Academic Term)*
+
+A billing record — one fee per student per term, determined by the student's `boarding_type` (Day Boarder=750, Full Boarder=1450, configurable via `fees.py::BOARDING_FEE`).
+
+| Field | Type | Notes |
+|---|---|---|
+| student | Link → Student | required |
+| student_name | Data | fetch_from student.student_name, read-only |
+| academic_year | Link → Academic Year | read-only, set from context |
+| academic_term | Link → Academic Term | required |
+| boarding_type | Select | Day Boarder / Full Boarder — determines `amount` |
+| amount | Currency | billed amount (calculated from boarding_type) |
+| amount_paid | Currency | default 0, updated on payment entry |
+| balance | Currency | amount - amount_paid, read-only |
+| status | Select | Billed / Partially Paid / Paid (read-only, auto-set) |
+| billed_on | Date | |
+| due_date | Date | |
+
+**Naming:** `SF-{student}-{academic_term}` (e.g. `SF-STU-001-2026 (Term 1)`). **Permissions:** System Manager (full), Headmaster (create/read/write/share), Bursar (create/read/write/share), Student/Guardian (read-only).
+
+**Note:** Deliberately not built on Education's Fee Structure/Fee Schedule/Fees chain — that pipeline generates ERPNext Sales Invoices with GL posting, which this school doesn't use. Mirrors `Report Card`'s design choice (see `.claude/DECISIONS.md` 0008).
+
+### Student Ledger Entry *(many per Student, auto-created)*
+
+A time-series accounting ledger — one row per billing event (fee billed, payment received). Rendered as a running Debit/Credit/Balance statement in the Fee Statement print format, similar to a bank statement.
+
+| Field | Type | Notes |
+|---|---|---|
+| student | Link → Student | required |
+| student_name | Data | fetch_from student.student_name, read-only |
+| posting_datetime | Datetime | required, indexed; auto-set to now() on creation |
+| academic_term | Link → Academic Term | optional, context link |
+| reference_student_fee | Link → Student Fee | optional, links back to the fee record that triggered this entry |
+| description | Data | e.g. "Term 2 fees billed", "Payment received" |
+| debit | Currency | default 0; amount owed by student (fee billed) |
+| credit | Currency | default 0; amount paid by student |
+| balance | Currency | running balance (total debits - total credits), read-only |
+
+**Naming:** Hash-based. **Permissions:** System Manager (full), Headmaster (create/read/write/share), Bursar (create/read/write/share), Student/Guardian (read-only). **Sort order:** by `posting_datetime` ASC (oldest first, like a ledger).
 
 ---
 

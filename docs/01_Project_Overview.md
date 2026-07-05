@@ -31,21 +31,22 @@ The system must be:
 
 | Feature Area | Specific Features |
 |---|---|
-| User Management | Admin, Teacher, Class Teacher, Headmaster, Student, Parent roles |
-| School Setup | Classes, Subjects, Terms, Grading Scales, Academic Years |
-| Marks Entry | Test + Exam scores per subject, subject comments |
+| User Management | Admin, Teacher, Class Teacher, Headmaster, Bursar, Student, Parent roles |
+| School Setup | Classes, Subjects, Terms, Grading Scales, Academic Years, Curricula (grading bands) |
+| Marks Entry | Term Mark + Exam Mark per subject, subject comments, special case handling (Absent/Exempt/Medical Withdrawal) |
 | Approval Workflow | Teacher submits → Class Teacher reviews → Headmaster approves/rejects |
-| Report Generation | IGCSE-compliant grade calculation, PDF generation |
-| Portal Access | Student views own results; Parent views all linked children |
+| Report Generation | IGCSE-compliant multi-curriculum grade calculation (Cambridge/ZIMSEC), PDF generation |
+| Portal Access | Student views own results; Parent views all linked children; Student/Parent view fees |
 | Email Delivery | Automated PDF reports to parents |
-| Print Function | Direct printing of report cards |
+| Print Function | Direct printing of report cards and fee statements |
+| Billing & Fees | Termly flat-rate student fees by boarding type, payment tracking, ledger statements |
 
 ## 1.4 MVP Scope — What's Out (Future Phases)
 
 - Native mobile apps (iOS/Android)
 - SMS integration
 - Parent–teacher chat
-- Finance/fees module (future `edupro_finance` app)
+- Advanced finance/GL accounting (future `edupro_finance` app — basic termly billing is in MVP, see `docs/12_Finance_Billing.md`)
 - AI-powered recommendations
 - Attendance system (future `edupro_attendance` app)
 - Timetable generation

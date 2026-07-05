@@ -33,19 +33,25 @@ before Sprint 2.
 ```
 Academic Year 1───* Term
 Academic Year 1───* Class
-Class 1───* Class–Subject Allocation *───1 Subject
+Class 1───* Class Subject Assignment *───1 Subject
 Class 1───* Student (via Enrollment)
 Student *───1 Parent/Guardian (many students can share a guardian; a
     student can have multiple guardians — see docs/03)
 Class 1───1 Class Teacher (a Teacher)
-Class–Subject Allocation *───1 Teacher (teacher assigned per class+subject)
+Class Subject Assignment *───1 Teacher (teacher assigned per class+subject)
 Student *───* Marks *───1 Subject, *───1 Term
 Student 1───* Report Card *───1 Term
 Report Card *───* Marks (aggregated)
+
+Finance (Sprint 8+):
+Student 1───* Student Fee *───1 Academic Term
+Student 1───* Student Ledger Entry *───1 Academic Term
+Student Fee 1───* Student Ledger Entry (optional back-reference)
 ```
 
 `School` does not appear in this diagram — it's implicit (the site). Full
-field-level DocType definitions are in `docs/03_DocTypes.md`.
+field-level DocType definitions are in `docs/03_DocTypes.md` (including
+the new Finance DocTypes in the Finance Module section).
 
 ## 2.4 Indexes
 

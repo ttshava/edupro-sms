@@ -60,7 +60,21 @@ not a flat role grant, since "which class" varies per teacher.
 - Reject reports with a feedback reason.
 - Generate final PDFs for printing.
 - Trigger email to parents.
+- View school fees and payment status (read-only).
+- Manage individual fees and ledger entries (create, edit, share) — see `docs/12_Finance_Billing.md`.
 - **Cannot** enter marks or edit existing marks.
+
+### Bursar (Frappe Role: `Bursar`, built Sprint 8+)
+
+**Primary responsibility:** day-to-day financial management.
+
+- View and manage student fees (`Student Fee` CRUD).
+- Record payments and create ledger entries (`Student Ledger Entry` create/read/write).
+- Print fee statements for students/parents.
+- Generate fee reports (TBD, Sprint 9+).
+- **Cannot** enter marks, approve reports, or access academic data.
+
+(Created as a fixture in `edupro_sms/fixtures/role.json`.)
 
 ### Student (Frappe Role: `Student`, portal user)
 
@@ -98,20 +112,21 @@ is named `Guardian` in Frappe/Education, not `Parent` — same concept.)
   verified server-side (row-level query conditions + single-doc
   `has_permission`, fails closed for unmatched users).
 
-## 11.2 DocType Permission Matrix (fill in during Sprint 2)
+## 11.2 DocType Permission Matrix
 
-| DocType | Admin | Headmaster | Class Teacher | Teacher | Student | Parent |
-|---|---|---|---|---|---|---|
-| School Settings | CRUD | Read | – | – | – | – |
-| Academic Year / Term | CRUD | Read | Read | Read | – | – |
-| Class / Subject / Allocation | CRUD | Read | Read (own class) | Read (own) | – | – |
-| Student / Guardian | CRUD | Read | Read (own class) | Read (own class, limited) | Read (self) | Read (own children) |
-| Marks | CRUD | Read/Approve/Reject | Read/Comment (own class) | Create/Update (own, pre-approval) | Read (own, post-publish) | Read (children's, post-publish) |
-| Report Card | Read | Approve/Publish | Comment (own class) | – | Read (own, post-publish) | Read (children's, post-publish) |
+| DocType | Admin | Headmaster | Class Teacher | Bursar | Teacher | Student | Parent |
+|---|---|---|---|---|---|---|---|
+| School Settings | CRUD | Read | – | – | – | – | – |
+| Academic Year / Term | CRUD | Read | Read | – | Read | – | – |
+| Class / Subject / Allocation | CRUD | Read | Read (own class) | – | Read (own) | – | – |
+| Student / Guardian | CRUD | Read | Read (own class) | Read | Read (own class, limited) | Read (self) | Read (own children) |
+| Marks | CRUD | Read/Approve/Reject | Read/Comment (own class) | – | Create/Update (own, pre-approval) | Read (own, post-publish) | Read (children's, post-publish) |
+| Report Card | Read | Approve/Publish | Comment (own class) | – | – | Read (own, post-publish) | Read (children's, post-publish) |
+| Student Fee | CRUD | CRUD | – | CRUD | – | Read (own) | Read (children's) |
+| Student Ledger Entry | CRUD | CRUD | – | CRUD | – | Read (own) | Read (children's) |
 
-**Report Card row is built and verified (Sprint 7)** — the rest of this
-table (School Settings, Academic Year/Term, Class/Subject, Student/Guardian)
-uses Role Permissions Manager defaults only; no row-level scoping has
-been implemented for those yet, since nothing has needed it so far
-(only Report Card has a portal-facing audience). Revisit if/when
-Sprint 8 or beyond exposes any of those to non-admin roles directly.
+**Report Card row is built and verified (Sprint 7)** — uses row-level `get_permission_query_conditions` and `has_permission` checks per role.
+
+**Student Fee and Student Ledger Entry rows built and verified (Sprint 8+)** — use role-based CRUD permissions via Role Permissions Manager; no row-level scoping implemented (all Bursars see all fees across all students). Student/Parent access is read-only to their own/linked children's records, enforced server-side.
+
+**Remaining rows (School Settings, Academic Year/Term, Class/Subject, Student/Guardian)** use Role Permissions Manager defaults only; no row-level scoping implemented. Revisit if any of those are later exposed to non-admin roles with sensitive data that needs isolation.

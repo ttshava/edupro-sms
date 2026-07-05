@@ -104,19 +104,15 @@ report" is naturally one action, not N per-subject ones.
 
 ## 4.3 Special Cases (Assessment Result)
 
-| Scenario | Rule |
-|---|---|
-| Absent from exam | `special_case = Absent` → score = 0 |
-| Absent from test | `special_case = Absent` → score = 0 |
-| Exempt from subject | `special_case = Exempt` → excluded from totals entirely |
-| Incomplete marks | Cannot submit for approval — validation blocks it |
-| Medical withdrawal | `special_case = Medical Withdrawal` → report shows "Withdrawn" for that subject |
+| Scenario | Rule | Implementation Status |
+|---|---|---|
+| Absent from exam | `special_case = Absent` → score = 0 (treated as 0 in total/grade calc) | ✅ Implemented (Sprint 8+) |
+| Absent from test | `special_case = Absent` → score = 0 (treated as 0 in total/grade calc) | ✅ Implemented (Sprint 8+) |
+| Exempt from subject | `special_case = Exempt` → excluded from totals entirely (not summed, not counted in average) | ✅ Implemented (Sprint 8+) |
+| Incomplete marks | Cannot submit for approval — validation blocks it | ✅ Native to `Assessment Result` |
+| Medical withdrawal | `special_case = Medical Withdrawal` → report shows "Withdrawn" for that subject (summed as 0 in totals) | ✅ Implemented (Sprint 8+) |
 
-`special_case` is a Custom Field on `Assessment Result` (built Sprint 5).
-The *effect* of each value on Report Card generation (score=0 vs.
-excluded vs. "Withdrawn" display) is not yet implemented in
-`generate_report_cards` — currently every submitted result is summed
-as-is. Flagged for Sprint 7/8 follow-up before this is exercised for real.
+`special_case` is a Custom Field on `Assessment Result` (built Sprint 5), exported as a fixture. The effects on Report Card generation — which values are included/excluded/displayed — were implemented in Sprint 8+ via `edupro_sms/report_card.py::generate_report_cards()` and the `IGCSE Report Card` print format.
 
 ## 4.4 Lifecycle FAQs
 
