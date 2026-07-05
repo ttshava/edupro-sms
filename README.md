@@ -4,7 +4,7 @@
 
 An integrated school management system built on Frappe Framework v15, handling marks entry, report card generation, parent communication, and student fees — from data collection through approval workflow to final PDF delivery.
 
-**Status:** MVP Complete (Sprints 0–8 + refinements ✅) | Production-ready core | Additional features in backlog
+**Status:** MVP Complete (Sprints 0–8) + Phases 2–3 (Finance, Bursar Portal, Student/Parent Portal, Advanced Analytics) ✅ | Production-ready core | Additional features in backlog
 
 ---
 
@@ -45,10 +45,48 @@ An integrated school management system built on Frappe Framework v15, handling m
 - Website-based dashboard interface
 
 ### For Bursar
-- Create/manage student fees (termly billing)
-- Track payments and payment status
+- Bursar portal (`/bursar`, `/bursar-students`, `/bursar_fees`, `/bursar_billing`, `/import-data`) — no Desk access needed
+- Create/enroll/deactivate students, link guardians (new or existing)
+- Bulk CSV import for students (with validation report + downloadable template)
+- Batch bill an entire term by boarding type in one action
+- Record payments and adjust fee amounts inline, per student
 - Generate fee statements (ledger-based)
-- View student payment history
+
+---
+
+## 📸 Screenshots
+
+| | |
+|---|---|
+| ![Login](manual_screenshots/01_login.png) Login | ![Headmaster Dashboard](manual_screenshots/02_headmaster_dashboard.png) Headmaster Dashboard |
+| ![Class Review](manual_screenshots/03_headmaster_classreview.png) Class Review | ![Teacher Dashboard](manual_screenshots/04_teacher_dashboard.png) Teacher Dashboard |
+| ![Marks Entry](manual_screenshots/05_marks_entry.png) Marks Entry | ![Bursar Dashboard](manual_screenshots/14_bursar_dashboard_new.png) Bursar Dashboard |
+| ![Bursar Fees](manual_screenshots/15_bursar_fees.png) Bursar Fees | ![Bursar Billing](manual_screenshots/16_bursar_billing.png) Bursar Billing |
+| ![Bursar Students](manual_screenshots/17_bursar_students.png) Bursar Students | ![Import Data](manual_screenshots/13_bursar_import_data.png) Bulk Import |
+| ![My Reports](manual_screenshots/07_myreports_overview.png) Student/Parent Portal | ![Grades](manual_screenshots/08_myreports_grades.png) Grades View |
+| ![Profile](manual_screenshots/09_myreports_profile.png) Profile | ![Fees](manual_screenshots/10_myreports_fees.png) Portal Fees View |
+| ![Report Card PDF](manual_screenshots/11_report_card_pdf.png) Report Card PDF | ![Fee Statement PDF](manual_screenshots/12_fee_statement_pdf.png) Fee Statement PDF |
+
+---
+
+## 🔑 Test Login Credentials
+
+> ⚠️ **Local development only.** These are seeded test accounts on a local
+> Docker instance with a shared, publicly-visible test password. **Rotate
+> or delete every one of these before deploying anywhere reachable outside
+> your own machine, and never reuse this password on a real account.**
+
+| Role | Username | Password | Lands on |
+|------|----------|----------|----------|
+| System Manager | `Administrator` | `edupro_dev_admin_2026` | Frappe Desk (`/app`) |
+| Bursar | `bursar@firstclasshigh.ac.zw` | `EduproDemo@2026` | `/bursar` |
+| Headmaster | `mwatutsaj@firstclasshighclass.ac.zw` | `EduproDemo@2026` | `/headmaster_dashboard_fees` |
+| Instructor (Teacher) | `dhlaminia@firstclasshighclass.ac.zw` | `EduproDemo@2026` | `/dashboard` |
+| Student | `tatenda.sithole@example.edupro.test` | `EduproDemo@2026` | `/my-reports` |
+| Guardian | `parent00226@firstclasshigh.ac.zw` | `EduproDemo@2026` | `/my-reports` |
+
+Login at `http://localhost:8080/login`. All non-Administrator roles are
+website-portal-only (no Desk access) per the role permission design.
 
 ---
 
@@ -69,16 +107,25 @@ An integrated school management system built on Frappe Framework v15, handling m
 - **Print/Download** — Direct PDF generation from portal
 - **No Desk Access** — Students/Parents/Teachers see only portal UI, not admin interface
 
-### Financial Module (✅ Complete, MVP scope)
+### Financial Module (✅ Complete)
 - **Termly Billing** — Flat-rate fees determined by boarding type (Day/Full)
+- **Batch Billing** — Bill an entire term's students in one action, filtered by boarding type, with a live preview before committing
 - **Payment Tracking** — Ledger-based accounting (Debit/Credit/Balance per event)
 - **Fee Statements** — Printable ledger showing all historical transactions
 - **Status Tracking** — Billed / Partially Paid / Paid
 - **Portal View** — Students/Parents can see fees and payment status
 
+### Bursar Portal (✅ Complete)
+- **Student Management** (`/bursar-students`) — create, enroll, deactivate students; link new or existing guardians
+- **Bulk CSV Import** (`/import-data`) — real multipart upload, validation report, downloadable templates for Students/Guardians/Assessment Plans
+- **Fee Entry** (`/bursar_fees`) — filter by boarding type/status/term, record payments and adjust fee amounts inline
+- **Batch Billing** (`/bursar_billing`) — preview + commit termly billing runs
+- All four built on the shared `portal_base.html` design system — no Desk access needed for any bursar task
+
 ### Dashboards (✅ Complete)
 - **Teacher Dashboard** — Assigned classes/subjects, marks entry progress, grade distribution
 - **Headmaster Dashboard** — School summary, class performance table, pending approvals, bulk actions
+- **Advanced Analytics** — Academic trend analysis, at-risk student detection, grade predictions
 - **Branding** — School name/logo/motto on login page and report cards
 
 ### Data & Configuration (✅ Complete)
@@ -257,13 +304,11 @@ docker compose logs -f backend
 3. Browser-based UAT pass (documented checklist in `docs/07_Testing.md` §7.4)
 4. Production deployment (AWS/GCP/self-hosted with proper backups)
 
-### 📋 Backlog (Sprint 9+, lower priority)
+### 📋 Backlog (lower priority)
 
 | Item | Scope | Notes |
 |------|-------|-------|
-| Bursar portal UI | Build fee entry form on website | Currently admin-only Desk |
-| Batch billing action | "Bill all students for Term X" | Currently manual creation |
-| Fee dashboard (Headmaster) | Summary: total fees, paid, outstanding | Drill-down per class |
+| Program Enrollment ↔ Student Group linkage | Batch-enroll doesn't auto-assign a Student Group | Known gap, flagged not fixed — separate child-table permission surface |
 | Attendance system | Separate `edupro_attendance` app | Post-MVP, not in scope |
 | SMS integration | Send alerts to parents | Post-MVP |
 | Mobile apps | Native iOS/Android | Post-MVP |
@@ -409,16 +454,20 @@ docker compose restart backend queue-short queue-long scheduler websocket
 
 ## 📝 Recent Activity
 
-**Latest commit:** `bd2b9b4` (2026-07-05)
-- Document all implemented features and bring docs in sync with codebase
-- Added docs/12_Finance_Billing.md (600+ lines)
-- Updated docs/03, 04, 05, 11 to document undocumented features
-- Finance module now formally in-scope
+**Latest (2026-07-05):** `apps/edupro_sms` committed to version control for the
+first time (previously gitignored for the project's whole history), full
+20+-commit app history preserved via `git subtree`. Shared portal design
+system (`templates/portal_base.html`) extracted and rolled out to Fees,
+Billing, Students, and Import Data. All four rebuilt on real schema (fixing
+field-name mismatches against `Student`/`Guardian`/`Program Enrollment`/
+`Academic Term`), with a working CSV bulk-import pipeline (the upload step
+was previously a no-op) and two core Education-app permission gaps fixed
+via `Custom DocPerm` fixtures.
 
-**Previous milestone:** `e640e6c` (2026-07-04)
-- Teacher dashboard/marks-entry Edupro rebrand
+**Previous:** `bd2b9b4` (2026-07-05) — docs/12_Finance_Billing.md added,
+docs/03/04/05/11 synced with implemented features.
 
-See `.claude/CHANGELOG.md` for full dated change log.
+See `.claude/CHANGELOG.md` for the full dated change log.
 
 ---
 

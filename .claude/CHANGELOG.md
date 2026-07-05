@@ -6,6 +6,55 @@ YYYY-MM-DD.
 
 ## [Unreleased]
 
+### 2026-07-05 — Phases 2-3 committed, shared portal design system, Bursar suite rebuilt
+
+- **First real commit of `apps/edupro_sms`.** The entire custom app had been
+  gitignored (`apps/*`) for this project's whole history — every feature
+  below existed only in an uncommitted working tree or an unpushed nested
+  git repo. Un-ignored `apps/edupro_sms` specifically and grafted its
+  20+-commit standalone history into the main repo via `git subtree`
+  (kept `frappe`/`erpnext`/`education` correctly excluded — those are
+  vendored inside the Docker image, never on the host).
+- **Phase 2 (Finance):** Student Fee / Student Ledger Entry doctypes,
+  Billing Configuration, batch billing, fee entry portal, fee dashboard,
+  batch report card printing.
+- **Phase 3 (Portals + Analytics):** Student/Guardian portal APIs (grades,
+  reports, fees, multi-child support), academic trend analytics, at-risk
+  detection, grade predictions.
+- **Shared portal design system.** `templates/portal_base.html` — the
+  real, reusable shell (dark sidebar nav, pill status badges, stat-cards,
+  buttons, expand-in-place detail rows) now used by Dashboard, Fees,
+  Billing, Students, and Import Data instead of each page rolling its own
+  inline Bootstrap styling. Documented in root `DESIGN.md`/`PRODUCT.md`.
+- **Rebuilt Fees, Billing, Students, and Import Data on the shared shell**,
+  fixing real schema-mismatch bugs discovered in every one of them along
+  the way: `Student`/`Guardian` fields that don't exist (`admission_number`,
+  `email`, `status`), `Academic Term`/`Academic Year` fields that don't
+  exist (`is_active`, `is_current`), `Program Enrollment` used where the
+  school's real billing model is flat rate by boarding type, an
+  `ImplicitCommitError` from an unnecessary explicit `frappe.db.begin()`,
+  `Gender` being a Link doctype (`Male`/`Female`) not `M`/`F`, and
+  `first_name`/`last_name` being the real source of truth over
+  `student_name` (Education's own `Student.set_title()` recomputes it).
+- **CSV/Excel bulk import actually works now.** The upload step was never
+  implemented (the browser read the file locally via `FileReader` but only
+  ever sent the *filename* to the server — nothing was ever uploaded).
+  Wired a real multipart upload to Frappe's `/api/method/upload_file`,
+  resolved the returned `file_url` to a filesystem path before parsing,
+  and fixed template downloads to actually stream a file (they previously
+  returned a plain JSON dict with no download trigger).
+- **Two core Education-app permission cascades fixed via fixtures, not
+  core edits:** `Student.on_update()` calls `update_linked_customer()` →
+  `Customer.save()` with no `ignore_permissions`; `Student.validate()`
+  calls `User.add_roles()` → `User.save()`, also with no
+  `ignore_permissions`, before the caller's own `ignore_permissions=True`
+  save ever runs. Neither can be edited (core files) — granted Bursar
+  `Customer` and `User` DocPerms in `hooks.py`'s fixtures instead.
+- Verified live end-to-end, not just via code review: real fee payments,
+  real batch billing (33 students, $28,250 billed), a real CSV student
+  import exercising the full Student → Customer → User → Program
+  Enrollment cascade, guardian linking, and program enrollment.
+
 ### Added
 
 - Rebranded the teacher-facing `/dashboard` and `/marks-entry` website
