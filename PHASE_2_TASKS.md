@@ -316,8 +316,8 @@ Whitelisted methods:
 
 ### Task 5.1: Batch Report Card PDF Generation API
 **Objective:** Generate merged PDF of multiple report cards  
-**Status:** 🟡 READY TO START  
-**Estimated:** 1.5 days
+**Status:** ✅ COMPLETE (350 lines)  
+**Estimated:** 1.5 days | **Actual:** 0.5 days
 
 **What to Build:**
 - Whitelisted method: `generate_batch_report_cards(criteria)`
@@ -350,8 +350,8 @@ Whitelisted methods:
 
 ### Task 5.2: Batch Print Selection & Progress UI
 **Objective:** Website page for selecting criteria & generating batch PDF  
-**Status:** 🟡 READY TO START  
-**Estimated:** 1.5 days
+**Status:** ✅ COMPLETE (420 lines)  
+**Estimated:** 1.5 days | **Actual:** 1 day
 
 **What to Build:**
 - Website page: `/headmaster-batch-print/`
