@@ -223,6 +223,90 @@ When your child's report is published:
 
 5. **All reports are approved at once**
 
+### Batch Printing Report Cards (Print All at Once)
+
+**URL:** `http://SCHOOL_SERVER_ADDRESS/headmaster-batch-print/`  
+**Time saved:** 8+ minutes (vs. printing 50 individual PDFs)
+
+#### When to Use Batch Printing
+
+- **End of term:** Print all reports for entire school at once
+- **By class:** Print Form 1A reports, then Form 1B, etc.
+- **Parent distribution:** Generate single PDF with all reports to email to parents
+- **School records:** Archive full set of reports per term
+
+#### Steps
+
+1. **Go to:** `/headmaster-batch-print/`
+
+2. **Select criteria:**
+   - **Student Group/Class:** Pick a specific class (e.g., "Form 1A") or "All Classes"
+   - **Academic Term:** Select which term to print (required)
+   - **Include published only:** Checked = only finalized reports; Unchecked = include drafts
+
+3. **Click "Preview"**
+   - Shows how many reports will be printed
+   - Shows estimated pages and file size
+   - Lists first 5 students as preview
+   - **No changes made** — safe to preview multiple times
+
+4. **Click "Generate PDF" (in preview modal)**
+   - Progress bar appears: 0% → 100%
+   - Shows status: "Generating..." → "Merging..." → "Finalizing..."
+   - Wait for completion
+
+5. **PDF Ready!**
+   - **Download Button:** Click to save PDF to your computer
+   - **Preview Button:** Click to view in browser before saving
+   - **File Info:** Shows file name, page count, size, timestamp
+
+#### Example Workflow
+
+```
+Scenario: Print all Form 1A reports for Term 1 2026
+
+Step 1: Go to /headmaster-batch-print/
+Step 2: Select Class="Form 1A" + Term="Term 1 2026" + Published Only (checked)
+Step 3: Click Preview
+        → Shows "25 students, 25 pages, ~5MB"
+Step 4: Review preview list (first 5 students shown)
+Step 5: Click "Generate PDF"
+Step 6: Wait for progress (takes ~10 seconds for 25 reports)
+Step 7: Results show: "Successfully merged 25 reports (25 pages)"
+Step 8: Download PDF
+Step 9: Print all 25 reports at once or email to parents
+```
+
+#### What Gets Included in the PDF
+
+Each page contains:
+- Student name
+- Class/Group
+- All subjects and marks
+- Grade for each subject
+- Student position/rank in class
+- Teacher comments
+- Class teacher and Headmaster sign-off
+
+#### Tips for Batch Printing
+
+| Scenario | How-To |
+|----------|--------|
+| **Print one class** | Select "Form 1A", term, click Generate |
+| **Print all classes** | Select "All Classes", term, click Generate |
+| **Include unpublished** | Uncheck "Include published only" before preview |
+| **Email to parents** | Print, save, email PDF to parents@school.com |
+| **Archive records** | Save batch PDF with filename: "Reports_Form1A_Term1_2026.pdf" |
+| **Print from browser** | Use "Preview" button to open in browser, then Print |
+
+#### File Organization
+
+Generated PDFs are named: `batch_reports_[Class]_[Term]_[Timestamp].pdf`
+
+Example: `batch_reports_Form_1A_Term_1_2026_20260705_143022.pdf`
+- Contains the class, term, date, and time of generation
+- Stored server-side for download
+
 ### Viewing Class Performance
 
 1. **Click "Classes"** section
