@@ -424,6 +424,79 @@ When a student leaves the school:
 
 *For detailed fee management, contact your finance system admin.*
 
+### Batch Billing (Create Fees for All Students at Once)
+
+**Time saved:** 3+ hours per term (vs. creating 200 fees manually one by one)
+
+#### Prerequisites
+First, ensure:
+- All students are enrolled in a Program (e.g., "IGCSE Science")
+- Fee rates are configured (e.g., "IGCSE Science" costs $5,000 for Day Boarders)
+
+#### Steps
+
+1. **Go to:** `http://SCHOOL_SERVER_ADDRESS/bursar-billing`
+
+2. **Select criteria:**
+   - **Academic Term:** Choose which term to bill (e.g., "Term 1 2026")
+   - **Program:** Select a program (e.g., "IGCSE Science") or "All Programs"
+   - **Boarding Type:** Filter to bill only Day Boarders, Full Boarders, or All
+
+3. **Click "Preview Billing (No Changes)"**
+   - Modal shows how many students will be billed
+   - Shows total amount to be billed
+   - Lists first 5 students as preview
+   - **No changes made yet** — this is safe to preview multiple times
+
+4. **Review the preview:**
+   - Count of students: Should match your enrollment
+   - Total amount: Should match (# students × configured rate)
+   - Example: "200 students will be billed $1,000,000 total"
+
+5. **Click "Confirm & Create Fees"** in the preview modal
+
+6. **Wait for billing to complete**
+   - Status shows "Creating fees..."
+   - Page displays results when complete
+
+7. **Review results:**
+   - **Created:** Number of new fees generated
+   - **Skipped:** Students already billed or missing rates
+   - **Failed:** Errors (rare)
+   - **Total Billed:** Total amount charged in this batch
+
+#### Example Workflow
+
+```
+Scenario: Bill IGCSE Science students for Term 1 2026
+  
+Step 1: Go to /bursar-billing
+Step 2: Select "Term 1 2026" + "IGCSE Science" + "All Boarding"
+Step 3: Click Preview
+        → Shows "80 students will be billed $435,000"
+Step 4: Review preview is correct
+Step 5: Click "Confirm & Create Fees"
+Step 6: Wait 5-10 seconds
+Step 7: Results: "Billing complete: 80 created, 0 skipped, 0 failed. Total: $435,000"
+Step 8: Done! All 80 fees created instantly.
+```
+
+#### Safe to Re-Run?
+
+**Yes!** If you accidentally run billing twice:
+- First run: Creates 200 fees
+- Second run: "200 created=0, skipped=200" (no duplicates)
+- Result: Still only 200 fees (safe to retry)
+
+#### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Preview shows 0 students | Check that students are enrolled in selected program |
+| Preview shows fewer than expected | Some students may not have matching billing rates configured |
+| "No active billing rates found" error | Contact Headmaster to configure billing rates first |
+| Billing seems slow (takes >30 sec) | Normal for 500+ students; wait for completion |
+
 ### Common Bursar Tasks
 
 | Task | Steps |
