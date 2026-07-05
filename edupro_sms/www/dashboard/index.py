@@ -28,6 +28,9 @@ def get_context(context):
 		context.grade_boundaries_by_scale = [
 			{"scale": scale, "rows": get_grade_boundaries(scale)} for scale in scales_in_use
 		]
+		if "Class Teacher" in roles:
+			context.class_teacher_reviews = _class_teacher_reviews()
+			context.csrf_token = frappe.sessions.get_csrf_token()
 	else:
 		context.dashboard_role = None
 
@@ -60,11 +63,9 @@ def _teacher_summary(classes: list[dict]) -> dict:
 
 
 def _headmaster_summary():
-	from education.education.api import get_grade
-
 	from edupro_sms.edupro_sms.academic_calendar import get_current_term
 	from edupro_sms.edupro_sms.class_review import get_class_summary_rows, get_recent_activity, get_subject_analysis
-	from edupro_sms.edupro_sms.grading import DEFAULT_GRADING_SCALE
+	from edupro_sms.edupro_sms.grading import DEFAULT_GRADING_SCALE, get_grade_for_percentage
 
 	term = get_current_term()
 	academic_year = frappe.db.get_value("Academic Term", term, "academic_year") if term else None
@@ -86,7 +87,7 @@ def _headmaster_summary():
 	# Whole-school average spans every grading band, so there's no single
 	# scale that's strictly "correct" here -- fall back to the default one
 	# just to express the number as a letter grade too.
-	overall_grade = get_grade(DEFAULT_GRADING_SCALE, overall_average) if overall_average is not None else None
+	overall_grade = get_grade_for_percentage(DEFAULT_GRADING_SCALE, overall_average)
 
 	return {
 		"academic_year": academic_year,
@@ -105,6 +106,31 @@ def _headmaster_summary():
 		"subject_analysis": get_subject_analysis(term),
 		"recent_activity": get_recent_activity(),
 	}
+
+
+def _class_teacher_reviews():
+	"""Report cards sitting in Pending Approval for classes where the
+	logged-in Instructor is the Class Teacher -- their own "Review" step
+	in the Report Card Approval workflow (see approvals.py), surfaced
+	here since Desk access was removed for this role (DECISIONS.md 0014)."""
+	from edupro_sms.edupro_sms.academic_calendar import get_current_term
+
+	instructor = frappe.db.get_value("Instructor", {"user": frappe.session.user}, "name")
+	if not instructor:
+		return []
+
+	term = get_current_term()
+	groups = frappe.get_all("Student Group", filters={"class_teacher": instructor}, pluck="name")
+
+	rows = []
+	for group in groups:
+		pending = frappe.db.count(
+			"Report Card",
+			{"student_group": group, "academic_term": term, "workflow_state": "Pending Approval"},
+		)
+		if pending:
+			rows.append({"student_group": group, "academic_term": term, "pending_count": pending})
+	return rows
 
 
 def _teacher_classes():

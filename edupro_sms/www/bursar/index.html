@@ -1,0 +1,185 @@
+{% extends "templates/portal_base.html" %}
+{% import "templates/includes/icons.html" as icons %}
+
+{% block sidebar_nav %}
+<a href="/bursar" class="{{ 'active' if active_nav == 'dashboard' else '' }}">{{ icons.icon("home") }} Dashboard</a>
+<a href="/bursar_fees" class="{{ 'active' if active_nav == 'fees' else '' }}">{{ icons.icon("dollar-sign") }} Fees</a>
+<a href="/bursar_billing">{{ icons.icon("term") }} Billing</a>
+<a href="/bursar-students">{{ icons.icon("graduation-cap") }} Students</a>
+{% endblock %}
+
+{% block portal_content %}
+<style>
+  /* Page-specific layout only -- colors/fonts/spacing come from the
+     standard theme in portal_base.html. */
+  .class-filter-input {
+    width: 100%; max-width: 320px; padding: 7px 12px; margin-bottom: 10px;
+    border: 1px solid var(--edu-gray-300); border-radius: var(--edu-radius-sm); font-size: 0.8rem; font-family: inherit;
+  }
+  .boarding-select {
+    padding: 3px 6px; border: 1px solid var(--edu-gray-300); border-radius: var(--edu-radius-sm);
+    font-size: 0.76rem; font-family: inherit; background: #fff;
+  }
+  .row-actions { display: flex; gap: 6px; align-items: center; }
+  .payment-row td { background: var(--edu-gray-50); padding: 0; }
+  .payment-panel { display: none; padding: 10px 14px; }
+  .payment-panel.open { display: block; }
+  .payment-panel table { margin-bottom: 0; }
+  .payment-panel .term-input { width: 70px; padding: 3px 6px; border: 1px solid var(--edu-gray-300); border-radius: var(--edu-radius-sm); font-size: 0.78rem; }
+  .payment-status { font-size: 0.76rem; font-weight: 700; margin-left: 8px; }
+</style>
+
+<h1>Bursar</h1>
+<p class="user-line">{{ frappe.session.user }}</p>
+
+<div id="students" class="stat-cards">
+  <div class="stat-card"><div class="stat-icon">{{ icons.icon("users") }}</div><div><div class="stat-value">{{ summary.total_students }}</div><div class="stat-label">Students</div></div></div>
+  <div class="stat-card"><div class="stat-icon">{{ icons.icon("term") }}</div><div><div class="stat-value">${{ "%.0f"|format(summary.total_billed) }}</div><div class="stat-label">Total Billed</div></div></div>
+  <div class="stat-card"><div class="stat-icon">{{ icons.icon("check-circle") }}</div><div><div class="stat-value">${{ "%.0f"|format(summary.total_paid) }}</div><div class="stat-label">Total Paid</div></div></div>
+  <div class="stat-card"><div class="stat-icon">{{ icons.icon("alert-circle") }}</div><div><div class="stat-value">${{ "%.0f"|format(summary.total_balance) }}</div><div class="stat-label">Total Balance</div></div></div>
+</div>
+
+<h2>{{ icons.icon("users") }}All Students</h2>
+<input type="text" id="student-filter" placeholder="Filter by name or class..." class="class-filter-input">
+<div id="bulk-status"></div>
+<table id="students-table">
+  <thead>
+    <tr><th>Class</th><th>Student</th><th>Boarding Type</th><th>Balance</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for s in students %}
+    <tr data-student="{{ s.student }}">
+      <td>{{ s.student_group }}</td>
+      <td>{{ s.student_name }}</td>
+      <td>
+        <select class="boarding-select" data-student="{{ s.student }}">
+          {% for bt in boarding_types %}
+          <option value="{{ bt }}" {{ "selected" if bt == s.boarding_type else "" }}>{{ bt }}</option>
+          {% endfor %}
+        </select>
+      </td>
+      <td>{{ "$%.0f"|format(s.total_balance) if s.total_balance else "$0" }}</td>
+      <td class="row-actions">
+        <button class="btn btn-secondary toggle-payment-btn" data-student="{{ s.student }}">{{ icons.icon("edit") }} Record Payment</button>
+        <a class="btn btn-secondary" href="/printview?doctype=Student&name={{ s.student|urlencode }}&format=Fee%20Statement&no_letterhead=0" target="_blank">{{ icons.icon("printer") }} Statement</a>
+      </td>
+    </tr>
+    <tr class="payment-row" id="payment-row-{{ s.student }}">
+      <td colspan="5">
+        <div class="payment-panel" id="payment-panel-{{ s.student }}">
+          <table>
+            <thead><tr><th>Term</th><th>Amount</th><th>Paid</th><th>Balance</th><th>Record Payment</th></tr></thead>
+            <tbody>
+              {% for t in s.terms %}
+              {% if t.billed %}
+              <tr data-term="{{ t.academic_term }}">
+                <td>{{ t.academic_term }}</td>
+                <td>${{ "%.0f"|format(t.amount) }}</td>
+                <td class="paid-cell">${{ "%.0f"|format(t.amount_paid) }}</td>
+                <td class="balance-cell">${{ "%.0f"|format(t.balance) }}</td>
+                <td>
+                  <input type="number" min="0.01" step="0.01" class="term-input" placeholder="Amount">
+                  <button class="btn btn-primary record-payment-btn" data-student="{{ s.student }}" data-fee="SF-{{ s.student }}-{{ t.academic_term }}">Record</button>
+                  <span class="payment-status"></span>
+                </td>
+              </tr>
+              {% endif %}
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script>
+  document.getElementById("student-filter").addEventListener("input", function () {
+    var q = this.value.toLowerCase();
+    document.querySelectorAll("#students-table > tbody > tr[data-student]").forEach(function (tr) {
+      var match = tr.textContent.toLowerCase().indexOf(q) !== -1;
+      tr.style.display = match ? "" : "none";
+      var panelRow = document.getElementById("payment-row-" + tr.dataset.student);
+      if (panelRow && !match) panelRow.style.display = "none";
+    });
+  });
+
+  document.querySelectorAll(".toggle-payment-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var panel = document.getElementById("payment-panel-" + btn.dataset.student);
+      panel.classList.toggle("open");
+    });
+  });
+
+  document.querySelectorAll(".boarding-select").forEach(function (sel) {
+    sel.addEventListener("change", function () {
+      var statusEl = document.getElementById("bulk-status");
+      fetch("/api/method/edupro_sms.edupro_sms.fees.set_boarding_type", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Frappe-CSRF-Token": "{{ csrf_token }}" },
+        body: JSON.stringify({ student: sel.dataset.student, boarding_type: sel.value }),
+      })
+        .then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
+        .then(function (result) {
+          if (result.ok) {
+            statusEl.textContent = "Boarding type updated.";
+            statusEl.className = "save-ok";
+          } else {
+            statusEl.textContent = "Error: " + (result.body.exception || result.body._server_messages || "Could not update.");
+            statusEl.className = "save-error";
+          }
+        })
+        .catch(function (err) {
+          statusEl.textContent = "Error: " + err;
+          statusEl.className = "save-error";
+        });
+    });
+  });
+
+  document.querySelectorAll(".record-payment-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var tr = btn.closest("tr");
+      var input = tr.querySelector(".term-input");
+      var statusEl = tr.querySelector(".payment-status");
+      var amount = parseFloat(input.value);
+      if (!amount || amount <= 0) {
+        statusEl.textContent = "Enter an amount.";
+        statusEl.className = "payment-status save-error";
+        return;
+      }
+
+      btn.disabled = true;
+      statusEl.textContent = "Saving...";
+      statusEl.className = "payment-status";
+
+      fetch("/api/method/edupro_sms.edupro_sms.fees.record_payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Frappe-CSRF-Token": "{{ csrf_token }}" },
+        body: JSON.stringify({ student_fee: btn.dataset.fee, amount: amount }),
+      })
+        .then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
+        .then(function (result) {
+          btn.disabled = false;
+          if (result.ok) {
+            var msg = result.body.message;
+            tr.querySelector(".paid-cell").textContent = "$" + Math.round(msg.amount_paid);
+            tr.querySelector(".balance-cell").textContent = "$" + Math.round(msg.balance);
+            input.value = "";
+            statusEl.textContent = "Recorded.";
+            statusEl.className = "payment-status save-ok";
+            setTimeout(function () { window.location.reload(); }, 900);
+          } else {
+            statusEl.textContent = "Error: " + (result.body.exception || result.body._server_messages || "Could not record.");
+            statusEl.className = "payment-status save-error";
+          }
+        })
+        .catch(function (err) {
+          btn.disabled = false;
+          statusEl.textContent = "Error: " + err;
+          statusEl.className = "payment-status save-error";
+        });
+    });
+  });
+</script>
+{% endblock %}

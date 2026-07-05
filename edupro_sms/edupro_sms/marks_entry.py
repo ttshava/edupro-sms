@@ -52,7 +52,7 @@ def get_entry_data(assessment_plan):
 	existing = frappe.get_all(
 		"Assessment Result",
 		filters={"assessment_plan": assessment_plan, "docstatus": ["!=", 2]},
-		fields=["name", "student", "docstatus"],
+		fields=["name", "student", "docstatus", "comment"],
 	)
 	existing_by_student = {e.student: e for e in existing}
 
@@ -76,6 +76,7 @@ def get_entry_data(assessment_plan):
 				"student_name": s.student_name,
 				"existing_docstatus": result.docstatus if result else None,
 				"scores": scores,
+				"comment": (result.comment if result else "") or "",
 			}
 		)
 
@@ -116,6 +117,7 @@ def save_marks(assessment_plan, entries):
 			frappe.throw(_("Student {0} is not in this class.").format(student))
 
 		scores = entry.get("scores") or {}
+		new_comment = (entry.get("comment") or "").strip()
 		details = [
 			{"assessment_criteria": crit, "score": flt(scores.get(crit))}
 			for crit in valid_criteria
@@ -140,10 +142,23 @@ def save_marks(assessment_plan, entries):
 				)
 			}
 			new_scores = {d["assessment_criteria"]: flt(d["score"]) for d in details}
-			if existing_scores == new_scores:
+			existing_doc = frappe.get_doc("Assessment Result", existing_name)
+			existing_comment = existing_doc.comment or ""
+			if existing_scores == new_scores and existing_comment == new_comment:
 				continue
 
-			existing_doc = frappe.get_doc("Assessment Result", existing_name)
+			if existing_scores == new_scores:
+				# Comment-only edit: skip the cancel/amend dance entirely.
+				# Once a Report Card has been generated, cancelling this
+				# Assessment Result to amend it fails with LinkExistsError
+				# (Frappe won't cancel a submitted doc that's linked from
+				# another submitted doc) -- but comment isn't a submittable
+				# grading field, so writing it directly is safe and doesn't
+				# need to touch docstatus at all.
+				frappe.db.set_value("Assessment Result", existing_name, "comment", new_comment)
+				saved += 1
+				continue
+
 			if existing_doc.docstatus == 1:
 				existing_doc.flags.ignore_permissions = True
 				existing_doc.cancel()
@@ -161,6 +176,7 @@ def save_marks(assessment_plan, entries):
 			for d in details:
 				doc.append("details", d)
 
+		doc.comment = new_comment
 		doc.flags.ignore_permissions = True
 		doc.save()
 		doc.submit()

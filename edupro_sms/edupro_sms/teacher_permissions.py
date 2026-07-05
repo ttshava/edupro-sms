@@ -2,6 +2,13 @@
 their own assigned classes+subjects — Education's stock permissions
 grant this only to the broader "Academics User" role, with no per-class
 scoping. Wired via hooks.py permission_query_conditions/has_permission.
+
+A teacher gets access to a class two ways, additively: being listed in
+that class's general Instructor list (Student Group Instructor -- the
+original, coarser mechanism), or being the assigned subject teacher for
+a specific course there (Class Subject Assignment -- the newer, precise
+roster). Neither replaces the other, so assigning someone via one
+doesn't take away access already granted by the other.
 """
 
 import frappe
@@ -12,9 +19,13 @@ def _instructor_for_user(user: str) -> str | None:
 
 
 def _assigned_student_groups(instructor: str) -> list[str]:
-	return frappe.get_all(
+	via_instructor_list = frappe.get_all(
 		"Student Group Instructor", filters={"instructor": instructor}, pluck="parent"
 	)
+	via_subject_assignment = frappe.get_all(
+		"Class Subject Assignment", filters={"instructor": instructor}, pluck="student_group"
+	)
+	return list(set(via_instructor_list) | set(via_subject_assignment))
 
 
 def get_permission_query_conditions_for_assessment(doctype: str):

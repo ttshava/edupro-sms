@@ -27,6 +27,7 @@
   "number_of_students",
   "section_break_comments",
   "class_teacher_comment",
+  "conduct_remark",
   "headmaster_comment",
   "rejection_reason",
   "section_break_delivery",
@@ -160,6 +161,12 @@
    "fieldname": "class_teacher_comment",
    "fieldtype": "Small Text",
    "label": "Class Teacher Comment"
+  },
+  {
+   "description": "Conduct/attitude remark for this term -- separate from the academic comment above.",
+   "fieldname": "conduct_remark",
+   "fieldtype": "Small Text",
+   "label": "Conduct"
   },
   {
    "fieldname": "headmaster_comment",

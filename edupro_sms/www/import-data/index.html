@@ -1,0 +1,294 @@
+{% extends "templates/portal_base.html" %}
+{% import "templates/includes/icons.html" as icons %}
+
+{% block sidebar_nav %}
+<a href="/bursar">{{ icons.icon("home") }} Dashboard</a>
+<a href="/bursar_fees">{{ icons.icon("dollar-sign") }} Fees</a>
+<a href="/bursar_billing">{{ icons.icon("term") }} Billing</a>
+<a href="/bursar-students" class="{{ 'active' if active_nav == 'students' else '' }}">{{ icons.icon("graduation-cap") }} Students</a>
+{% endblock %}
+
+{% block portal_content %}
+<style>
+  /* Page-specific layout only -- colors/fonts/spacing come from the
+     standard theme in portal_base.html. */
+  .template-grid { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 16px; }
+  .upload-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 10px; }
+  .file-input { padding: 6px 10px; border: 1px solid var(--edu-gray-300); border-radius: var(--edu-radius-sm); font-size: 0.8rem; background: #fff; }
+  .preview-table th, .preview-table td, .errors-table th, .errors-table td { font-size: 0.76rem; }
+  .errors-table td code { background: var(--edu-gray-100); padding: 1px 4px; border-radius: 4px; }
+</style>
+
+<h1>Bulk Data Import</h1>
+<p class="user-line">Import students, instructors, guardians, or assessment plans via CSV/Excel file</p>
+
+<h2>{{ icons.icon("download") }}Step 1: Download Template</h2>
+<p class="empty">Choose the type of data you want to import. Each template includes sample data and instructions.</p>
+<div class="template-grid">
+  <button class="btn btn-secondary" data-template="student">{{ icons.icon("users") }}Student Template</button>
+  <button class="btn btn-secondary" data-template="instructor">{{ icons.icon("user") }}Instructor Template</button>
+  <button class="btn btn-secondary" data-template="guardian">{{ icons.icon("users") }}Guardian Template</button>
+  <button class="btn btn-secondary" data-template="assessment_plan">{{ icons.icon("calendar") }}Assessment Plan Template</button>
+</div>
+
+<h2>{{ icons.icon("upload") }}Step 2: Upload &amp; Validate</h2>
+<div class="upload-row">
+  <div class="detail-field">
+    <label>Data Type</label>
+    <select id="data-type" class="filter-select">
+      <option value="">-- Select Data Type --</option>
+      <option value="Student">Students</option>
+      <option value="Instructor">Instructors</option>
+      <option value="Guardian">Guardians</option>
+      <option value="Assessment Plan">Assessment Plans</option>
+    </select>
+  </div>
+  <div class="detail-field">
+    <label>CSV or Excel (.xlsx) file</label>
+    <input type="file" id="file-input" class="file-input" accept=".csv,.xlsx,.xls">
+  </div>
+  <button class="btn btn-primary" id="validate-btn">{{ icons.icon("check-square") }}Validate</button>
+</div>
+<p class="empty" id="upload-status"></p>
+
+<div id="preview-section" style="display:none;">
+  <h2>{{ icons.icon("bar-chart") }}Step 3: Preview &amp; Confirm</h2>
+  <div class="stat-cards" id="preview-stats"></div>
+
+  <div id="preview-table-wrap" style="display:none;margin-top:14px;">
+    <h3>Preview (first 5 valid records)</h3>
+    <table class="preview-table" id="preview-table">
+      <thead><tr id="preview-header"></tr></thead>
+      <tbody id="preview-body"></tbody>
+    </table>
+  </div>
+
+  <div id="errors-table-wrap" style="display:none;margin-top:14px;">
+    <h3>Validation Errors (samples)</h3>
+    <table class="errors-table" id="errors-table">
+      <thead><tr><th>Row</th><th>Field</th><th>Value</th><th>Error</th></tr></thead>
+      <tbody id="errors-body"></tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:14px;">
+    <button class="btn btn-secondary" id="start-over-btn">{{ icons.icon("arrow-left") }}Start Over</button>
+    <button class="btn btn-primary" id="import-btn" style="display:none;">{{ icons.icon("check-circle") }}Proceed with Import</button>
+    <span class="field-status" id="preview-status"></span>
+  </div>
+</div>
+
+<div id="complete-section" style="display:none;">
+  <h2>{{ icons.icon("check-circle") }}Import Complete</h2>
+  <div class="stat-cards" id="complete-stats"></div>
+  <p id="complete-message" style="margin-top:10px;"></p>
+  <div id="complete-errors" style="display:none;margin-top:10px;">
+    <h3>Issues</h3>
+    <ul class="empty" id="complete-errors-list" style="padding-left:18px;"></ul>
+  </div>
+  <button class="btn btn-secondary" id="import-another-btn" style="margin-top:10px;">{{ icons.icon("upload") }}Import Another File</button>
+</div>
+
+<script>
+  let lastValidation = null;
+  let uploadedFileUrl = null;
+
+  function csrfHeaders() {
+    return { "X-Frappe-CSRF-Token": "{{ csrf_token }}" };
+  }
+
+  function statCard(iconHtml, value, label) {
+    return '<div class="stat-card"><div class="stat-icon">' + iconHtml + '</div><div><div class="stat-value">' + value + '</div><div class="stat-label">' + label + '</div></div></div>';
+  }
+
+  const ICON_LIST = '{{ icons.icon("check-square") }}';
+  const ICON_CHECK = '{{ icons.icon("check-circle") }}';
+  const ICON_ALERT = '{{ icons.icon("alert-circle") }}';
+  const ICON_CLOCK = '{{ icons.icon("clock") }}';
+
+  document.querySelectorAll("[data-template]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      window.location.href = "/api/method/edupro_sms.template_generator.download_template?template_type=" + btn.dataset.template;
+    });
+  });
+
+  document.getElementById("validate-btn").addEventListener("click", function () {
+    const dataType = document.getElementById("data-type").value;
+    const fileInput = document.getElementById("file-input");
+    const statusEl = document.getElementById("upload-status");
+
+    if (!dataType) { statusEl.textContent = "Select a data type."; statusEl.className = "empty save-error"; return; }
+    if (!fileInput.files.length) { statusEl.textContent = "Choose a file."; statusEl.className = "empty save-error"; return; }
+
+    const btn = this;
+    btn.disabled = true;
+    statusEl.textContent = "Uploading...";
+    statusEl.className = "empty";
+
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+    formData.append("is_private", 1);
+
+    fetch("/api/method/upload_file", {
+      method: "POST",
+      headers: csrfHeaders(),
+      body: formData,
+    })
+      .then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
+      .then(function (result) {
+        if (!result.ok || !result.body.message) {
+          throw new Error((result.body.exception || "Upload failed."));
+        }
+        uploadedFileUrl = result.body.message.file_url;
+        statusEl.textContent = "Validating...";
+
+        return fetch("/api/method/edupro_sms.import_parser.parse_and_validate_file", {
+          method: "POST",
+          headers: Object.assign({ "Content-Type": "application/json" }, csrfHeaders()),
+          body: JSON.stringify({ file_path: uploadedFileUrl, doctype: dataType }),
+        });
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (body) {
+        btn.disabled = false;
+        statusEl.textContent = "";
+        lastValidation = body.message;
+        if (!lastValidation) { statusEl.textContent = "Validation failed."; statusEl.className = "empty save-error"; return; }
+        showValidationResults(lastValidation);
+      })
+      .catch(function (err) {
+        btn.disabled = false;
+        statusEl.textContent = "Error: " + err.message;
+        statusEl.className = "empty save-error";
+      });
+  });
+
+  function showValidationResults(result) {
+    document.getElementById("preview-section").style.display = "block";
+
+    const total = result.total_records || (result.valid_records || []).length + (result.invalid_records || []).length;
+    const validCount = result.error_summary ? result.error_summary.valid_count : (result.valid_records || []).length;
+    const invalidCount = result.error_summary ? result.error_summary.invalid_count : (result.invalid_records || []).length;
+
+    document.getElementById("preview-stats").innerHTML =
+      statCard(ICON_LIST, total, "Total Records") +
+      statCard(ICON_CHECK, validCount, "Valid") +
+      statCard(ICON_ALERT, invalidCount, "Invalid");
+
+    const previewWrap = document.getElementById("preview-table-wrap");
+    if (result.valid_records && result.valid_records.length > 0) {
+      renderPreviewTable(result.valid_records.slice(0, 5));
+      previewWrap.style.display = "block";
+    } else {
+      previewWrap.style.display = "none";
+    }
+
+    const errorsWrap = document.getElementById("errors-table-wrap");
+    if (result.errors && result.errors.length > 0) {
+      renderErrorsTable(result.errors.slice(0, 10));
+      errorsWrap.style.display = "block";
+    } else {
+      errorsWrap.style.display = "none";
+    }
+
+    document.getElementById("import-btn").style.display = validCount > 0 ? "inline-flex" : "none";
+  }
+
+  function renderPreviewTable(records) {
+    const header = document.getElementById("preview-header");
+    const body = document.getElementById("preview-body");
+    header.innerHTML = "";
+    body.innerHTML = "";
+    if (!records.length) return;
+
+    const columns = Object.keys(records[0].data);
+    columns.forEach(function (col) {
+      const th = document.createElement("th");
+      th.textContent = col;
+      header.appendChild(th);
+    });
+
+    records.forEach(function (record) {
+      const tr = document.createElement("tr");
+      columns.forEach(function (col) {
+        const td = document.createElement("td");
+        td.textContent = record.data[col] || "-";
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+  }
+
+  function renderErrorsTable(errors) {
+    const body = document.getElementById("errors-body");
+    body.innerHTML = "";
+    errors.forEach(function (err) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = "<td>" + (err.row || "-") + "</td><td><strong>" + (err.field || "-") + "</strong></td><td><code>" + (err.value || "-") + "</code></td><td>" + (err.message || "Unknown error") + "</td>";
+      body.appendChild(tr);
+    });
+  }
+
+  document.getElementById("import-btn").addEventListener("click", function () {
+    if (!uploadedFileUrl) return;
+    const dataType = document.getElementById("data-type").value;
+    const btn = this;
+    const statusEl = document.getElementById("preview-status");
+
+    btn.disabled = true;
+    statusEl.textContent = "Importing...";
+    statusEl.className = "field-status";
+
+    fetch("/api/method/edupro_sms.import_handler.import_bulk_data", {
+      method: "POST",
+      headers: Object.assign({ "Content-Type": "application/json" }, csrfHeaders()),
+      body: JSON.stringify({ doctype: dataType, file_path: uploadedFileUrl, preview: false }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (body) {
+        statusEl.textContent = "";
+        btn.disabled = false;
+        if (body.message) showImportComplete(body.message);
+        else { statusEl.textContent = "Import failed."; statusEl.className = "field-status save-error"; }
+      })
+      .catch(function (err) {
+        btn.disabled = false;
+        statusEl.textContent = "Error: " + err.message;
+        statusEl.className = "field-status save-error";
+      });
+  });
+
+  function showImportComplete(result) {
+    document.getElementById("preview-section").style.display = "none";
+    document.getElementById("complete-section").style.display = "block";
+
+    const log = result.import_log;
+    document.getElementById("complete-stats").innerHTML =
+      statCard(ICON_CHECK, log.records_imported, "Imported") +
+      statCard(ICON_CLOCK, log.records_skipped, "Skipped") +
+      statCard(ICON_ALERT, log.records_failed, "Failed");
+    document.getElementById("complete-message").textContent = result.message;
+
+    const errorsList = document.getElementById("complete-errors-list");
+    if (log.errors && log.errors.length > 0) {
+      errorsList.innerHTML = log.errors.map(function (e) { return "<li>Row " + e.row + ": " + (e.reason || e.message) + "</li>"; }).join("");
+      document.getElementById("complete-errors").style.display = "block";
+    } else {
+      document.getElementById("complete-errors").style.display = "none";
+    }
+  }
+
+  function resetForm() {
+    document.getElementById("file-input").value = "";
+    document.getElementById("data-type").value = "";
+    document.getElementById("preview-section").style.display = "none";
+    document.getElementById("complete-section").style.display = "none";
+    document.getElementById("upload-status").textContent = "";
+    lastValidation = null;
+    uploadedFileUrl = null;
+  }
+
+  document.getElementById("start-over-btn").addEventListener("click", resetForm);
+  document.getElementById("import-another-btn").addEventListener("click", resetForm);
+</script>
+{% endblock %}

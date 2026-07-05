@@ -60,6 +60,25 @@ def get_grade_description(grading_scale: str, grade_code: str | None) -> str | N
 	return None
 
 
+def get_grade_for_percentage(grading_scale: str, percentage: float | None) -> str | None:
+	"""Letter grade for a percentage against a named scale. Deliberately
+	doesn't call Education's own get_grade(): that function caches
+	`frappe.local.grading_scale` keyed only by *whether it's set*, not by
+	which scale was requested, so a second call in the same request with
+	a different scale silently reuses the first scale's (possibly empty)
+	intervals -- an empty interval list then leaves its `grade` local
+	unassigned and raises UnboundLocalError. get_grade_boundaries() below
+	is cached per-scale via frappe.get_cached_doc, so it doesn't have
+	that cross-contamination bug."""
+	if percentage is None:
+		return None
+	boundaries = get_grade_boundaries(grading_scale)
+	for row in boundaries:
+		if flt(percentage) >= flt(row["low"]):
+			return row["grade_code"]
+	return boundaries[-1]["grade_code"] if boundaries else None
+
+
 def get_grade_boundaries(grading_scale: str = DEFAULT_GRADING_SCALE) -> list[dict]:
 	if not frappe.db.exists("Grading Scale", grading_scale):
 		return []

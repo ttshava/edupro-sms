@@ -1,0 +1,210 @@
+{% extends "templates/portal_base.html" %}
+{% import "templates/includes/icons.html" as icons %}
+
+{% block sidebar_nav %}
+<a href="/bursar">{{ icons.icon("home") }} Dashboard</a>
+<a href="/bursar_fees">{{ icons.icon("dollar-sign") }} Fees</a>
+<a href="/bursar_billing" class="{{ 'active' if active_nav == 'billing' else '' }}">{{ icons.icon("term") }} Billing</a>
+<a href="/bursar-students">{{ icons.icon("graduation-cap") }} Students</a>
+{% endblock %}
+
+{% block portal_content %}
+<style>
+  /* Page-specific layout only -- colors/fonts/spacing come from the
+     standard theme in portal_base.html. */
+  .billing-form { max-width: 480px; }
+  .radio-row { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 16px; }
+  .radio-option { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--edu-gray-700); }
+  .radio-option input { accent-color: var(--edu-red); }
+  .rate-note { font-size: 0.75rem; color: var(--edu-gray-500); margin: -6px 0 16px; }
+  .preview-table th, .preview-table td { font-size: 0.78rem; }
+</style>
+
+<h1>Batch Billing</h1>
+<p class="user-line">Create fees for all active students in a term at once</p>
+
+<div class="billing-form">
+  <h2>{{ icons.icon("term") }}Select Criteria</h2>
+
+  <div class="detail-field" style="display:flex;width:100%;">
+    <label>Academic Term</label>
+    <select id="academic-term" class="filter-select" style="width:100%;">
+      <option value="">-- Select Term --</option>
+      {% for term in academic_terms %}
+      <option value="{{ term.name }}">{{ term.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="radio-row" style="margin-top:14px;">
+    <label class="detail-field label" style="text-transform:uppercase;font-size:0.68rem;font-weight:700;color:var(--edu-gray-500);letter-spacing:.4px;">Boarding Type Filter</label>
+    <label class="radio-option"><input type="radio" name="boarding-filter" value="ALL" checked> All Boarding Types</label>
+    {% for bt in boarding_types %}
+    <label class="radio-option"><input type="radio" name="boarding-filter" value="{{ bt }}"> {{ bt }} Only</label>
+    {% endfor %}
+  </div>
+
+  <p class="rate-note" id="rate-note">Loading current rates...</p>
+
+  <div>
+    <button class="btn btn-secondary" id="preview-btn">{{ icons.icon("check-square") }}Preview Billing</button>
+    <button class="btn btn-primary" id="confirm-btn" disabled>{{ icons.icon("check-circle") }}Create Fees</button>
+    <span class="field-status" id="form-status"></span>
+  </div>
+</div>
+
+<div id="preview-section" style="display:none;">
+  <h2>{{ icons.icon("bar-chart") }}Preview</h2>
+  <div class="stat-cards" id="preview-stats"></div>
+  <p class="empty" id="preview-message"></p>
+  <table class="preview-table" id="preview-table" style="display:none;">
+    <thead><tr><th>Student</th><th>Boarding Type</th><th class="num">Amount</th></tr></thead>
+    <tbody id="preview-tbody"></tbody>
+  </table>
+</div>
+
+<div id="results-section" style="display:none;">
+  <h2>{{ icons.icon("check-circle") }}Billing Complete</h2>
+  <div class="stat-cards" id="results-stats"></div>
+  <p id="results-message" style="margin-top:10px;"></p>
+  <button class="btn btn-secondary" id="restart-btn">{{ icons.icon("arrow-left") }}Start New Billing</button>
+</div>
+
+<script>
+  let previewData = null;
+
+  function csrfHeaders() {
+    return { "Content-Type": "application/json", "X-Frappe-CSRF-Token": "{{ csrf_token }}" };
+  }
+
+  function money(n) {
+    return "$" + (parseFloat(n) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function statCard(iconHtml, value, label) {
+    return '<div class="stat-card"><div class="stat-icon">' + iconHtml + '</div><div><div class="stat-value">' + value + '</div><div class="stat-label">' + label + '</div></div></div>';
+  }
+
+  const ICON_USERS = '{{ icons.icon("users") }}';
+  const ICON_DOLLAR = '{{ icons.icon("dollar-sign") }}';
+  const ICON_CHECK = '{{ icons.icon("check-circle") }}';
+  const ICON_CLOCK = '{{ icons.icon("clock") }}';
+
+  fetch("/api/method/edupro_sms.batch_billing_api.get_boarding_rates", { method: "POST", headers: csrfHeaders(), body: "{}" })
+    .then(function (r) { return r.json(); })
+    .then(function (body) {
+      const rates = body.message || {};
+      const parts = Object.keys(rates).map(function (k) { return k + ": " + money(rates[k]) + "/term"; });
+      document.getElementById("rate-note").textContent = "Current rates -- " + parts.join(", ");
+    });
+
+  document.getElementById("preview-btn").addEventListener("click", function () {
+    const term = document.getElementById("academic-term").value;
+    const boarding = document.querySelector('input[name="boarding-filter"]:checked').value;
+    const statusEl = document.getElementById("form-status");
+
+    if (!term) {
+      statusEl.textContent = "Please select an academic term.";
+      statusEl.className = "field-status save-error";
+      return;
+    }
+    statusEl.textContent = "";
+
+    document.getElementById("preview-section").style.display = "block";
+    document.getElementById("preview-stats").innerHTML = "";
+    document.getElementById("preview-message").textContent = "Loading preview...";
+    document.getElementById("preview-table").style.display = "none";
+
+    fetch("/api/method/edupro_sms.batch_billing_api.preview_batch_billing", {
+      method: "POST",
+      headers: csrfHeaders(),
+      body: JSON.stringify({ academic_term: term, boarding_filter: boarding }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (body) {
+        const data = body.message;
+        if (!data) {
+          document.getElementById("preview-message").textContent = "Could not load preview.";
+          return;
+        }
+        previewData = data;
+        renderPreview(data);
+        document.getElementById("confirm-btn").disabled = data.count === 0;
+      })
+      .catch(function () {
+        document.getElementById("preview-message").textContent = "Error loading preview.";
+      });
+  });
+
+  function renderPreview(data) {
+    document.getElementById("preview-message").textContent = "";
+    document.getElementById("preview-stats").innerHTML =
+      statCard(ICON_USERS, data.count, "Students to Bill") +
+      statCard(ICON_DOLLAR, money(data.total_amount), "Total Amount") +
+      statCard(ICON_CLOCK, data.already_billed, "Already Billed");
+
+    if (data.count === 0) {
+      document.getElementById("preview-message").textContent = "No students match this term/boarding filter, or all are already billed.";
+      document.getElementById("preview-table").style.display = "none";
+      return;
+    }
+
+    let rows = "";
+    for (const s of data.students) {
+      rows += "<tr><td>" + s.student_name + "</td><td>" + s.boarding_type + '</td><td class="num">' + money(s.amount) + "</td></tr>";
+    }
+    if (data.count > data.students.length) {
+      rows += '<tr><td colspan="3" class="empty">...and ' + (data.count - data.students.length) + " more</td></tr>";
+    }
+    document.getElementById("preview-tbody").innerHTML = rows;
+    document.getElementById("preview-table").style.display = "table";
+  }
+
+  document.getElementById("confirm-btn").addEventListener("click", function () {
+    if (!previewData) return;
+    const term = document.getElementById("academic-term").value;
+    const boarding = document.querySelector('input[name="boarding-filter"]:checked').value;
+    const statusEl = document.getElementById("form-status");
+    const btn = this;
+
+    btn.disabled = true;
+    document.getElementById("preview-btn").disabled = true;
+    statusEl.textContent = "Creating fees...";
+    statusEl.className = "field-status";
+
+    fetch("/api/method/edupro_sms.batch_billing_api.create_batch_fees", {
+      method: "POST",
+      headers: csrfHeaders(),
+      body: JSON.stringify({ academic_term: term, boarding_filter: boarding }),
+    })
+      .then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
+      .then(function (result) {
+        statusEl.textContent = "";
+        document.getElementById("preview-btn").disabled = false;
+        const msg = result.body.message;
+        if (result.ok && msg && msg.success) {
+          document.getElementById("preview-section").style.display = "none";
+          document.getElementById("results-section").style.display = "block";
+          document.getElementById("results-stats").innerHTML =
+            statCard(ICON_CHECK, msg.created, "Created") +
+            statCard(ICON_CLOCK, msg.skipped, "Skipped");
+          document.getElementById("results-message").textContent = msg.message;
+        } else {
+          btn.disabled = false;
+          statusEl.textContent = "Error: " + ((msg && msg.error) || result.body.exception || "Billing failed.");
+          statusEl.className = "field-status save-error";
+        }
+      })
+      .catch(function (err) {
+        btn.disabled = false;
+        document.getElementById("preview-btn").disabled = false;
+        statusEl.textContent = "Error: " + err;
+        statusEl.className = "field-status save-error";
+      });
+  });
+
+  document.getElementById("restart-btn").addEventListener("click", function () {
+    window.location.reload();
+  });
+</script>
+{% endblock %}

@@ -35,6 +35,7 @@ def get_context(context):
 	]
 	context.profile_students = profile_students
 	context.overview = _build_overview(profile_students)
+	context.fees = _build_fees(profile_students)
 	context.csrf_token = frappe.sessions.get_csrf_token()
 	context.title = "My Reports"
 
@@ -64,6 +65,18 @@ def _build_overview(profile_students: list[dict]) -> dict:
 		"reports_available": len(published),
 		"new_reports": len(new_reports),
 	}
+
+
+def _build_fees(profile_students: list[dict]) -> list[dict]:
+	from edupro_sms.edupro_sms.fees import get_student_fee_statement
+
+	fees = []
+	for p in profile_students:
+		statement = get_student_fee_statement(p["student"])
+		statement["student"] = p["student"]
+		statement["student_name"] = p["student_name"]
+		fees.append(statement)
+	return fees
 
 
 def _get_profile_students(viewer_role):

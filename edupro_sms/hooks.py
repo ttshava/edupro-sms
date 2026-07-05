@@ -74,6 +74,7 @@ add_to_apps_screen = [
 role_home_page = {
 	"Student": "my-reports",
 	"Guardian": "my-reports",
+	"Bursar": "bursar",
 }
 
 # Generators
@@ -89,8 +90,30 @@ role_home_page = {
 jinja = {
 	"methods": [
 		"edupro_sms.edupro_sms.qr.report_card_verification_qr_data_uri",
+		"edupro_sms.edupro_sms.fees.get_student_fee_statement",
+		"edupro_sms.edupro_sms.fees.get_student_ledger",
+		"edupro_sms.edupro_sms.academic_calendar.get_next_term_start",
 	],
 }
+
+# Initialize API modules to register whitelisted methods
+# ----------
+def _import_api_modules():
+	"""Import API modules to ensure @whitelist decorators are registered."""
+	try:
+		import edupro_sms.batch_billing_api
+		import edupro_sms.fee_dashboard_api
+		import edupro_sms.batch_print_api
+		import edupro_sms.analytics_api
+		import edupro_sms.student_portal_api
+		import edupro_sms.guardian_portal_api
+	except ImportError:
+		pass
+
+_import_api_modules()
+
+# App update hook - refresh API registrations
+app_setup_complete = "edupro_sms.edupro_sms.hooks._import_api_modules"
 
 # Installation
 # ------------
@@ -134,12 +157,18 @@ permission_query_conditions = {
 	"Report Card": "edupro_sms.edupro_sms.doctype.report_card.report_card.get_permission_query_conditions",
 	"Assessment Plan": "edupro_sms.edupro_sms.teacher_permissions.assessment_plan_query_conditions",
 	"Assessment Result": "edupro_sms.edupro_sms.teacher_permissions.assessment_result_query_conditions",
+	"Student Fee": "edupro_sms.edupro_sms.fee_permissions.get_permission_query_conditions",
+	"Student Ledger Entry": "edupro_sms.edupro_sms.fee_permissions.get_ledger_permission_query_conditions",
+	"Student": "edupro_sms.edupro_sms.student_permissions.get_permission_query_conditions",
 }
 
 has_permission = {
 	"Report Card": "edupro_sms.edupro_sms.doctype.report_card.report_card.has_permission",
 	"Assessment Plan": "edupro_sms.edupro_sms.teacher_permissions.assessment_plan_has_permission",
 	"Assessment Result": "edupro_sms.edupro_sms.teacher_permissions.assessment_result_has_permission",
+	"Student Fee": "edupro_sms.edupro_sms.fee_permissions.has_permission",
+	"Student Ledger Entry": "edupro_sms.edupro_sms.fee_permissions.has_ledger_permission",
+	"Student": "edupro_sms.edupro_sms.student_permissions.has_permission",
 }
 
 # DocType Class
@@ -168,6 +197,9 @@ doc_events = {
 	},
 	"User": {
 		"validate": "edupro_sms.edupro_sms.dashboard.sync_dashboard_default_app",
+	},
+	"Assessment Plan": {
+		"before_insert": "edupro_sms.edupro_sms.teacher_assignment.default_examiner_from_assignment",
 	},
 }
 
@@ -222,7 +254,7 @@ doc_events = {
 fixtures = [
 	{
 		"dt": "Role",
-		"filters": [["name", "in", ["Headmaster", "Class Teacher", "Student", "Guardian", "Instructor"]]],
+		"filters": [["name", "in", ["Headmaster", "Class Teacher", "Student", "Guardian", "Instructor", "Bursar"]]],
 	},
 	{"dt": "Grading Scale", "filters": [["name", "in", ["IGCSE Standard"]]]},
 	{
@@ -236,6 +268,7 @@ fixtures = [
 					"Assessment Result-special_case",
 					"Instructor-user",
 					"Program-curriculum",
+					"Student-boarding_type",
 				],
 			]
 		],
@@ -265,6 +298,23 @@ fixtures = [
 			],
 			["role", "in", ["Headmaster", "Instructor"]],
 		],
+	},
+	{
+		"dt": "Custom DocPerm",
+		# Customer: Student.on_update() (education app core, not ours to edit)
+		# calls update_linked_customer() -> customer.save() with no
+		# ignore_permissions, so any Bursar-initiated Student save (edit,
+		# deactivate, link guardian, ...) 403s on the cascading Customer
+		# save unless Bursar has real write+create on Customer here.
+		#
+		# User: Student.validate() -> validate_user() (education app core)
+		# creates a linked website User for a new student email via
+		# User.add_roles(), which internally calls self.save() with no
+		# ignore_permissions -- before the caller's own ignore_permissions
+		# save ever runs. Creating any Student with a brand-new email
+		# (CSV import, Add Student) 403s unless Bursar has real
+		# create+write on User here.
+		"filters": [["parent", "in", ["Student", "Customer", "User"]], ["role", "in", ["Bursar"]]],
 	},
 ]
 

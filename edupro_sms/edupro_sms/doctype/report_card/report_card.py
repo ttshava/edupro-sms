@@ -8,9 +8,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt
 
-from education.education.api import get_grade
-
-from edupro_sms.edupro_sms.grading import DEFAULT_GRADING_SCALE, get_grade_description
+from edupro_sms.edupro_sms.grading import DEFAULT_GRADING_SCALE, get_grade_description, get_grade_for_percentage
 
 
 class ReportCard(Document):
@@ -28,7 +26,9 @@ class ReportCard(Document):
 			# scanning it can't be used to enumerate other students' reports.
 			self.db_set("verification_code", secrets.token_hex(8), update_modified=False)
 
-		if not self.sent_to_parent_at:
+		from edupro_sms.edupro_sms.doctype.report_card.notify import EMAIL_DELIVERY_ENABLED
+
+		if EMAIL_DELIVERY_ENABLED and not self.sent_to_parent_at:
 			frappe.enqueue(
 				"edupro_sms.edupro_sms.doctype.report_card.notify.send_report_card_emails",
 				queue="short",
@@ -187,7 +187,7 @@ def _generate_for_student(student: str, group, academic_term: str, required_cour
 	maximum_score = sum(flt(r.maximum_score) for r in results)
 	average_percentage = (total_score / maximum_score * 100) if maximum_score else 0
 	grading_scale = results[0].grading_scale if results else DEFAULT_GRADING_SCALE
-	overall_grade = get_grade(grading_scale, average_percentage)
+	overall_grade = get_grade_for_percentage(grading_scale, average_percentage)
 
 	existing_name = frappe.db.get_value(
 		"Report Card", {"student": student, "academic_term": academic_term, "docstatus": 0}

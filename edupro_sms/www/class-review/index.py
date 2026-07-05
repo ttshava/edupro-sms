@@ -8,19 +8,23 @@ def get_context(context):
 		frappe.local.flags.redirect_location = f"/login?redirect-to={redirect_to}"
 		raise frappe.Redirect
 
-	roles = set(frappe.get_roles())
-	if not (roles & {"Headmaster", "System Manager"}):
-		frappe.throw(_("You are not permitted to review classes."), frappe.PermissionError)
-
 	student_group = frappe.form_dict.get("group")
 	if not student_group:
 		frappe.throw(_("Missing class."), frappe.DoesNotExistError)
 
-	from edupro_sms.edupro_sms.approvals import get_pending_report_cards
+	from edupro_sms.edupro_sms.approvals import _is_class_teacher_of, _is_headmaster, get_pending_report_cards
 	from edupro_sms.edupro_sms.class_review import get_class_review
+
+	is_headmaster = _is_headmaster()
+	is_class_teacher = _is_class_teacher_of(student_group)
+	if not (is_headmaster or is_class_teacher):
+		frappe.throw(_("You are not permitted to review this class."), frappe.PermissionError)
 
 	context.no_cache = 1
 	context.review = get_class_review(student_group)
-	context.pending_report_cards = get_pending_report_cards(student_group)
+	context.pending_report_cards = get_pending_report_cards(student_group) if is_headmaster else []
+	context.can_edit_class_teacher_comment = is_headmaster or is_class_teacher
+	context.can_edit_headmaster_comment = is_headmaster
+	context.is_headmaster = is_headmaster
 	context.csrf_token = frappe.sessions.get_csrf_token()
 	context.title = f"Class Review - {student_group}"

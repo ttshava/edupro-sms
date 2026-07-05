@@ -4,9 +4,9 @@ Assessment Result data, no fabricated trend figures."""
 
 import frappe
 from frappe.utils import flt
-from education.education.api import get_grade
 
 from edupro_sms.edupro_sms.academic_calendar import get_current_term
+from edupro_sms.edupro_sms.grading import get_grade_for_percentage, get_grading_scale_for_program
 
 
 def get_class_summary_rows(academic_term: str | None = None) -> list[dict]:
@@ -29,7 +29,7 @@ def get_class_summary_rows(academic_term: str | None = None) -> list[dict]:
 		)
 
 		average = (sum(flt(c.average_percentage) for c in cards) / len(cards)) if cards else None
-		grade = get_grade("IGCSE Standard", average) if average is not None else None
+		grade = get_grade_for_percentage(get_grading_scale_for_program(group.program), average)
 
 		if not cards:
 			status = "Pending"
@@ -82,6 +82,7 @@ def get_class_review(student_group: str, academic_term: str | None = None) -> di
 			"overall_grade",
 			"workflow_state",
 			"class_teacher_comment",
+			"headmaster_comment",
 		],
 	)
 	cards.sort(key=lambda c: flt(c.average_percentage), reverse=True)
@@ -104,6 +105,8 @@ def get_class_review(student_group: str, academic_term: str | None = None) -> di
 				"grade": card.overall_grade,
 				"workflow_state": card.workflow_state,
 				"report_card": card.name,
+				"class_teacher_comment": card.class_teacher_comment or "",
+				"headmaster_comment": card.headmaster_comment or "",
 			}
 		)
 
@@ -126,7 +129,7 @@ def get_class_review(student_group: str, academic_term: str | None = None) -> di
 		"academic_term": academic_term,
 		"student_count": frappe.db.count("Student Group Student", {"parent": student_group, "active": 1}),
 		"average_percentage": average,
-		"overall_grade": get_grade("IGCSE Standard", average) if average is not None else None,
+		"overall_grade": get_grade_for_percentage(get_grading_scale_for_program(group.program), average),
 		"pass_rate": pass_rate,
 		"grade_distribution": grade_distribution,
 		"position_among_classes": position_among_classes,

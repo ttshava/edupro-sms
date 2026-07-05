@@ -1,0 +1,455 @@
+{% extends "base_template.html" %}
+
+{% block title %}Headmaster: Fee Dashboard{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid mt-5">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chart-line"></i> Financial Dashboard
+                    </h4>
+                    <small>Overview of student fees and collection status</small>
+                </div>
+
+                <div class="card-body">
+                    <!-- Filters -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label"><strong>Academic Term</strong></label>
+                            <select class="form-select" id="term-filter">
+                                <option value="">-- Select Term --</option>
+                                {% for term in academic_terms %}
+                                <option value="{{ term.name }}">{{ term.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label"><strong>Program</strong></label>
+                            <select class="form-select" id="program-filter">
+                                <option value="">All Programs</option>
+                                {% for prog in programs %}
+                                <option value="{{ prog.name }}">{{ prog.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button class="btn btn-primary w-100" id="load-data-btn">
+                                <i class="fas fa-sync"></i> Load Dashboard
+                            </button>
+                        </div>
+
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button class="btn btn-outline-secondary w-100" id="reset-filter-btn">
+                                <i class="fas fa-redo"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Summary Cards -->
+                    <div class="row mb-4" id="summary-cards">
+                        <div class="col-md-3">
+                            <div class="card stat-card bg-primary text-white">
+                                <div class="card-body">
+                                    <h6 class="card-title">Total Billed</h6>
+                                    <h3 class="mb-0" id="total-billed">$0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stat-card bg-success text-white">
+                                <div class="card-body">
+                                    <h6 class="card-title">Total Collected</h6>
+                                    <h3 class="mb-0" id="total-collected">$0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stat-card bg-danger text-white">
+                                <div class="card-body">
+                                    <h6 class="card-title">Outstanding</h6>
+                                    <h3 class="mb-0" id="outstanding">$0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card stat-card bg-warning text-dark">
+                                <div class="card-body">
+                                    <h6 class="card-title">Collection %</h6>
+                                    <h3 class="mb-0" id="collection-pct">0%</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row 1 -->
+                    <div class="row mb-4">
+                        <div class="col-lg-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">By Program</h6>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="program-chart" height="250"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">By Status</h6>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="status-chart" height="250"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collection Trend -->
+                    <div class="row mb-4">
+                        <div class="col-lg-12">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">Collection Trend</h6>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="trend-chart" height="100"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Unpaid Students Table -->
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">Top Unpaid Students (Overdue)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover" id="unpaid-table">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Student Name</th>
+                                                    <th>Admission #</th>
+                                                    <th>Amount Due</th>
+                                                    <th>Days Overdue</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="unpaid-tbody">
+                                                <tr>
+                                                    <td colspan="4" class="text-center text-muted py-4">
+                                                        Select a term to see unpaid students
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Load Chart.js from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+<style>
+    .stat-card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-card h3 {
+        font-weight: 600;
+    }
+
+    .card {
+        border: none;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    }
+
+    .card-header {
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    #program-chart, #status-chart, #trend-chart {
+        max-height: 300px;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f5f5f5;
+    }
+
+    .overdue-high {
+        color: #dc3545;
+        font-weight: 600;
+    }
+
+    .overdue-medium {
+        color: #ffc107;
+        font-weight: 500;
+    }
+
+    .overdue-low {
+        color: #28a745;
+    }
+</style>
+
+<script>
+    let charts = {};
+    let currentData = null;
+
+    // Event listeners
+    document.getElementById('load-data-btn').addEventListener('click', loadDashboard);
+    document.getElementById('reset-filter-btn').addEventListener('click', () => {
+        document.getElementById('term-filter').value = '';
+        document.getElementById('program-filter').value = '';
+    });
+
+    // Auto-load first term
+    window.addEventListener('load', () => {
+        const termSelect = document.getElementById('term-filter');
+        if (termSelect.options.length > 1) {
+            termSelect.value = termSelect.options[1].value;
+            loadDashboard();
+        }
+    });
+
+    function loadDashboard() {
+        const term = document.getElementById('term-filter').value;
+        const program = document.getElementById('program-filter').value;
+
+        if (!term) {
+            alert('Please select an Academic Term');
+            return;
+        }
+
+        // Show loading state
+        document.getElementById('term-filter').disabled = true;
+        document.getElementById('program-filter').disabled = true;
+        document.getElementById('load-data-btn').disabled = true;
+
+        frappe.call({
+            method: 'edupro_sms.fee_dashboard_api.get_fee_dashboard_data',
+            args: {
+                term: term,
+                program: program || null
+            },
+            callback: function(r) {
+                document.getElementById('term-filter').disabled = false;
+                document.getElementById('program-filter').disabled = false;
+                document.getElementById('load-data-btn').disabled = false;
+
+                if (r.message && !r.message.error) {
+                    currentData = r.message;
+                    updateDashboard(r.message);
+                } else {
+                    alert('Error loading dashboard: ' + (r.message?.error || 'Unknown error'));
+                }
+            },
+            error: function(err) {
+                document.getElementById('term-filter').disabled = false;
+                document.getElementById('program-filter').disabled = false;
+                document.getElementById('load-data-btn').disabled = false;
+                alert('Error: ' + (err.responseJSON?.message || 'Failed to load dashboard'));
+            }
+        });
+    }
+
+    function updateDashboard(data) {
+        // Update summary cards
+        document.getElementById('total-billed').textContent = '$' + parseFloat(data.summary.total_billed).toLocaleString('en-US', {minimumFractionDigits: 2});
+        document.getElementById('total-collected').textContent = '$' + parseFloat(data.summary.total_collected).toLocaleString('en-US', {minimumFractionDigits: 2});
+        document.getElementById('outstanding').textContent = '$' + parseFloat(data.summary.outstanding).toLocaleString('en-US', {minimumFractionDigits: 2});
+        document.getElementById('collection-pct').textContent = data.summary.collection_percentage.toFixed(1) + '%';
+
+        // Update charts
+        updateProgramChart(data.by_program);
+        updateStatusChart(data.by_status);
+        updateTrendChart(data.collection_trend);
+        updateUnpaidTable(data.unpaid_students);
+    }
+
+    function updateProgramChart(byProgram) {
+        const ctx = document.getElementById('program-chart').getContext('2d');
+
+        if (charts.program) {
+            charts.program.destroy();
+        }
+
+        const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
+
+        charts.program = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: byProgram.map(p => p.program),
+                datasets: [{
+                    data: byProgram.map(p => p.collected),
+                    backgroundColor: colors.slice(0, byProgram.length),
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = '$' + parseFloat(context.parsed).toLocaleString('en-US', {minimumFractionDigits: 2});
+                                return label + ': ' + value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateStatusChart(byStatus) {
+        const ctx = document.getElementById('status-chart').getContext('2d');
+
+        if (charts.status) {
+            charts.status.destroy();
+        }
+
+        charts.status = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Paid', 'Partially Paid', 'Unpaid'],
+                datasets: [{
+                    data: [byStatus.Paid, byStatus.Partial, byStatus.Unpaid],
+                    backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const labels = ['Paid', 'Partial', 'Unpaid'];
+                                const label = labels[context.dataIndex] || '';
+                                const value = context.parsed + ' students';
+                                return label + ': ' + value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateTrendChart(collectionTrend) {
+        const ctx = document.getElementById('trend-chart').getContext('2d');
+
+        if (charts.trend) {
+            charts.trend.destroy();
+        }
+
+        charts.trend = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: collectionTrend.map(t => t.week),
+                datasets: [{
+                    label: 'Collection %',
+                    data: collectionTrend.map(t => t.percentage),
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 6,
+                    pointBackgroundColor: '#0d6efd',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Collection: ' + context.parsed.y.toFixed(1) + '%';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateUnpaidTable(unpaidStudents) {
+        let html = '';
+
+        if (unpaidStudents.length === 0) {
+            html = '<tr><td colspan="4" class="text-center text-muted py-4">All students have paid their fees!</td></tr>';
+        } else {
+            for (const student of unpaidStudents) {
+                const daysClass = student.days_overdue > 30 ? 'overdue-high' :
+                                student.days_overdue > 7 ? 'overdue-medium' : 'overdue-low';
+
+                html += `
+                    <tr>
+                        <td><strong>${student.student_name}</strong></td>
+                        <td>${student.admission_number}</td>
+                        <td class="text-end">$${parseFloat(student.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                        <td class="${daysClass}">
+                            ${student.days_overdue} days
+                            ${student.days_overdue > 30 ? '<i class="fas fa-exclamation-circle ms-2"></i>' : ''}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        document.getElementById('unpaid-tbody').innerHTML = html;
+    }
+</script>
+{% endblock %}

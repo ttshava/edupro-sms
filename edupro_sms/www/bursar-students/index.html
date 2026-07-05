@@ -1,0 +1,316 @@
+{% extends "templates/portal_base.html" %}
+{% import "templates/includes/icons.html" as icons %}
+
+{% block sidebar_nav %}
+<a href="/bursar">{{ icons.icon("home") }} Dashboard</a>
+<a href="/bursar_fees">{{ icons.icon("dollar-sign") }} Fees</a>
+<a href="/bursar_billing">{{ icons.icon("term") }} Billing</a>
+<a href="/bursar-students" class="{{ 'active' if active_nav == 'students' else '' }}">{{ icons.icon("graduation-cap") }} Students</a>
+{% endblock %}
+
+{% block portal_content %}
+<style>
+  /* Page-specific layout only -- colors/fonts/spacing come from the
+     standard theme in portal_base.html. */
+  .quick-actions { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .detail-panel select { min-width: 180px; }
+</style>
+
+<h1>Student Management</h1>
+<p class="user-line">Manage student records, enrollments, and guardians</p>
+
+<div class="quick-actions">
+  <a class="btn btn-primary" href="/bursar-students/add">{{ icons.icon("users") }}Add Student</a>
+  <a class="btn btn-secondary" href="/import-data">{{ icons.icon("upload") }}Bulk Import</a>
+</div>
+
+<div class="filter-bar">
+  <input type="text" id="search-input" class="filter-input" placeholder="Search by student name or email">
+  <select id="status-filter" class="filter-select">
+    <option value="Active">Active</option>
+    <option value="Inactive">Inactive</option>
+    <option value="">All</option>
+  </select>
+  <select id="boarding-filter" class="filter-select">
+    <option value="">All Boarding Types</option>
+    <option value="Day Boarder">Day Boarder</option>
+    <option value="Full Boarder">Full Boarder</option>
+  </select>
+  <button class="btn btn-secondary" id="reset-filters-btn">{{ icons.icon("arrow-left") }}Reset Filters</button>
+</div>
+
+<div id="summary-chip" class="chip" style="margin-bottom:12px;"></div>
+
+<table id="students-table">
+  <thead>
+    <tr>
+      <th>Student</th>
+      <th>Student ID</th>
+      <th>Boarding Type</th>
+      <th>Status</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody id="students-tbody">
+    <tr><td colspan="5" class="empty">Loading students...</td></tr>
+  </tbody>
+</table>
+
+<div id="pagination-bar" style="display:none;margin-top:14px;">
+  <button class="btn btn-secondary" id="prev-btn">{{ icons.icon("arrow-left") }}Previous</button>
+  <span class="user-line" id="page-info" style="display:inline;"></span>
+  <button class="btn btn-secondary" id="next-btn">Next {{ icons.icon("chevron-right") }}</button>
+</div>
+
+<script>
+  let allStudents = [];
+  let filteredStudents = [];
+  let currentPage = 0;
+  const ITEMS_PER_PAGE = 20;
+
+  const ICON_MANAGE = '{{ icons.icon("edit") }}';
+  const ICON_GRAD = '{{ icons.icon("graduation-cap") }}';
+  const ICON_USERS = '{{ icons.icon("users") }}';
+  const ICON_SAVE = '{{ icons.icon("save") }}';
+
+  const PROGRAMS = [{% for p in programs %}"{{ p.name }}"{{ "," if not loop.last }}{% endfor %}];
+  const STUDENT_GROUPS = [{% for g in student_groups %}"{{ g.name }}"{{ "," if not loop.last }}{% endfor %}];
+  const GUARDIANS = [{% for g in guardians %}{name: "{{ g.name }}", guardian_name: "{{ g.guardian_name }}"}{{ "," if not loop.last }}{% endfor %}];
+
+  function csrfHeaders() {
+    return { "Content-Type": "application/json", "X-Frappe-CSRF-Token": "{{ csrf_token }}" };
+  }
+
+  function statusPill(status) {
+    if (status === "Active") return '<span class="pill pill-green">' + '{{ icons.icon("check-circle") }}' + 'Active</span>';
+    return '<span class="pill pill-gray">' + '{{ icons.icon("alert-circle") }}' + 'Inactive</span>';
+  }
+
+  function optionList(values, placeholder) {
+    let html = '<option value="">' + placeholder + '</option>';
+    for (const v of values) html += '<option value="' + v + '">' + v + '</option>';
+    return html;
+  }
+
+  document.getElementById("search-input").addEventListener("input", applyFilters);
+  document.getElementById("status-filter").addEventListener("change", loadStudents);
+  document.getElementById("boarding-filter").addEventListener("change", applyFilters);
+  document.getElementById("reset-filters-btn").addEventListener("click", function () {
+    document.getElementById("search-input").value = "";
+    document.getElementById("status-filter").value = "Active";
+    document.getElementById("boarding-filter").value = "";
+    loadStudents();
+  });
+  document.getElementById("prev-btn").addEventListener("click", function () { if (currentPage > 0) { currentPage--; renderPage(); } });
+  document.getElementById("next-btn").addEventListener("click", function () {
+    if ((currentPage + 1) * ITEMS_PER_PAGE < filteredStudents.length) { currentPage++; renderPage(); }
+  });
+
+  function loadStudents() {
+    document.getElementById("students-tbody").innerHTML = '<tr><td colspan="5" class="empty">Loading students...</td></tr>';
+    const status = document.getElementById("status-filter").value;
+
+    fetch("/api/method/edupro_sms.bursar_student_management.get_student_list", {
+      method: "POST",
+      headers: csrfHeaders(),
+      body: JSON.stringify({ status: status, limit: 1000 }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (body) {
+        allStudents = body.message || [];
+        applyFilters();
+      })
+      .catch(function () {
+        document.getElementById("students-tbody").innerHTML = '<tr><td colspan="5" class="empty">Error loading students.</td></tr>';
+      });
+  }
+
+  function applyFilters() {
+    const search = document.getElementById("search-input").value.toLowerCase();
+    const boarding = document.getElementById("boarding-filter").value;
+
+    filteredStudents = allStudents.filter(function (s) {
+      const matchSearch = !search || s.student_name.toLowerCase().includes(search) || (s.email || "").toLowerCase().includes(search);
+      const matchBoarding = !boarding || s.boarding_type === boarding;
+      return matchSearch && matchBoarding;
+    });
+
+    const chip = document.getElementById("summary-chip");
+    chip.innerHTML = "Showing <strong>" + Math.min(ITEMS_PER_PAGE, filteredStudents.length) + "</strong> of <strong>" + filteredStudents.length + "</strong> students (of " + allStudents.length + " total)";
+
+    currentPage = 0;
+    renderPage();
+  }
+
+  function renderPage() {
+    const start = currentPage * ITEMS_PER_PAGE;
+    const pageStudents = filteredStudents.slice(start, start + ITEMS_PER_PAGE);
+    const tbody = document.getElementById("students-tbody");
+
+    if (pageStudents.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No students match your filters.</td></tr>';
+      document.getElementById("pagination-bar").style.display = "none";
+      return;
+    }
+
+    let html = "";
+    for (const s of pageStudents) {
+      html += '<tr data-student="' + s.name + '">'
+        + "<td><strong>" + s.student_name + "</strong><br><small>" + (s.email || "-") + "</small></td>"
+        + "<td>" + s.name + "</td>"
+        + "<td>" + s.boarding_type + "</td>"
+        + "<td>" + statusPill(s.status) + "</td>"
+        + '<td class="row-actions"><button class="btn btn-secondary toggle-detail-btn" data-student="' + s.name + '">' + ICON_MANAGE + "Manage</button></td>"
+        + "</tr>"
+        + '<tr class="detail-row" id="detail-row-' + s.name + '">'
+        + '<td colspan="5"><div class="detail-panel" id="detail-panel-' + s.name + '">'
+        + '<div class="detail-section">'
+        + "<h3>" + ICON_GRAD + " Enroll in Program</h3>"
+        + '<div class="detail-field"><label>Program</label><select class="enroll-program">' + optionList(PROGRAMS, "-- Select Program --") + "</select></div>"
+        + '<div class="detail-field"><label>Class (optional)</label><select class="enroll-class">' + optionList(STUDENT_GROUPS, "-- Select Class --") + "</select></div>"
+        + '<div><button class="btn btn-primary enroll-btn" data-student="' + s.name + '">Enroll</button><span class="field-status enroll-status"></span></div>'
+        + "</div>"
+        + '<div class="detail-section">'
+        + "<h3>" + ICON_USERS + " Link Guardian</h3>"
+        + '<div class="detail-field"><label>Existing Guardian</label><select class="link-existing-guardian">' + optionList(GUARDIANS.map(function (g) { return g.name + " -- " + g.guardian_name; }), "-- Select Guardian --") + "</select></div>"
+        + '<div><button class="btn btn-secondary link-existing-btn" data-student="' + s.name + '">Link Existing</button></div>'
+        + '<p class="empty" style="margin:8px 0 4px;">or create a new guardian:</p>'
+        + '<div class="detail-field"><label>Guardian Name</label><input type="text" class="new-guardian-name"></div>'
+        + '<div class="detail-field"><label>Guardian Email</label><input type="email" class="new-guardian-email"></div>'
+        + '<div><button class="btn btn-secondary link-new-btn" data-student="' + s.name + '">Create &amp; Link</button><span class="field-status guardian-status"></span></div>'
+        + "</div>"
+        + '<div class="detail-section">'
+        + "<h3>Deactivate</h3>"
+        + '<div class="detail-field"><label>Reason (optional)</label><input type="text" class="deactivate-reason" placeholder="e.g. Graduated, Transferred"></div>'
+        + '<div><button class="btn btn-reject deactivate-btn" data-student="' + s.name + '">Deactivate Student</button><span class="field-status deactivate-status"></span></div>'
+        + "</div>"
+        + "</div></td></tr>";
+    }
+    tbody.innerHTML = html;
+    wireRowActions();
+
+    const totalPages = Math.ceil(filteredStudents.length / ITEMS_PER_PAGE) || 1;
+    document.getElementById("page-info").textContent = "Page " + (currentPage + 1) + " of " + totalPages;
+    document.getElementById("pagination-bar").style.display = filteredStudents.length > ITEMS_PER_PAGE ? "block" : "none";
+    document.getElementById("prev-btn").disabled = currentPage === 0;
+    document.getElementById("next-btn").disabled = currentPage >= totalPages - 1;
+  }
+
+  function wireRowActions() {
+    document.querySelectorAll(".toggle-detail-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        document.getElementById("detail-panel-" + btn.dataset.student).classList.toggle("open");
+      });
+    });
+
+    document.querySelectorAll(".enroll-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () { enrollStudent(btn); });
+    });
+    document.querySelectorAll(".link-existing-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () { linkExistingGuardian(btn); });
+    });
+    document.querySelectorAll(".link-new-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () { linkNewGuardian(btn); });
+    });
+    document.querySelectorAll(".deactivate-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () { deactivateStudent(btn); });
+    });
+  }
+
+  function apiCall(method, args, onSuccess, onError) {
+    fetch("/api/method/edupro_sms.bursar_student_management." + method, {
+      method: "POST",
+      headers: csrfHeaders(),
+      body: JSON.stringify(args),
+    })
+      .then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
+      .then(function (result) {
+        const msg = result.body.message;
+        if (result.ok && msg && msg.success) {
+          onSuccess(msg);
+        } else {
+          onError((msg && msg.error) || result.body.exception || "Request failed.");
+        }
+      })
+      .catch(function (err) { onError(String(err)); });
+  }
+
+  function enrollStudent(btn) {
+    const panel = document.getElementById("detail-panel-" + btn.dataset.student);
+    const program = panel.querySelector(".enroll-program").value;
+    const studentGroup = panel.querySelector(".enroll-class").value;
+    const statusEl = panel.querySelector(".enroll-status");
+
+    if (!program) {
+      statusEl.textContent = "Select a program.";
+      statusEl.className = "field-status enroll-status save-error";
+      return;
+    }
+
+    btn.disabled = true;
+    statusEl.textContent = "Enrolling...";
+    statusEl.className = "field-status enroll-status";
+
+    apiCall("enroll_student", { student_id: btn.dataset.student, program: program, student_group: studentGroup || null },
+      function (msg) { btn.disabled = false; statusEl.textContent = msg.message; statusEl.className = "field-status enroll-status save-ok"; },
+      function (err) { btn.disabled = false; statusEl.textContent = "Error: " + err; statusEl.className = "field-status enroll-status save-error"; });
+  }
+
+  function linkExistingGuardian(btn) {
+    const panel = document.getElementById("detail-panel-" + btn.dataset.student);
+    const select = panel.querySelector(".link-existing-guardian");
+    const guardianId = select.value ? select.value.split(" -- ")[0] : "";
+    const statusEl = panel.querySelector(".guardian-status");
+
+    if (!guardianId) {
+      statusEl.textContent = "Select a guardian.";
+      statusEl.className = "field-status guardian-status save-error";
+      return;
+    }
+
+    btn.disabled = true;
+    apiCall("link_guardian", { student_id: btn.dataset.student, guardian_id: guardianId, create_new: false },
+      function (msg) { btn.disabled = false; statusEl.textContent = msg.message; statusEl.className = "field-status guardian-status save-ok"; },
+      function (err) { btn.disabled = false; statusEl.textContent = "Error: " + err; statusEl.className = "field-status guardian-status save-error"; });
+  }
+
+  function linkNewGuardian(btn) {
+    const panel = document.getElementById("detail-panel-" + btn.dataset.student);
+    const name = panel.querySelector(".new-guardian-name").value;
+    const email = panel.querySelector(".new-guardian-email").value;
+    const statusEl = panel.querySelector(".guardian-status");
+
+    if (!name || !email) {
+      statusEl.textContent = "Enter guardian name and email.";
+      statusEl.className = "field-status guardian-status save-error";
+      return;
+    }
+
+    btn.disabled = true;
+    apiCall("link_guardian", { student_id: btn.dataset.student, create_new: true, guardian_name: name, guardian_email: email },
+      function (msg) { btn.disabled = false; statusEl.textContent = msg.message; statusEl.className = "field-status guardian-status save-ok"; },
+      function (err) { btn.disabled = false; statusEl.textContent = "Error: " + err; statusEl.className = "field-status guardian-status save-error"; });
+  }
+
+  function deactivateStudent(btn) {
+    const panel = document.getElementById("detail-panel-" + btn.dataset.student);
+    const reason = panel.querySelector(".deactivate-reason").value;
+    const statusEl = panel.querySelector(".deactivate-status");
+
+    btn.disabled = true;
+    statusEl.textContent = "Deactivating...";
+    statusEl.className = "field-status deactivate-status";
+
+    apiCall("deactivate_student", { student_id: btn.dataset.student, reason: reason },
+      function (msg) {
+        statusEl.textContent = msg.message;
+        statusEl.className = "field-status deactivate-status save-ok";
+        setTimeout(loadStudents, 900);
+      },
+      function (err) { btn.disabled = false; statusEl.textContent = "Error: " + err; statusEl.className = "field-status deactivate-status save-error"; });
+  }
+
+  loadStudents();
+</script>
+{% endblock %}

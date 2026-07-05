@@ -55,7 +55,7 @@ class TestReportCard(FrappeTestCase):
 		)
 		cls.course_a = cls._ensure("Course", f"{TEST_TAG} Course A", {
 			"course_name": f"{TEST_TAG} Course A",
-			"default_grading_scale": "IGCSE Standard",
+			"default_grading_scale": "Cambridge O Level",
 			"assessment_criteria": [
 				{"assessment_criteria": cls._ensure_criteria("Test"), "weightage": 40},
 				{"assessment_criteria": cls._ensure_criteria("Exam"), "weightage": 60},
@@ -63,7 +63,7 @@ class TestReportCard(FrappeTestCase):
 		})
 		cls.course_b = cls._ensure("Course", f"{TEST_TAG} Course B", {
 			"course_name": f"{TEST_TAG} Course B",
-			"default_grading_scale": "IGCSE Standard",
+			"default_grading_scale": "Cambridge O Level",
 		})
 		cls.program = cls._ensure("Program", f"{TEST_TAG} Program", {
 			"program_name": f"{TEST_TAG} Program",
@@ -159,7 +159,7 @@ class TestReportCard(FrappeTestCase):
 				"program": self.program,
 				"course": course,
 				"assessment_group": "All Assessment Groups",
-				"grading_scale": "IGCSE Standard",
+				"grading_scale": "Cambridge O Level",
 				"academic_year": self.academic_year,
 				"academic_term": academic_term,
 				"schedule_date": add_days("2099-04-01", day_offset),
@@ -435,20 +435,22 @@ class TestReportCard(FrappeTestCase):
 			).insert(ignore_permissions=True)
 
 	# ------------------------------------------------------------------
-	# TC-10 — Grade calculation matches IGCSE boundaries exactly
+	# TC-10 — Grade calculation matches Cambridge O Level boundaries exactly
 	# ------------------------------------------------------------------
 	def test_tc10_grade_calculation_boundaries(self):
-		from education.education.api import get_grade
+		from edupro_sms.edupro_sms.grading import get_grade_for_percentage
 
 		cases = [
-			(100, "A*"), (90, "A*"), (89.99, "A"), (80, "A"),
-			(79.99, "B"), (70, "B"), (69.99, "C"), (60, "C"),
-			(59.99, "D"), (50, "D"), (49.99, "E"), (40, "E"),
-			(39.99, "F"), (0, "F"),
+			(100, "A*/A"), (90, "A*/A"), (80, "A*/A"),
+			(79.99, "B"), (70, "B"),
+			(69.99, "C"), (60, "C"),
+			(59.99, "D"), (50, "D"),
+			(49.99, "E"), (40, "E"),
+			(39.99, "Ungraded"), (0, "Ungraded"),
 		]
 		for percentage, expected_grade in cases:
 			self.assertEqual(
-				get_grade("IGCSE Standard", percentage),
+				get_grade_for_percentage("Cambridge O Level", percentage),
 				expected_grade,
 				f"{percentage}% should be grade {expected_grade}",
 			)

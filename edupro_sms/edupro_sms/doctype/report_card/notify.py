@@ -9,6 +9,12 @@ import frappe
 from frappe.utils import get_url, now_datetime
 from frappe.utils.pdf import get_pdf
 
+# Email delivery is turned off school-wide: the school's SMTP account
+# (First Class High Outgoing) was never fully configured, and parent
+# email notifications should not be offered as a feature until that
+# changes. Flip back to True once real SMTP credentials are in place.
+EMAIL_DELIVERY_ENABLED = False
+
 EMAIL_BODY_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -72,6 +78,9 @@ def resend_report_card_email(report_card_name: str):
 	gated by the same permission check Report Card itself uses."""
 	from edupro_sms.edupro_sms.doctype.report_card.report_card import has_permission
 
+	if not EMAIL_DELIVERY_ENABLED:
+		frappe.throw(frappe._("Email delivery is currently disabled."))
+
 	doc = frappe.get_doc("Report Card", report_card_name)
 	if not has_permission(doc):
 		frappe.throw(frappe._("Not permitted."), frappe.PermissionError)
@@ -90,6 +99,9 @@ def send_report_card_emails(report_card_name: str):
 	"""Background job: email every guardian linked to this Report Card's
 	student. Enqueued from report_card.py, never called synchronously
 	from a request."""
+	if not EMAIL_DELIVERY_ENABLED:
+		return
+
 	doc = frappe.get_doc("Report Card", report_card_name)
 	if doc.workflow_state != "Published":
 		return

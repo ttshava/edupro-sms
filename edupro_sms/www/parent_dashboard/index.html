@@ -1,0 +1,323 @@
+{% extends "base_template.html" %}
+
+{% block title %}My Dashboard — Parent Portal{% endblock %}
+
+{% block page_content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <h2><i class="fas fa-users"></i> Parent Dashboard</h2>
+            <p class="text-muted">View your children's academic progress, fees, and reports.</p>
+        </div>
+    </div>
+
+    <!-- Child Selection Cards -->
+    <div class="row mb-4" id="children-cards"></div>
+
+    <!-- Child Dashboard (shown after selection) -->
+    <div id="child-detail-section" style="display:none;">
+        <!-- Summary Cards -->
+        <div class="row mb-4" id="child-summary-cards"></div>
+
+        <!-- Tabs -->
+        <div class="row">
+            <div class="col-lg-12">
+                <ul class="nav nav-tabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" href="#grades">Grades</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#reports">Reports</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#fees">Fees</a>
+                    </li>
+                </ul>
+
+                <div class="tab-content mt-3">
+                    <!-- Grades Tab -->
+                    <div class="tab-pane fade show active" id="grades">
+                        <div class="card">
+                            <div class="card-header"><h5 class="mb-0">Grades</h5></div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="grades-table">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Subject</th>
+                                                <th class="text-center">Term Mark</th>
+                                                <th class="text-center">Exam Mark</th>
+                                                <th class="text-center">Grade</th>
+                                                <th>Comment</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="grades-tbody">
+                                            <tr><td colspan="5" class="text-center text-muted">Select a child to view grades</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="grades-avg-alert" class="alert alert-info mt-3" style="display:none;">
+                                    <strong>Average:</strong> <span id="grades-avg">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reports Tab -->
+                    <div class="tab-pane fade" id="reports">
+                        <div class="card">
+                            <div class="card-header"><h5 class="mb-0">Report Cards</h5></div>
+                            <div class="card-body" id="reports-list">
+                                <p class="text-muted">Select a child to view reports</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fees Tab -->
+                    <div class="tab-pane fade" id="fees">
+                        <div class="card">
+                            <div class="card-header"><h5 class="mb-0">Fees</h5></div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="fees-table">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Term</th>
+                                                <th class="text-end">Amount</th>
+                                                <th class="text-end">Paid</th>
+                                                <th class="text-end">Balance</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="fees-tbody">
+                                            <tr><td colspan="5" class="text-center text-muted">Select a child to view fees</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="fees-summary" class="alert alert-secondary mt-3" style="display:none;">
+                                    Outstanding: <strong id="fees-outstanding">$0</strong> |
+                                    Paid: <strong id="fees-paid">$0</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .child-card {
+        cursor: pointer;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s;
+    }
+
+    .child-card:hover, .child-card.active {
+        border-color: #0d6efd;
+        background: #f8f9fa;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .child-card h5 {
+        margin-bottom: 5px;
+    }
+
+    .child-card small {
+        color: #666;
+    }
+
+    .card {
+        border: none;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+
+    .nav-tabs .nav-link {
+        color: #666;
+        border: none;
+        border-bottom: 3px solid transparent;
+    }
+
+    .nav-tabs .nav-link.active {
+        color: #0d6efd;
+        border-bottom: 3px solid #0d6efd;
+    }
+</style>
+
+<script>
+    let selectedChild = null;
+
+    window.addEventListener('load', loadChildren);
+
+    function loadChildren() {
+        frappe.call({
+            method: 'edupro_sms.guardian_portal_api.get_guardian_dashboard',
+            callback: function(r) {
+                if (r.message && r.message.children) {
+                    displayChildren(r.message.children);
+                    if (r.message.children.length > 0) {
+                        selectChild(r.message.children[0].student_id);
+                    }
+                }
+            }
+        });
+    }
+
+    function displayChildren(children) {
+        let html = '';
+        children.forEach(child => {
+            html += `
+                <div class="col-md-3 mb-3">
+                    <div class="child-card" onclick="selectChild('${child.student_id}')">
+                        <h5>${child.student_name}</h5>
+                        <small>
+                            ${child.class}<br>
+                            GPA: ${child.gpa}
+                        </small>
+                    </div>
+                </div>
+            `;
+        });
+        document.getElementById('children-cards').innerHTML = html;
+    }
+
+    function selectChild(studentId) {
+        selectedChild = studentId;
+
+        // Mark active card
+        document.querySelectorAll('.child-card').forEach(card => {
+            card.classList.remove('active');
+        });
+        event.target.closest('.child-card').classList.add('active');
+
+        document.getElementById('child-detail-section').style.display = 'block';
+
+        // Load child data
+        frappe.call({
+            method: 'edupro_sms.guardian_portal_api.get_child_dashboard',
+            args: { student_id: studentId },
+            callback: function(r) {
+                if (r.message) {
+                    updateChildDisplay(r.message);
+                }
+            }
+        });
+    }
+
+    function updateChildDisplay(data) {
+        // Summary cards
+        let summaryHtml = `
+            <div class="col-md-2">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <h6>Name</h6>
+                        <p class="mb-0">${data.student.name}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <h6>Class</h6>
+                        <p class="mb-0">${data.student.class}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <h6>Program</h6>
+                        <p class="mb-0">${data.student.program}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <h6>GPA</h6>
+                        <h4 class="mb-0">${(data.student.gpa * 4).toFixed(2)}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <h6>Fees Paid</h6>
+                        <h6 class="mb-0">${data.fee_status.collection_percentage.toFixed(0)}%</h6>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.getElementById('child-summary-cards').innerHTML = summaryHtml;
+
+        // Grades
+        displayChildGrades(data.latest_grades);
+
+        // Reports
+        displayChildReports(data.latest_reports);
+
+        // Fees
+        displayChildFees(data.current_fees, data.fee_status);
+    }
+
+    function displayChildGrades(grades) {
+        let html = '';
+        grades.forEach(grade => {
+            html += `
+                <tr>
+                    <td>${grade.subject}</td>
+                    <td class="text-center">${grade.term_mark}</td>
+                    <td class="text-center">${grade.exam_mark}</td>
+                    <td class="text-center"><span class="badge bg-info">${grade.grade}</span></td>
+                    <td><small>${grade.teacher_comment || '-'}</small></td>
+                </tr>
+            `;
+        });
+        document.getElementById('grades-tbody').innerHTML = html || '<tr><td colspan="5" class="text-center text-muted">No grades yet</td></tr>';
+    }
+
+    function displayChildReports(reports) {
+        let html = '';
+        if (reports.length === 0) {
+            html = '<p class="text-muted">No reports available yet.</p>';
+        } else {
+            reports.forEach(report => {
+                html += `
+                    <div class="mb-2">
+                        <strong>${report.academic_term}</strong>
+                        <a href="${report.download_url}" class="btn btn-sm btn-primary ms-2" download>Download</a>
+                        <a href="${report.print_url}" class="btn btn-sm btn-outline-primary" target="_blank">View</a>
+                    </div>
+                `;
+            });
+        }
+        document.getElementById('reports-list').innerHTML = html;
+    }
+
+    function displayChildFees(fees, summary) {
+        let html = '';
+        fees.forEach(fee => {
+            html += `
+                <tr>
+                    <td>${fee.academic_term}</td>
+                    <td class="text-end">$${parseFloat(fee.amount).toLocaleString()}</td>
+                    <td class="text-end">$${parseFloat(fee.paid).toLocaleString()}</td>
+                    <td class="text-end"><strong>$${parseFloat(fee.balance).toLocaleString()}</strong></td>
+                    <td><span class="badge ${fee.status === 'Paid' ? 'bg-success' : 'bg-warning'}">${fee.status}</span></td>
+                </tr>
+            `;
+        });
+        document.getElementById('fees-tbody').innerHTML = html || '<tr><td colspan="5" class="text-center text-muted">No fees</td></tr>';
+
+        if (fees.length > 0) {
+            document.getElementById('fees-outstanding').textContent = '$' + parseFloat(summary.outstanding).toLocaleString();
+            document.getElementById('fees-paid').textContent = parseFloat(summary.collection_percentage).toFixed(0) + '%';
+            document.getElementById('fees-summary').style.display = 'block';
+        }
+    }
+</script>
+{% endblock %}
