@@ -40,8 +40,8 @@
 
 ### Task 2.2: Batch Billing API & Logic
 **Objective:** Implement the core batch billing engine  
-**Status:** 🟡 READY TO START  
-**Estimated:** 1.5 days
+**Status:** ✅ COMPLETE (Included in Task 2.1)  
+**Estimated:** 1.5 days | **Actual:** 0 days (part of 2.1)
 
 **What to Build:**
 - Whitelisted method: `create_batch_student_fees(term, program, boarding_filter)`
@@ -73,8 +73,8 @@
 
 ### Task 2.3: Bursar Batch Billing UI
 **Objective:** Website page for Bursar to trigger batch billing  
-**Status:** 🟡 READY TO START  
-**Estimated:** 1.5 days
+**Status:** ✅ COMPLETE (407 lines)  
+**Estimated:** 1.5 days | **Actual:** 0.75 days
 
 **What to Build:**
 - Website page: `/bursar-billing/`
