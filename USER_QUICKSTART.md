@@ -424,6 +424,165 @@ When a student leaves the school:
 
 *For detailed fee management, contact your finance system admin.*
 
+### Fee Entry Portal (Manage Fees & Record Payments)
+
+**URL:** `http://SCHOOL_SERVER_ADDRESS/bursar-fees/`  
+**Purpose:** View, edit, and record payments for all student fees in one place
+
+#### Viewing Student Fees
+
+1. **Go to:** `/bursar-fees/`
+
+2. **Default view shows:**
+   - First 20 fees (paginated)
+   - All columns: Student Name, Admission #, Email, Program, Term, Amount, Status, Due Date, Balance
+   - Status badges with color coding:
+     - 🔴 Red: Unpaid
+     - 🟡 Yellow: Partially Paid
+     - 🟢 Green: Paid
+
+#### Searching for a Student Fee
+
+1. **In the search box**, type:
+   - Student's full name (e.g., "John Doe")
+   - Email address (e.g., "john@school.com")
+   - Admission number (e.g., "ADM-001")
+
+2. **Table filters instantly** — no need to click search button
+
+3. **Search is case-insensitive** — "john" = "John"
+
+#### Filtering Fees
+
+**By Program:**
+- Click "All Programs" dropdown
+- Select a program (e.g., "IGCSE Science")
+- Table updates instantly
+
+**By Status:**
+- Click "All Status" dropdown
+- Choose: Unpaid, Partially Paid, or Paid
+- Table updates to show only selected status
+
+**By Academic Term:**
+- Click "All Terms" dropdown
+- Select term (e.g., "Term 1 2026")
+- Table shows only that term's fees
+
+**Reset All Filters:**
+- Click the "Reset Filters" button
+- Clears all search and filter selections
+
+#### Combining Filters
+
+You can use multiple filters together:
+- Example: "IGCSE Science" + "Unpaid" + Search "John"
+- Shows only John's unpaid IGCSE Science fees
+- Filters work together (AND logic)
+
+#### Pagination
+
+1. **See which page** — Bottom shows "Page 1 of 5" (example)
+
+2. **Navigate pages:**
+   - Click "Previous" to go back
+   - Click "Next" to go forward
+
+3. **Each page shows 20 fees**
+
+#### Editing a Student Fee
+
+When you need to change the fee amount or status:
+
+1. **Find the fee** in the table
+
+2. **Click the pencil icon** (Edit button)
+
+3. **In the modal:**
+   - **New Amount:** Enter if you want to change the fee amount
+   - **Status:** Select new status (Unpaid, Partially Paid, Paid) — optional
+   - Leave blank if you don't want to change something
+
+4. **Click "Save Changes"**
+
+5. **Fee updates** in the table and database instantly
+
+**Example:** Change a fee from $5,000 to $5,500
+```
+Find fee → Click Edit → Enter 5500 in "New Amount" → Save
+```
+
+#### Recording a Payment
+
+When a student/parent pays their fees:
+
+1. **Find the student's fee** in the table
+
+2. **Click the credit card icon** (Record Payment button)
+
+3. **In the payment modal:**
+   - **Payment Date:** Pre-filled with today (can change)
+   - **Outstanding Balance:** Shows amount still owed (read-only)
+   - **Amount Paid:** Enter the amount received
+   - **Payment Method:** Select (Cash, Check, Bank Transfer, Card, Mobile Money)
+   - **Notes:** Optional — e.g., check number, reference info
+
+4. **Validation:**
+   - Amount Paid cannot exceed Outstanding Balance
+   - System prevents overpayment
+
+5. **Click "Record Payment"**
+
+6. **Results:**
+   - Success message shows new balance
+   - Fee status auto-updates:
+     - If balance = $0 → Status = "Paid" (green badge)
+     - If balance > $0 → Status = "Partially Paid" (yellow badge)
+   - Balance updates instantly
+
+**Example Workflow:**
+```
+Fee: $5,000 Unpaid
+Student pays $2,000 cash
+Click Record Payment → Amount: 2000 → Method: Cash → Save
+Result: Balance = $3,000, Status = Partially Paid
+
+Later: Student pays remaining $3,000
+Click Record Payment → Amount: 3000 → Method: Check → Note: "Cheque #456" → Save
+Result: Balance = $0, Status = Paid
+```
+
+#### Viewing Fee Statement
+
+To see detailed fee information (useful for printing/sending to parents):
+
+1. **Find the fee** in the table
+
+2. **Click the PDF icon** (View Statement button)
+
+3. **Modal shows:**
+   - Student info (name, admission #, email)
+   - Fee details (program, term, amount, balance)
+   - Current status
+
+4. **Click "Print"** to:
+   - Print to paper
+   - Save as PDF
+   - Send to parent
+
+#### Tips for Bursar Fee Management
+
+| Task | How-To |
+|------|--------|
+| **Bulk fees created but payments needed** | Use /bursar-fees/ to record all payments in sequence |
+| **Find all unpaid students** | Filter by Status="Unpaid", sort by Due Date |
+| **Collect from specific class** | Filter by Program, sort by Due Date |
+| **Late fees?** | Sort by Due Date, check balance > 0 with date passed |
+| **End-of-term reconciliation** | Count Paid vs Unpaid, verify all balances = $0 |
+| **Parent inquiry about balance** | Search student name, click View Statement, print/email |
+
+---
+
 ### Batch Billing (Create Fees for All Students at Once)
 
 **Time saved:** 3+ hours per term (vs. creating 200 fees manually one by one)
