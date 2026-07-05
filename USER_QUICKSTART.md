@@ -252,6 +252,200 @@ When your child's report is published:
 
 ---
 
+## 💼 For Bursar / Finance Officer
+
+The Bursar manages student records, enrollments, and billing information.
+
+### Accessing Student Management
+
+1. **Go to:** `http://SCHOOL_SERVER_ADDRESS/bursar-students`
+   - Your school IT will provide the SERVER_ADDRESS
+
+2. **You will see a list of all students** with their:
+   - Student ID
+   - Name
+   - Email
+   - Admission Number
+   - Boarding Type (Day Boarder / Full Boarder)
+   - Status (Active / Inactive)
+
+### Searching & Filtering Students
+
+**Search by Name:**
+- In the search box, type student's name (e.g., "John")
+- Table filters instantly to matching students
+
+**Search by Email or Admission Number:**
+- Type email address or admission number
+- Results update in real-time
+
+**Filter by Status:**
+- Click **Filters** button
+- Select "Status" = Active or Inactive
+- Click filter button to apply
+
+**Filter by Boarding Type:**
+- Use the Filters menu
+- Select "Boarding Type" = Day Boarder or Full Boarder
+
+**Pagination:**
+- Results show 20 per page
+- Use Next/Previous buttons to navigate
+
+### Adding a New Student (Manually)
+
+1. **Click "Add Student"** button
+
+2. **Fill the form:**
+   - **Student Name** (required): Full name
+   - **Email** (required): Unique school email
+   - **Admission Number** (required): Unique student ID
+   - **Date of Birth** (optional): YYYY-MM-DD format
+   - **Gender**: Male or Female
+   - **Boarding Type**: Day Boarder or Full Boarder
+   - **Program** (optional): Can be added later
+   - **Class** (optional): Can be added later
+
+3. **Click "Create Student"**
+
+4. **Student is created** and you're redirected to the student list
+
+### Adding Multiple Students at Once (CSV Import)
+
+For 50+ students, use bulk import:
+
+1. **Click "Bulk Import"** button (on student list page)
+
+2. **Download the Student template** (Excel file)
+
+3. **Fill template with your student data:**
+   - Student Name, Email, Admission Number, Program, Class
+   - One row per student
+   - Save the file
+
+4. **Upload the file** to the import page
+
+5. **Validate the data** (checks for errors)
+
+6. **Click "Import"** to add all students at once
+
+*For detailed CSV import instructions, see INSTALLATION_GUIDE.md section "Bulk Import Students & Staff"*
+
+### Editing Student Information
+
+1. **Find the student** in the list (use search/filter)
+
+2. **Click the pencil icon** (Edit button) in the Actions column
+
+3. **Update the information:**
+   - Name, Email, Date of Birth, Gender, Boarding Type, Status
+   - Fields pre-filled with current data
+
+4. **Click "Save Changes"**
+
+5. **Student info updated** and you're returned to the list
+
+**Note:** Only edit editable fields (Name, Email, etc.). Security-sensitive fields cannot be changed.
+
+### Enrolling a Student in a Program
+
+1. **Find the student** in the list
+
+2. **Click the graduation cap icon** (Enroll button)
+
+3. **Select a Program** from the dropdown (e.g., "IGCSE Science")
+
+4. **Optionally select a Class** (Form 1A, etc.)
+
+5. **Click "Enroll"**
+
+6. **Success message** shows the enrollment is complete
+
+**After enrollment:**
+- Student can access the student portal
+- Student sees marks, grades, reports
+- Billing automatically configured
+- Teacher can enter marks for this student
+
+### Linking a Student to a Guardian (Parent)
+
+1. **Find the student** in the list
+
+2. **Click the shield icon** (Link Guardian button)
+
+3. **Two options:**
+
+   **Option A - Link Existing Guardian:**
+   - Stay on "Link Existing" tab
+   - Select guardian from dropdown
+   - Click "Link Guardian"
+
+   **Option B - Create New Guardian:**
+   - Click "Create New" tab
+   - Enter Guardian Name
+   - Enter Guardian Email
+   - Click "Link Guardian"
+   - New guardian account created + linked
+
+**After linking:**
+- Guardian receives login credentials (email)
+- Guardian can view student's grades and fees in parent portal
+- Notifications about reports sent to guardian
+
+### Deactivating a Student
+
+When a student leaves the school:
+
+1. **Find the student** in the list
+
+2. **Click the ban icon** (Deactivate button)
+
+3. **A confirmation modal appears**
+
+4. **Enter reason** (optional): "Graduated", "Transferred", "Left school", etc.
+
+5. **Click "Deactivate"**
+
+6. **Student status changes to "Inactive":**
+   - Student cannot log in anymore
+   - Records preserved (not deleted)
+   - Can be reactivated if needed
+
+### Viewing Student Fees & Billing
+
+1. **From the student list, click Edit** on any student
+
+2. **Scroll to Fees section** (bottom of form)
+
+3. **See:**
+   - Termly fees charged
+   - Payment status
+   - Balance outstanding
+
+*For detailed fee management, contact your finance system admin.*
+
+### Common Bursar Tasks
+
+| Task | Steps |
+|------|-------|
+| **Quickly add 100 students** | Click "Bulk Import" → Download template → Fill → Upload → Validate → Import |
+| **Search for a student** | Use search box, type name/email |
+| **Enroll student in class** | Find student → Click Enroll button → Select program & class |
+| **Remove a student** | Find student → Click Deactivate button → Confirm |
+| **Verify student info** | Find student → Click Edit → Review pre-filled data |
+| **Link student to parent** | Find student → Click Link Guardian → Select or create |
+
+### Tips for Bursar
+
+- **Batch operations are faster:** Import 100 students at once instead of adding one by one
+- **Search is real-time:** Type as you search, no need to click submit
+- **Soft delete only:** Deactivating doesn't delete data, just marks as Inactive
+- **Validation before import:** Always validate CSV data first, errors show clearly
+- **Email must be unique:** Each student/teacher/guardian needs a different email
+- **Audit trail:** All your actions (create, edit, deactivate) are logged
+
+---
+
 ## 📱 Tips for All Users
 
 ### Password Security

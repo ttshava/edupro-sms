@@ -244,7 +244,110 @@ Once logged in:
 
 4. **Repeat for all staff members.**
 
-**Note:** Student and Parent (Guardian) accounts can be created later or imported from a CSV file. See `FIRST_TIME_SETUP.md` for batch import.
+**Note:** Student and Parent (Guardian) accounts can be created later or imported from a CSV file. See section below for bulk import.
+
+---
+
+### Step 7.5: Bulk Import Students & Staff (CSV/Excel)
+
+**For large schools, use Edupro's built-in CSV import feature to quickly add 100+ students and staff.**
+
+#### How to Use CSV Import
+
+1. **Navigate to the Import Page**
+   - Login to Edupro SMS
+   - Go to: `http://SERVER_IP:8080/import-data`
+
+2. **Download a Template**
+   - Click the button for your data type:
+     - **Student** — Import student records
+     - **Instructor** — Import teachers/staff
+     - **Guardian** — Import parents
+     - **Assessment Plan** — Import exam schedules
+   - Excel file downloads with headers and sample data
+
+3. **Fill the Template**
+   - Open the Excel/CSV file in Excel, Google Sheets, or LibreOffice
+   - Each row is one record
+   - Required fields are marked in the template instructions
+   - Examples:
+     ```
+     Student Name | Email | Admission # | Program | Student Group
+     John Doe | john@school.edu | STU001 | IGCSE Science | Form 1A
+     Jane Smith | jane@school.edu | STU002 | IGCSE Science | Form 1A
+     ```
+   - Save the file (keep it as Excel .xlsx or convert to CSV)
+
+4. **Upload the File**
+   - Return to `/import-data`
+   - Select the data type (Student, Instructor, Guardian, etc.)
+   - Click the file upload box, choose your file
+   - Click **"Validate"** button
+   - Wait for validation (usually <30 seconds)
+
+5. **Review the Preview**
+   - Validation shows:
+     - **Total Records:** How many rows in your file
+     - **Valid:** Records ready to import
+     - **Invalid:** Records with errors (click to see details)
+   - Preview table shows first 5 records as a sample
+   - Review error details if any
+
+6. **Import the Data**
+   - If all records are valid, click **"Proceed with Import"**
+   - A confirmation dialog appears
+   - Click **"Confirm"** to start the import
+   - Progress bar shows import status
+
+7. **Review Results**
+   - Import complete shows:
+     - **Imported:** X records successfully created
+     - **Skipped:** X records skipped (e.g., duplicate email)
+     - **Failed:** X records failed (rare, check error details)
+   - Click **"Import Another File"** to upload more data
+
+#### CSV Import Validation Rules
+
+**For Students:**
+- Student Name (required)
+- Email (required, must be unique, valid format)
+- Admission Number (required, must be unique)
+- Program (required, must exist in system)
+- Student Group/Class (required, must exist)
+- Date of Birth (optional, format: YYYY-MM-DD)
+- Gender (optional, M or F)
+- Boarding Type (optional, "Day Boarder" or "Full Boarder")
+
+**For Instructors:**
+- Instructor Name (required)
+- Email (required, must be unique)
+- Subjects (required, comma-separated if multiple)
+- Class Teacher (optional, Yes/No)
+
+**For Guardians:**
+- Guardian Name (required)
+- Email (required, must be unique)
+- Student IDs (required, comma-separated if multiple)
+
+#### Troubleshooting CSV Import
+
+**Problem: "Email already exists"**
+- Cause: The email is already in the system (student/teacher account)
+- Solution: Use a different email, or skip this row
+
+**Problem: "Program not found"**
+- Cause: The Program name doesn't exist yet
+- Solution: Create the Program first via main Frappe interface, then import
+
+**Problem: "Student Group not found"**
+- Cause: The Class/Student Group doesn't exist
+- Solution: Create the Class first via Step 8 below, then import
+
+**Problem: Import fails with "rolled back" message**
+- Cause: One or more rows had errors
+- Solution: Fix the errors, re-validate, then try again
+
+**Pro Tip:** Validate first (no data changes), then import only when validation is 100% successful.
 
 ---
 
