@@ -238,17 +238,119 @@ When your child's report is published:
    - Subject-by-subject performance
    - Strong vs. weak subjects
 
-### Viewing Fees Overview
+### Viewing Fees Overview — Dashboard
 
-1. **Click "Fees"** (left sidebar, or in Reports menu)
+**URL:** `http://SCHOOL_SERVER_ADDRESS/headmaster-dashboard/fees/`
 
-2. **You will see:**
-   - Total fees billed this term
-   - Amount paid
-   - Outstanding balance
-   - Payment status by class
+1. **Go to the Fee Dashboard** using the URL above
 
-3. **For individual students:** Go to Student list → Select student → Click "Fees" tab
+2. **Select an Academic Term** from the dropdown (required)
+
+3. **Optionally filter by Program** (leave blank for all programs)
+
+4. **Click "Load Dashboard"**
+
+5. **You will see:**
+
+#### Summary Cards (Top Row)
+Four cards showing financial snapshot:
+- **Total Billed:** Sum of all fees for the term
+- **Total Collected:** Amount received in payments
+- **Outstanding:** Amount still owed (Billed - Collected)
+- **Collection %:** (Collected / Billed) × 100
+
+#### Charts
+
+**By Program (Pie Chart):**
+- Shows which programs generate most revenue
+- Each slice = one program's collected amount
+- Hover to see exact dollar amounts
+
+**By Status (Doughnut Chart):**
+- How many students have Paid/Partially Paid/Unpaid fees
+- Green = Paid, Yellow = Partially Paid, Red = Unpaid
+- Shows student count in tooltip
+
+**Collection Trend (Line Chart):**
+- Tracks collection % week-by-week through the term
+- Line should trend upward (more collected over time)
+- Shows if you're on track for full collection
+
+#### Unpaid Students Table
+List of students with outstanding balances, sorted by urgency:
+- **Name:** Student name
+- **Admission #:** Student ID
+- **Amount Due:** Outstanding balance
+- **Days Overdue:** How long past the due date
+  - 🔴 Red (30+ days): Critical — follow up urgently
+  - 🟡 Yellow (7-30 days): At risk — send reminder
+  - 🟢 Green (<7 days): Recent or upcoming due
+
+#### Quick Actions
+
+**To see just one program:**
+1. Filter by Program (e.g., "IGCSE Science")
+2. Click "Load Dashboard"
+3. Data updates to show only that program
+
+**To reset and see all programs:**
+1. Click "Reset" button
+2. Filters clear
+3. Select term and load
+
+#### Example Dashboard Reading
+
+```
+Term 1 2026, All Programs:
+
+Summary:
+  • Total Billed: $500,000
+  • Total Collected: $320,000
+  • Outstanding: $180,000
+  • Collection Rate: 64%
+
+By Program:
+  • IGCSE Science: $200,000 collected (80% of that program's total)
+  • IGCSE Commerce: $120,000 collected (60% of that program's total)
+  • O-Level Math: $0 collected (0% — follow up!)
+
+By Status:
+  • 140 students Paid (green slice)
+  • 50 students Partially Paid (yellow slice)
+  • 10 students Unpaid (red slice)
+
+Collection Trend:
+  Week 1: 10% collected
+  Week 2: 30% collected
+  Week 3: 50% collected
+  Week 4: 64% collected ← Trending well
+
+Unpaid Students:
+  1. John Smith (ADM-001): $2,000 due, 45 days overdue 🔴
+  2. Jane Doe (ADM-002): $1,500 due, 20 days overdue 🟡
+  ...
+```
+
+**Interpretation:**
+- Collection rate is healthy (64%)
+- O-Level Math program lagging (0% collected) — investigate!
+- Trend is positive (moving toward full collection)
+- 10 students at risk — send reminders
+
+### Viewing Individual Student Fees
+
+1. **Go to Student list:** `http://SCHOOL_SERVER_ADDRESS/bursar-students`
+
+2. **Find the student** (use search/filter)
+
+3. **Click Edit** button
+
+4. **Scroll to Fees section** at bottom
+
+5. **See:**
+   - Termly fees charged
+   - Payment status
+   - Balance outstanding
 
 ---
 
