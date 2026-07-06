@@ -6,6 +6,65 @@ YYYY-MM-DD.
 
 ## [Unreleased]
 
+### 2026-07-06 — End-to-end strain test, demo data, real SMTP live
+
+- **Full end-to-end scenario test**, one real student threaded through
+  every stage: Bursar creates student + guardian → enrolls in class →
+  batch bills term fees → three teachers enter marks → Class Teacher
+  reviews → Headmaster approves/publishes → PDF renders with QR code →
+  student/guardian portals show correct data → partial payment recorded
+  → fee statement shows correct running ledger balance. Found and fixed
+  real bugs along the way (not simulated — same accounts/roles a real
+  school would use):
+  - `link_guardian()` never created a linked User for a newly-created
+    guardian — guardians created via the Bursar portal had no way to
+    ever log in. Fixed in `bursar_student_management.py`.
+  - Education's own `Student.validate_user()` calls `User.add_roles("Student")`
+    on a brand-new, not-yet-saved User doc — the role never actually
+    persisted. Core Education code, can't edit directly; worked around
+    with a new `after_insert` hook (`student_hooks.py`,
+    `ensure_student_role`) wired in `hooks.py`.
+  - `enroll_student()` accepted a `student_group` param but never wrote
+    it anywhere real (`Program Enrollment` has no such field — silently
+    ignored) — students were billed and marked but never actually on
+    their class's roster. Fixed to write the real `Student Group
+    Student` child-table row Education expects.
+  - Sidebar "Log out" link was a plain `<a href="/api/method/logout">`
+    — clicking it navigated straight to the API endpoint and showed raw
+    JSON instead of logging out. Fixed in `portal_base.html` with a
+    proper POST + redirect.
+  - Batch billing's `%example.edupro.test` exclusion filter (meant to
+    keep old QA fixtures out of real billing runs) would have silently
+    skipped a real student who happened to share that email domain —
+    not a bug in the filter itself, just a reminder real student data
+    should never use that domain.
+- **Demo dataset populated**: 85 students (5 per class) across all 17
+  real classes (Form 1-6, all streams), each with a guardian, full
+  enrollment, and a billed term fee — generated through the real Bursar
+  API, not raw DB inserts. Surfaced two more real bugs: Frappe's core
+  `throttle_user_creation()` (>60 Users/60s) needed the framework's own
+  `frappe.flags.in_import` bypass, scoped tightly to just the
+  User-creating calls (the flag also disables default-value population,
+  which broke `Program Enrollment.enrollment_date` until scoped
+  correctly); and full-name collisions across different classes broke
+  on `Customer`'s auto-naming (keyed by full name) — fixed with a
+  school-wide uniqueness check, not just per-class.
+- **Real SMTP configured and verified live**: `First Class High
+  Outgoing` (`mail.firstclasshigh.ac.zw:465`, SSL) — credentials entered
+  directly in Desk, never handled by Claude or committed anywhere.
+  `EMAIL_DELIVERY_ENABLED` flipped to `True` in `notify.py`. Verified
+  with two real sends (plain SMTP test, and a full report-card-publish
+  send with PDF attachment) — both confirmed `Sent` via `Email Queue`.
+  Demo/sample guardian emails are not real mailboxes on that domain and
+  will bounce (`550 No Such User Here`) if ever triggered — expected,
+  not a bug.
+- **Planned, not yet implemented**: per-student elective subject groups
+  (e.g. Form 1's "pick one practical subject" alongside 7 fixed core
+  subjects) — `Program Course` needs an `elective_group` field, and
+  report-card/marks-entry logic needs to move from the Program's
+  blanket required-course list to each student's own `Program
+  Enrollment.courses`. Full plan agreed, awaiting go-ahead to build.
+
 ### 2026-07-05 — Phases 2-3 committed, shared portal design system, Bursar suite rebuilt
 
 - **First real commit of `apps/edupro_sms`.** The entire custom app had been

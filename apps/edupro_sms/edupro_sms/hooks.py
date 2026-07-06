@@ -201,6 +201,9 @@ doc_events = {
 	"Assessment Plan": {
 		"before_insert": "edupro_sms.edupro_sms.teacher_assignment.default_examiner_from_assignment",
 	},
+	"Student": {
+		"after_insert": "edupro_sms.student_hooks.ensure_student_role",
+	},
 }
 
 # Scheduled Tasks

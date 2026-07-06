@@ -9,11 +9,10 @@ import frappe
 from frappe.utils import get_url, now_datetime
 from frappe.utils.pdf import get_pdf
 
-# Email delivery is turned off school-wide: the school's SMTP account
-# (First Class High Outgoing) was never fully configured, and parent
-# email notifications should not be offered as a feature until that
-# changes. Flip back to True once real SMTP credentials are in place.
-EMAIL_DELIVERY_ENABLED = False
+# Email delivery is on: the school's SMTP account (First Class High
+# Outgoing, mail.firstclasshigh.ac.zw) is configured and verified working
+# (see 2026-07-06 test send, Email Queue status "Sent").
+EMAIL_DELIVERY_ENABLED = True
 
 EMAIL_BODY_TEMPLATE = """
 <!DOCTYPE html>

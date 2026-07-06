@@ -299,10 +299,13 @@ docker compose logs -f backend
 - ✅ Role-based access control
 
 **What needs before real go-live:**
-1. Real SMTP configuration (currently placeholder)
-2. Real school data import (currently sample data)
-3. Browser-based UAT pass (documented checklist in `docs/07_Testing.md` §7.4)
-4. Production deployment (AWS/GCP/self-hosted with proper backups)
+1. Real school data import (currently sample data)
+2. Browser-based UAT pass (documented checklist in `docs/07_Testing.md` §7.4)
+3. Production deployment (AWS/GCP/self-hosted with proper backups)
+
+> Real SMTP is configured and verified as of 2026-07-06 — `First Class
+> High Outgoing` (`mail.firstclasshigh.ac.zw`), confirmed with a real
+> end-to-end send (report card + PDF attachment, delivered).
 
 ### 📋 Backlog (lower priority)
 
@@ -399,8 +402,7 @@ docker compose restart backend queue-short queue-long scheduler websocket
 **Solution:** Reload Desk (Ctrl+Shift+R) after restart, or check `has_permission()` in `marks_entry.py`.
 
 ### Email not sending
-**Problem:** SMTP not configured (currently placeholder).
-**Solution:** Set real SMTP in **Settings** → **Email Account** (deployment-time task, not dev).
+**Solution:** SMTP is configured (`First Class High Outgoing`) and verified working. If a send fails, check `Email Queue` (Desk) for the specific per-recipient error — the most common one in dev is `550 No Such User Here`, which means the recipient address isn't a real mailbox on `firstclasshigh.ac.zw` (true for most demo/sample guardian emails — only real addresses will actually receive mail).
 
 ### Student sees other students' reports
 **Problem:** Row-level permissions not applied.

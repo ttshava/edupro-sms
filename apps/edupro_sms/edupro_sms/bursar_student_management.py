@@ -197,36 +197,59 @@ def enroll_student(
             filters={'student': student_id, 'program': program},
             pluck='name'
         )
-        if existing:
-            return {
-                'success': True,
-                'message': f"Student already enrolled in '{program}' (ID: {existing})",
-                'enrollment_id': existing,
-                'skipped': True
-            }
 
-        enrollment = frappe.get_doc({
-            'doctype': 'Program Enrollment',
-            'student': student_id,
-            'program': program,
-            'student_group': student_group,
-            'academic_year': academic_year,
-        })
+        enrollment_name = existing
+        skipped = bool(existing)
 
-        enrollment.insert(ignore_permissions=True)
+        if not existing:
+            enrollment = frappe.get_doc({
+                'doctype': 'Program Enrollment',
+                'student': student_id,
+                'program': program,
+                'academic_year': academic_year,
+            })
+            enrollment.insert(ignore_permissions=True)
+            enrollment_name = enrollment.name
+
+        # Program Enrollment has no student_group field -- passing it in
+        # the dict above is a silent no-op (Frappe ignores unknown keys).
+        # Class roster membership is a separate child table on Student
+        # Group itself; add it here explicitly, and do it even when the
+        # Program Enrollment already existed, so re-running enroll_student
+        # can still fix up a student who's missing from their class.
+        if student_group:
+            already_member = frappe.db.exists(
+                'Student Group Student',
+                {'parent': student_group, 'student': student_id, 'active': 1}
+            )
+            if not already_member:
+                student_name = frappe.db.get_value('Student', student_id, 'student_name')
+                frappe.get_doc({
+                    'doctype': 'Student Group Student',
+                    'parenttype': 'Student Group',
+                    'parent': student_group,
+                    'parentfield': 'students',
+                    'student': student_id,
+                    'student_name': student_name,
+                    'active': 1,
+                }).insert(ignore_permissions=True)
+
         frappe.db.commit()
 
         log_audit('ENROLL', 'Student', student_id, {
             'program': program,
-            'enrollment_id': enrollment.name
+            'student_group': student_group,
+            'enrollment_id': enrollment_name
         })
 
         return {
             'success': True,
-            'message': f"Student enrolled in '{program}' for {academic_year}",
-            'enrollment_id': enrollment.name,
+            'message': f"Student enrolled in '{program}'" + (f" / '{student_group}'" if student_group else "") + f" for {academic_year}",
+            'enrollment_id': enrollment_name,
             'program': program,
-            'academic_year': academic_year
+            'student_group': student_group,
+            'academic_year': academic_year,
+            'skipped': skipped
         }
 
     except Exception as e:
@@ -282,10 +305,26 @@ def link_guardian(
             frappe.throw(f"Guardian with email '{guardian_email}' already exists (ID: {existing})")
 
         try:
+            # Guardian, unlike Student, has no on_insert hook that creates
+            # a linked portal login -- without this the guardian has no
+            # way to ever log in and see their child's reports/fees.
+            email_clean = guardian_email.strip()
+            if not frappe.db.exists('User', email_clean):
+                user = frappe.get_doc({
+                    'doctype': 'User',
+                    'email': email_clean,
+                    'first_name': guardian_name.strip().split(' ')[0],
+                    'send_welcome_email': 0,
+                    'user_type': 'Website User',
+                    'roles': [{'role': 'Guardian'}],
+                })
+                user.insert(ignore_permissions=True)
+
             guardian = frappe.get_doc({
                 'doctype': 'Guardian',
                 'guardian_name': guardian_name.strip(),
                 'email_address': guardian_email.strip(),
+                'user': email_clean,
             })
             guardian.insert(ignore_permissions=True)
             guardian_to_link = guardian.name

@@ -224,7 +224,7 @@
 
     <div class="sidebar-footer">
       <div class="sidebar-user">{{ frappe.session.user }}</div>
-      <a href="/api/method/logout">{{ icons.icon("log-out") }} Log out</a>
+      <a href="/api/method/logout" id="portal-logout-link">{{ icons.icon("log-out") }} Log out</a>
     </div>
   </aside>
 
@@ -240,6 +240,16 @@
     wrapper.className = "table-scroll";
     table.parentNode.insertBefore(wrapper, table);
     wrapper.appendChild(table);
+  });
+
+  document.getElementById("portal-logout-link").addEventListener("click", function (e) {
+    e.preventDefault();
+    fetch("/api/method/logout", {
+      method: "POST",
+      headers: { "X-Frappe-CSRF-Token": "{{ csrf_token }}" },
+    }).finally(function () {
+      window.location.href = "/login";
+    });
   });
 </script>
 {% endblock %}

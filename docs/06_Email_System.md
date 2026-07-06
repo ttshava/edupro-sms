@@ -1,7 +1,7 @@
 # 06 — Email System
 
 **Built and verified, Sprint 7** (`edupro_sms/edupro_sms/doctype/report_card/notify.py`).
-Real SMTP delivery is still a deployment-time task — see §6.6.
+Real SMTP delivery is configured and verified as of 2026-07-06 — see §6.6.
 
 ## 6.1 Approach
 
@@ -103,18 +103,22 @@ configured) that logged correctly and left `sent_to_parent_at` unset.
 digging through Error Log) — Sprint 8 polish candidate. Retry policy:
 default to Frappe Email Queue's built-in retry behavior.
 
-## 6.6 SMTP Setup (deployment-time TODO)
+## 6.6 SMTP Setup (done — 2026-07-06)
 
-The pipeline is verified end-to-end (correct recipient, subject, body,
-PDF attachment — confirmed by creating a placeholder `Email Account`,
-triggering a send, inspecting the resulting `Email Queue` record, then
-removing the placeholder). What's *not* done: pointing it at a real SMTP
-provider. Before pilot-school go-live:
+Real SMTP is configured and verified end-to-end:
 
-1. Create an `Email Account` in Frappe (Desk → Email Account) with real
-   SMTP credentials, `enable_outgoing = 1`, `default_outgoing = 1`.
-2. Do **not** commit credentials to `edupro_sms` or any doc — they live
-   only in the site's database (or `frappe_docker/.env` for local dev,
-   already gitignored).
-3. Send a real test email (e.g. re-run `notify.send_report_card_emails`
-   for one Report Card) and confirm actual delivery, not just queuing.
+- **Email Account:** `First Class High Outgoing` (`admin@firstclasshigh.ac.zw`,
+  `mail.firstclasshigh.ac.zw:465`, SSL), `enable_outgoing = 1`,
+  `default_outgoing = 1`. Credentials were entered directly into the
+  Email Account form in Desk (never handled by Claude or committed to
+  the repo — they live only in the site's database).
+- `EMAIL_DELIVERY_ENABLED` flipped to `True` in `notify.py`.
+- Verified with two real sends: a plain SMTP connectivity test (Sent),
+  and a full report-card-publish send with PDF attachment to a real
+  inbox (Sent, confirmed via `Email Queue` status).
+- **Known gap, not a bug:** `mail.firstclasshigh.ac.zw` is a real mail
+  server that validates recipients — the sample/demo guardian emails
+  generated for testing (e.g. `angel.dube@firstclasshigh.ac.zw`) are not
+  real mailboxes on that domain and will bounce with `550 No Such User
+  Here` if email is ever triggered for them. Only guardians with a real
+  email address will actually receive mail.
