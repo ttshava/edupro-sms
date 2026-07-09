@@ -190,10 +190,38 @@ Renders a single `Student Fee` record as a formal ledger statement, showing the 
 
 ---
 
-## 12.9 Status & Roadmap
+## 12.10 Headmaster Dashboard Finance Summary (added 2026-07-09)
 
-**Current (Sprint 8+):** Core billing model, flat rates, ledger tracking, print format, portal read-only access.
+The main Headmaster/Deputy Head dashboard (`/dashboard`) now includes,
+alongside the academic stat cards: **Subjects** (Course count), **Revenue
+Collected** and **Outstanding Balance** (whole-school totals, sourced
+from `fees.get_school_fee_totals()` — `sum(amount)`/`sum(amount_paid)`/
+`sum(balance)` across every `Student Fee` record), and a **Finance —
+Outstanding Balance by Class** table (`fees.get_class_fee_summary()`,
+grouping the same per-student totals by `Student Group Student.parent`)
+with a link out to `/bursar_fees/` for the existing student-by-student
+drill-down (Bursar/Headmaster/System Manager already had access there —
+it just wasn't linked from the dashboard nav before).
 
-**Next (Sprint 9+):** Guardians can view fees and payment history on `/my-reports`. Batch billing action ("Bill all students for Term X"). Headmaster fee dashboard.
+Two Headmaster-only pages predate this and are **not** part of the
+correct data path — `headmaster_analytics/` and
+`headmaster_dashboard_fees/` are backed by `analytics_api.py` and
+`fee_dashboard_api.py`, which query a `Mark` doctype and `Student
+Fee.program`/`Student Ledger Entry.reference_date` fields that don't
+exist in this schema (real marks live in `Assessment Result`, real fees
+have no `program` field). Neither page is linked from the dashboard nav.
+Treat both API files as dead code pending a rewrite, not as the source
+of truth for finance data — use `fees.py`'s functions instead.
+
+## 12.11 Status & Roadmap
+
+**Current:** Core billing model, flat rates, ledger tracking, print
+format, portal read-only access, Headmaster dashboard finance summary
+(§12.10). Real billing data live for First Class High School — Term 1–2
+2026 billed and collected for all 491 students.
+
+**Next:** Guardians can view fees and payment history on `/my-reports`
+(build if not already covered by the student/parent portal fees tab).
+Rewrite or remove `analytics_api.py`/`fee_dashboard_api.py` (§12.10).
 
 **Post-MVP (`edupro_finance` app):** GL account mapping, cost centers, multi-term billing rules, payment gateway integration, financial reports (income statement, receivables aging), arrears handling, refunds.

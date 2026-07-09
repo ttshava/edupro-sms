@@ -270,6 +270,52 @@ def get_all_students_fee_summary() -> list[dict]:
 	return rows
 
 
+def get_school_fee_totals() -> dict:
+	"""Whole-school billed/collected/outstanding totals across every
+	Student Fee record billed so far -- powers the Headmaster dashboard's
+	Revenue Collected / Outstanding Balance stat cards."""
+	row = frappe.db.sql(
+		"select sum(amount) as billed, sum(amount_paid) as paid, sum(balance) as balance from `tabStudent Fee`",
+		as_dict=True,
+	)[0]
+	return {
+		"total_billed": flt(row.billed),
+		"total_collected": flt(row.paid),
+		"total_outstanding": flt(row.balance),
+	}
+
+
+def get_class_fee_summary() -> list[dict]:
+	"""Billed/collected/outstanding totals aggregated per class (Student
+	Group) -- the class-by-class finance breakdown on the Headmaster
+	dashboard, one level up from get_all_students_fee_summary()'s
+	per-student rows."""
+	totals = {}
+	for row in frappe.get_all("Student Fee", fields=["student", "amount", "amount_paid", "balance"]):
+		t = totals.setdefault(row.student, {"billed": 0.0, "paid": 0.0, "balance": 0.0})
+		t["billed"] += flt(row.amount)
+		t["paid"] += flt(row.amount_paid)
+		t["balance"] += flt(row.balance)
+
+	groups = {
+		row.student: row.parent
+		for row in frappe.get_all("Student Group Student", filters={"active": 1}, fields=["student", "parent"])
+	}
+
+	by_class = {}
+	for student, t in totals.items():
+		group = groups.get(student) or "Unassigned"
+		c = by_class.setdefault(group, {"billed": 0.0, "paid": 0.0, "balance": 0.0, "student_count": 0})
+		c["billed"] += t["billed"]
+		c["paid"] += t["paid"]
+		c["balance"] += t["balance"]
+		c["student_count"] += 1
+
+	rows = [{"student_group": group, **vals} for group, vals in by_class.items()]
+	rows.sort(key=lambda r: r["student_group"])
+	return rows
+
+
 def get_student_ledger(student: str) -> dict:
 	"""The full running ledger for a student -- every bill (Debit) and
 	every payment (Credit), oldest first, with a running balance. This

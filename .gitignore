@@ -24,3 +24,8 @@ backups/*
 
 # Note: apps/edupro_sms/.gitignore (inside the app itself, from
 # `bench new-app`) already excludes __pycache__/*.pyc/etc within it.
+
+# Real staff login credentials (plaintext passwords) -- generated locally
+# for handout, never committed. Regenerate via a fresh password reset if
+# this file is lost; it's not a source-of-truth artifact.
+Edupro_SMS_Staff_Login_Credentials.pdf

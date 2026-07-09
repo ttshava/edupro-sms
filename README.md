@@ -1,10 +1,10 @@
-# Edupro SMS — School Management System
+# Edupro School Management System — First Class High School
 
 **Academic Reporting + Billing Platform for IGCSE Schools**
 
 An integrated school management system built on Frappe Framework v15, handling marks entry, report card generation, parent communication, and student fees — from data collection through approval workflow to final PDF delivery.
 
-**Status:** MVP Complete (Sprints 0–8) + Phases 2–3 (Finance, Bursar Portal, Student/Parent Portal, Advanced Analytics) ✅ | Production-ready core | Additional features in backlog
+**Status:** Live with real production data for First Class High School — 491 students, 41 teachers, 13 classes, 25 subjects, real Term 1–2 2026 billing. MVP (Sprints 0–8) + Phases 2–3 (Finance, Bursar Portal, Student/Parent Portal, Advanced Analytics) ✅ | Additional features in backlog
 
 ---
 
@@ -69,21 +69,24 @@ An integrated school management system built on Frappe Framework v15, handling m
 
 ---
 
-## 🔑 Test Login Credentials
+## 🔑 Login Credentials
 
-> ⚠️ **Local development only.** These are seeded test accounts on a local
-> Docker instance with a shared, publicly-visible test password. **Rotate
-> or delete every one of these before deploying anywhere reachable outside
-> your own machine, and never reuse this password on a real account.**
+> ⚠️ **Real staff accounts, real passwords — not committed to this repo.**
+> The database now holds First Class High School's actual students, staff,
+> and finance records. Credentials are distributed to staff as a
+> standalone, non-versioned handout (see `Edupro_SMS_Staff_Login_Credentials.pdf`
+> if present locally — **never commit that file**), not documented here.
+> Usernames follow `{firstinitial}{surname}@firstclasshighclass.ac.zw`
+> for staff and `{admission_number}@firstclasshigh.ac.zw` for students.
 
-| Role | Username | Password | Lands on |
-|------|----------|----------|----------|
-| System Manager | `Administrator` | `edupro_dev_admin_2026` | Frappe Desk (`/app`) |
-| Bursar | `bursar@firstclasshigh.ac.zw` | `EduproDemo@2026` | `/bursar` |
-| Headmaster | `mwatutsaj@firstclasshighclass.ac.zw` | `EduproDemo@2026` | `/headmaster_dashboard_fees` |
-| Instructor (Teacher) | `dhlaminia@firstclasshighclass.ac.zw` | `EduproDemo@2026` | `/dashboard` |
-| Student | `tatenda.sithole@example.edupro.test` | `EduproDemo@2026` | `/my-reports` |
-| Guardian | `parent00226@firstclasshigh.ac.zw` | `EduproDemo@2026` | `/my-reports` |
+| Role | Lands on |
+|------|----------|
+| System Manager (`Administrator`) | Frappe Desk (`/app`) |
+| Bursar | `/bursar` |
+| Headmaster / Deputy Head | `/dashboard` |
+| Instructor (Teacher) | `/dashboard` |
+| Student | `/my-reports` |
+| Guardian | `/my-reports` |
 
 Login at `http://localhost:8080/login`. All non-Administrator roles are
 website-portal-only (no Desk access) per the role permission design.
@@ -287,21 +290,25 @@ docker compose logs -f backend
 | Portal redesign (sidebar layout) | ✅ Done 2026-07-04 | Unified navigation for all roles |
 | QR code authenticity | ✅ Done 2026-07-04 | Verification link on report cards |
 | Documentation sync (docs/12 added) | ✅ Done 2026-07-05 | All features now documented |
+| Real school data go-live | ✅ Done 2026-07-06 to 2026-07-09 | 491 real students, 41 real teachers, 13 real classes, real Term 1–2 2026 billing — all demo/sample data replaced |
+| Headmaster/Deputy Head dashboard finance summary | ✅ Done 2026-07-09 | Revenue collected, outstanding balance by class, `docs/12_Finance_Billing.md` §12.10 |
+| Marks-entry rollout across all real classes | ✅ Done 2026-07-09 | 171 Assessment Plans provisioned (previously zero existed) — `.claude/DECISIONS.md` 0021 |
+| Teacher permission scoping fix | ✅ Done 2026-07-09 | Narrowed to exact (class, subject), was previously whole-class — `.claude/DECISIONS.md` 0021 |
 
-### 🔄 Current Stage: **Production-Ready Core**
+### 🔄 Current Stage: **Live for First Class High School**
 
 **What's ready:**
 - ✅ All academic reporting workflows (entry → approval → publish)
 - ✅ All portals (student, parent, teacher, headmaster)
-- ✅ Billing system (create fees, track payments)
+- ✅ Billing system (create fees, track payments) — real data, real balances
 - ✅ Email delivery (on publish)
 - ✅ Multi-school support (separate Frappe sites)
-- ✅ Role-based access control
+- ✅ Role-based access control, scoped to exact class+subject (not just class)
+- ✅ Real production data for First Class High School (491 students, 41 teachers)
 
-**What needs before real go-live:**
-1. Real school data import (currently sample data)
-2. Browser-based UAT pass (documented checklist in `docs/07_Testing.md` §7.4)
-3. Production deployment (AWS/GCP/self-hosted with proper backups)
+**What needs before wider rollout:**
+1. Browser-based UAT pass (documented checklist in `docs/07_Testing.md` §7.4)
+2. Production deployment (AWS/GCP/self-hosted with proper backups) — currently local Docker dev only
 
 > Real SMTP is configured and verified as of 2026-07-06 — `First Class
 > High Outgoing` (`mail.firstclasshigh.ac.zw`), confirmed with a real
@@ -456,7 +463,18 @@ docker compose restart backend queue-short queue-long scheduler websocket
 
 ## 📝 Recent Activity
 
-**Latest (2026-07-05):** `apps/edupro_sms` committed to version control for the
+**Latest (2026-07-09):** Real-data go-live corrections for First Class
+High School. School Head/Deputy Head accounts added; Headmaster
+dashboard gained a finance summary (revenue collected, outstanding
+balance by class); marks entry rolled out for all 171 real class/subject
+combinations (previously zero `Assessment Plan` records existed
+anywhere — completely non-functional); fixed a real permission bug
+where a teacher could enter marks for subjects they don't teach, and a
+gap where a newly-assigned Class Teacher wasn't granted the role their
+own class-review page requires. Full detail in `.claude/DECISIONS.md`
+0021 and `.claude/CHANGELOG.md`.
+
+**Previous (2026-07-05):** `apps/edupro_sms` committed to version control for the
 first time (previously gitignored for the project's whole history), full
 20+-commit app history preserved via `git subtree`. Shared portal design
 system (`templates/portal_base.html`) extracted and rolled out to Fees,

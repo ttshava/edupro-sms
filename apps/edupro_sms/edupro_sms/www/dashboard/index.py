@@ -29,6 +29,7 @@ def get_context(context):
 			{"scale": scale, "rows": get_grade_boundaries(scale)} for scale in scales_in_use
 		]
 		if "Class Teacher" in roles:
+			context.class_teacher_of = _class_teacher_of()
 			context.class_teacher_reviews = _class_teacher_reviews()
 			context.csrf_token = frappe.sessions.get_csrf_token()
 	else:
@@ -65,6 +66,7 @@ def _teacher_summary(classes: list[dict]) -> dict:
 def _headmaster_summary():
 	from edupro_sms.edupro_sms.academic_calendar import get_current_term
 	from edupro_sms.edupro_sms.class_review import get_class_summary_rows, get_recent_activity, get_subject_analysis
+	from edupro_sms.edupro_sms.fees import get_class_fee_summary, get_school_fee_totals
 	from edupro_sms.edupro_sms.grading import DEFAULT_GRADING_SCALE, get_grade_for_percentage
 
 	term = get_current_term()
@@ -95,6 +97,9 @@ def _headmaster_summary():
 		"total_students": total_students,
 		"total_instructors": frappe.db.count("Instructor"),
 		"total_classes": len(class_rows),
+		"total_subjects": frappe.db.count("Course"),
+		"fee_totals": get_school_fee_totals(),
+		"class_fee_summary": get_class_fee_summary(),
 		"classes": class_rows,
 		"report_card_states": states,
 		"reports_published": reports_published,
@@ -106,6 +111,24 @@ def _headmaster_summary():
 		"subject_analysis": get_subject_analysis(term),
 		"recent_activity": get_recent_activity(),
 	}
+
+
+def _class_teacher_of():
+	"""Classes the logged-in Instructor is the Class Teacher of -- always
+	shown regardless of pending reviews, distinct from the subject
+	classes in _teacher_classes()/context.classes. A teacher can be the
+	Class Teacher of a class without teaching any subject in it (or vice
+	versa), so these two lists deliberately aren't merged."""
+	instructor = frappe.db.get_value("Instructor", {"user": frappe.session.user}, "name")
+	if not instructor:
+		return []
+
+	groups = frappe.get_all(
+		"Student Group", filters={"class_teacher": instructor}, fields=["name", "program"], order_by="name asc"
+	)
+	for g in groups:
+		g["student_count"] = frappe.db.count("Student Group Student", {"parent": g["name"], "active": 1})
+	return groups
 
 
 def _class_teacher_reviews():

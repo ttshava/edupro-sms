@@ -29,6 +29,17 @@ def _require_headmaster():
 def assign_class_teacher(student_group: str, instructor: str) -> dict:
 	_require_headmaster()
 	frappe.db.set_value("Student Group", student_group, "class_teacher", instructor)
+
+	# approvals._is_class_teacher_of() requires the "Class Teacher" role on
+	# top of this Link match -- without it, the class-review page, report
+	# card comments, and batch report generation all refuse the very
+	# person this call just designated as class teacher.
+	user = frappe.db.get_value("Instructor", instructor, "user")
+	if user and not frappe.db.exists("Has Role", {"parent": user, "role": "Class Teacher"}):
+		user_doc = frappe.get_doc("User", user)
+		user_doc.append("roles", {"role": "Class Teacher"})
+		user_doc.save(ignore_permissions=True)
+
 	frappe.db.commit()
 	return {"student_group": student_group, "class_teacher": instructor}
 

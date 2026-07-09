@@ -5,11 +5,15 @@
 {% if dashboard_role == "headmaster" %}
 <a href="#overview" class="active">{{ icons.icon("home") }} Overview</a>
 <a href="#classes">{{ icons.icon("graduation-cap") }} Classes</a>
+<a href="#finance">{{ icons.icon("dollar-sign") }} Finance</a>
 <a href="#analytics">{{ icons.icon("bar-chart") }} Analytics</a>
 <a href="#activity">{{ icons.icon("activity") }} Activity</a>
 <a href="/admin">{{ icons.icon("user") }} Admin</a>
 {% elif dashboard_role == "teacher" %}
 <a href="#my-classes" class="active">{{ icons.icon("book") }} My Classes</a>
+{% if class_teacher_of %}
+<a href="#my-class">{{ icons.icon("graduation-cap") }} My Class</a>
+{% endif %}
 {% if class_teacher_reviews %}
 <a href="#review">{{ icons.icon("check-square") }} Review</a>
 {% endif %}
@@ -78,6 +82,9 @@
     <div class="stat-card"><div class="stat-icon">{{ icons.icon("graduation-cap") }}</div><div><div class="stat-value">{{ summary.total_classes }}</div><div class="stat-label">Classes</div></div></div>
     <div class="stat-card"><div class="stat-icon">{{ icons.icon("users") }}</div><div><div class="stat-value">{{ summary.total_instructors }}</div><div class="stat-label">Teachers</div></div></div>
     <div class="stat-card"><div class="stat-icon">{{ icons.icon("user") }}</div><div><div class="stat-value">{{ summary.total_students }}</div><div class="stat-label">Students</div></div></div>
+    <div class="stat-card"><div class="stat-icon">{{ icons.icon("book") }}</div><div><div class="stat-value">{{ summary.total_subjects }}</div><div class="stat-label">Subjects</div></div></div>
+    <div class="stat-card"><div class="stat-icon">{{ icons.icon("dollar-sign") }}</div><div><div class="stat-value">${{ "{:,.0f}".format(summary.fee_totals.total_collected) }}</div><div class="stat-label">Revenue Collected</div></div></div>
+    <div class="stat-card"><div class="stat-icon">{{ icons.icon("alert-triangle") }}</div><div><div class="stat-value">${{ "{:,.0f}".format(summary.fee_totals.total_outstanding) }}</div><div class="stat-label">Outstanding Balance</div></div></div>
     <div class="stat-card"><div class="stat-icon">{{ icons.icon("check-circle") }}</div><div><div class="stat-value">{{ summary.reports_published }}/{{ summary.reports_expected }}</div><div class="stat-label">Reports Published</div></div></div>
     <div class="stat-card"><div class="stat-icon">{{ icons.icon("clock") }}</div><div><div class="stat-value">{{ summary.reports_pending_approval }}</div><div class="stat-label">Pending Approval</div></div></div>
     <div class="stat-card"><div class="stat-icon">{{ icons.icon("bar-chart") }}</div><div><div class="stat-value">{{ summary.overall_grade or "-" }}</div><div class="stat-label">Overall Grade{{ " (%.1f%%)"|format(summary.overall_average) if summary.overall_average is not none else "" }}</div></div></div>
@@ -112,6 +119,28 @@
     </tbody>
   </table>
   <button class="btn btn-secondary" id="export-classes-btn">{{ icons.icon("download") }} Export CSV</button>
+
+  <h2 id="finance">{{ icons.icon("dollar-sign") }}Finance &mdash; Outstanding Balance by Class</h2>
+  <table id="class-fee-table">
+    <thead>
+      <tr><th>Class</th><th>Students</th><th>Billed</th><th>Collected</th><th>Outstanding</th></tr>
+    </thead>
+    <tbody>
+      {% for c in summary.class_fee_summary %}
+      <tr>
+        <td>{{ c.student_group }}</td>
+        <td>{{ c.student_count }}</td>
+        <td>${{ "{:,.0f}".format(c.billed) }}</td>
+        <td>${{ "{:,.0f}".format(c.paid) }}</td>
+        <td>{% if c.balance > 0 %}<span class="pill pill-amber">${{ "{:,.0f}".format(c.balance) }}</span>{% else %}<span class="pill pill-green">{{ icons.icon("check-circle") }} Paid Up</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+      {% if not summary.class_fee_summary %}
+      <tr><td colspan="5" class="empty">No fees billed yet.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+  <p class="step-hint"><a href="/bursar_fees/">{{ icons.icon("user") }} View student-by-student fee statements {{ icons.icon("chevron-right") }}</a></p>
 
   <h2 id="analytics">{{ icons.icon("bar-chart") }}Subject Performance Analysis</h2>
   <div class="subject-analysis">
@@ -176,6 +205,22 @@
     <div class="stat-card"><div class="stat-icon">{{ icons.icon("clock") }}</div><div><div class="stat-value">{{ teacher_summary.marks_pending }}</div><div class="stat-label">Pending</div></div></div>
   </div>
 
+  {% if class_teacher_of %}
+  <h2 id="my-class">{{ icons.icon("graduation-cap") }}My Class &mdash; You Are the Class Teacher</h2>
+  <p class="step-hint">Separate from the classes you teach a subject in below &mdash; here you can view the whole class roster, add your Class Teacher comment, and batch-generate report cards.</p>
+  <div class="class-card-grid">
+    {% for g in class_teacher_of %}
+    <div class="card card-hover class-card">
+      <div class="icon">{{ icons.icon("graduation-cap") }}</div>
+      <div class="class-name">{{ g.name }}</div>
+      <div class="term-name">{{ g.program }}</div>
+      <div class="student-count">{{ icons.icon("users") }} {{ g.student_count }} Students</div>
+      <a href="/class-review?group={{ g.name|urlencode }}">Open Class {{ icons.icon("chevron-right") }}</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   {% if class_teacher_reviews %}
   <h2 id="review">{{ icons.icon("check-square") }}Report Cards Awaiting Your Review</h2>
   <div id="review-status"></div>
@@ -236,7 +281,7 @@
   </script>
   {% endif %}
 
-  <h2 id="my-classes">{{ icons.icon("graduation-cap") }}Your Classes &amp; Subjects</h2>
+  <h2 id="my-classes">{{ icons.icon("book") }}Subjects You Teach</h2>
 
   {% if not classes %}
   <p class="empty">No classes assigned yet.</p>

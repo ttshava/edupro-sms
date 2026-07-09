@@ -948,3 +948,72 @@ role-scoped wrapper class per branch of a shared template, not a global
 selector — to avoid the same cross-role leakage risk. The
 `_GRADING_SCALE`/icon-macro approach here is a reasonable template for
 any future page that needs both server-rendered and JS-rendered icons.
+
+## 0021 — Real-data go-live corrections: teacher permission scoped to (class, subject), not class alone; Class Teacher role auto-granted; marks entry provisioned for all 171 real class/subject combinations
+
+**Decision:** With real production data live for First Class High School
+(491 students, 41 teachers, 13 classes, 25 subjects), a QA pass found
+three compounding bugs and fixed all three:
+
+1. **Zero `Assessment Plan` records existed anywhere** — every real
+   class/subject combination (171 total, from `Class Subject
+   Assignment`) had no gradable plan, so marks entry was completely
+   non-functional school-wide despite every teacher's class/subject
+   assignment being correct. Root causes: (a) `Lower 6`/`Upper 6`
+   `Student Group.academic_term` was blank (the other 11 classes had
+   it set), which silently blocked plan creation for both A-Level
+   classes; (b) the 25 real `Course` records had no
+   `assessment_criteria` configured. Backfilled all 171 plans using the
+   real Term Mark/Exam Mark convention (`docs/03_DocTypes.md`), fixed
+   the two `Student Group` records, and set `Course.assessment_criteria`
+   on all 25 courses.
+2. **`teacher_permissions.py` scoped Assessment Plan/Result access by
+   `student_group` alone**, unioning `Student Group Instructor` (an
+   unused Education core child table — confirmed zero write sites in
+   this app) with `Class Subject Assignment`. Net effect: teaching *any*
+   subject in a class, or being its Class Teacher, granted read/write
+   access to *every* subject in that class — e.g. a French teacher could
+   enter Mathematics marks for a class she doesn't teach Maths in. Fixed
+   by requiring an exact `(student_group, course)` match against `Class
+   Subject Assignment` only, in both the permission-query-condition
+   builder and `has_permission`; `marks_entry.py`'s previously-duplicated
+   inline copy of this check now calls the shared function instead.
+3. **`assign_class_teacher()` only set the `Student Group.class_teacher`
+   Link field**, never the Frappe `Class Teacher` role that
+   `approvals._is_class_teacher_of()` also requires — so a newly
+   designated Class Teacher could be locked out of their own class's
+   review page, comments, and batch report generation until someone
+   separately remembered to grant the role by hand. One real instance
+   found live (a Class Teacher assigned earlier in the same work
+   session). Fixed by having `assign_class_teacher()` grant the role
+   automatically (idempotent — checks `Has Role` first).
+
+**Why:** All three were found via an explicit QA request ("check if all
+teachers can log in and enter marks for their subjects") that included a
+real example (a French teacher) proving the class-level scoping was
+functionally wrong, not just theoretically broad. The Assessment Plan
+gap was silent — nothing errored, the dashboard just showed "no classes
+assigned" — so it would not have surfaced without deliberately
+exercising the full 171-combination matrix end-to-end (verified via a
+disposable-submit-then-cancel-then-delete round trip per plan, not just
+a permission-check dry run).
+
+**How to apply:** Any future bulk data load that creates
+`Class Subject Assignment` rows must also ensure (a) the `Student
+Group.academic_term` is set before Assessment Plan creation is
+attempted, and (b) an `Assessment Group` leaf record exists for that
+term (`"{academic_year} Term {n}"`, mandatory on `Assessment Plan`,
+easy to miss — see `docs/03_DocTypes.md`). Any future teacher-facing
+permission function should be reviewed for whether it scopes by the
+right grain (subject, not just class) — `_assigned_class_courses()` in
+`teacher_permissions.py` is now the canonical (student_group, course)
+lookup; don't reintroduce a broader `student_group`-only check.
+`assign_class_teacher()` is now the only correct way to designate a
+Class Teacher (sets both the Link field and the role) — never set
+`Student Group.class_teacher` directly via `frappe.db.set_value`.
+**Gunicorn worker restart gotcha (see 0009) applies to permission
+functions too** — a fix to `teacher_permissions.py`/`marks_entry.py`
+verified correct via `bench execute` (which always reimports fresh) can
+still be wrong on the *live* server until the backend container is
+restarted; this bit us mid-fix here and is worth remembering every time
+a permission or dashboard Python file changes.

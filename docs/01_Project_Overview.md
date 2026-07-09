@@ -6,8 +6,9 @@
 
 ## 1.1 Project Identity
 
-- **Project Name:** EduPro School Management System – Academic Reporting
-- **Version:** 1.0 (MVP)
+- **Project Name:** Edupro School Management System – Academic Reporting
+- **Deployed For:** First Class High School (live tenant — `School Settings.school_name`)
+- **Version:** 1.0 (MVP) + post-MVP finance/permissions hardening
 - **Curriculum:** IGCSE (International General Certificate of Secondary
   Education) — configurable per school/site, IGCSE is the default and only
   curriculum required for MVP.
@@ -77,6 +78,18 @@ The system must be:
 
 ## 1.7 Status
 
-Pre-development. Sprint 0 (documentation/environment scaffolding) in
-progress — see `.claude/TASKS.md`. Two architecture decisions
-(`.claude/DECISIONS.md` 0004, 0005) must be resolved before Sprint 2.
+**Live, production, real data.** MVP (Sprints 0–8) complete, plus
+post-MVP finance/dashboard/permission hardening — see
+`.claude/DECISIONS.md` for the full numbered history (0001–0021).
+
+Deployed for **First Class High School** with real production data: 491
+students (Form 1 through Upper 6), 41 teaching staff, 13 classes, 25
+subjects, real fee billing/collection for Term 1–2 2026. No demo/sample
+data remains in the student/teacher/finance tables — see
+`.claude/CHANGELOG.md` for the real-data cutover and subsequent
+correction passes (elective allocation, fee balances, Class Teacher
+role fixes, teacher permission scoping).
+
+Remaining before wider rollout: a browser-based UAT pass per
+`docs/07_Testing.md` §7.4, and a production deployment target beyond
+the current local Docker dev environment (`docs/08_Deployment.md`).

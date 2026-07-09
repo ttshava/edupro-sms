@@ -13,20 +13,11 @@ from education.education.api import get_assessment_details
 from frappe import _
 from frappe.utils import flt
 
-from edupro_sms.edupro_sms.teacher_permissions import _assigned_student_groups, _instructor_for_user
+from edupro_sms.edupro_sms.teacher_permissions import has_permission_for_assessment
 
 
 def _can_access_plan(plan, user=None) -> bool:
-	user = user or frappe.session.user
-	roles = set(frappe.get_roles(user))
-	if "System Manager" in roles or "Headmaster" in roles or "Academics User" in roles:
-		return True
-	if "Instructor" not in roles:
-		return False
-	instructor = _instructor_for_user(user)
-	if not instructor:
-		return False
-	return plan.student_group in _assigned_student_groups(instructor)
+	return has_permission_for_assessment(plan, user)
 
 
 def _class_students(student_group, course=None):

@@ -1,15 +1,17 @@
 """Scope Instructor (teacher) access to Assessment Plan/Result down to
-their own assigned classes+subjects — Education's stock permissions
+their own assigned classes AND subjects -- Education's stock permissions
 grant this only to the broader "Academics User" role, with no per-class
 scoping. Wired via hooks.py permission_query_conditions/has_permission.
 
-A teacher gets access to a class two ways, additively: being listed in
-that class's general Instructor list (Student Group Instructor -- the
-original, coarser mechanism), or being the assigned subject teacher for
-a specific course there (Class Subject Assignment -- the newer, precise
-roster). Neither replaces the other, so assigning someone via one
-doesn't take away access already granted by the other.
-"""
+Access is granted strictly per (class, subject) pair, sourced only from
+Class Subject Assignment -- the precise, per-subject grant. Being a
+class's Class Teacher, or teaching one subject in it, does NOT by itself
+grant access to every OTHER subject in that class (e.g. Mrs Oyombo
+teaching French in Form 1 Green must not be able to see or enter marks
+for that class's Mathematics). The Class Teacher's whole-class report
+review already has its own separate, correct access path -- a direct
+Student Group.class_teacher check in report_card.py/class_review.py --
+so it doesn't depend on this module at all."""
 
 import frappe
 
@@ -18,14 +20,11 @@ def _instructor_for_user(user: str) -> str | None:
 	return frappe.db.get_value("Instructor", {"user": user}, "name")
 
 
-def _assigned_student_groups(instructor: str) -> list[str]:
-	via_instructor_list = frappe.get_all(
-		"Student Group Instructor", filters={"instructor": instructor}, pluck="parent"
+def _assigned_class_courses(instructor: str) -> list[tuple[str, str]]:
+	rows = frappe.get_all(
+		"Class Subject Assignment", filters={"instructor": instructor}, fields=["student_group", "course"]
 	)
-	via_subject_assignment = frappe.get_all(
-		"Class Subject Assignment", filters={"instructor": instructor}, pluck="student_group"
-	)
-	return list(set(via_instructor_list) | set(via_subject_assignment))
+	return [(r.student_group, r.course) for r in rows]
 
 
 def get_permission_query_conditions_for_assessment(doctype: str):
@@ -45,12 +44,16 @@ def get_permission_query_conditions_for_assessment(doctype: str):
 		if not instructor:
 			return "1=0"
 
-		groups = _assigned_student_groups(instructor)
-		if not groups:
+		pairs = _assigned_class_courses(instructor)
+		if not pairs:
 			return "1=0"
 
-		group_list = ", ".join(frappe.db.escape(g) for g in groups)
-		return f"`tab{doctype}`.student_group in ({group_list})"
+		clauses = " or ".join(
+			f"(`tab{doctype}`.student_group = {frappe.db.escape(group)}"
+			f" and `tab{doctype}`.course = {frappe.db.escape(course)})"
+			for group, course in pairs
+		)
+		return f"({clauses})"
 
 	return _conditions
 
@@ -71,7 +74,7 @@ def has_permission_for_assessment(doc, user: str | None = None, permission_type:
 	if not instructor:
 		return False
 
-	return doc.student_group in _assigned_student_groups(instructor)
+	return (doc.student_group, doc.course) in _assigned_class_courses(instructor)
 
 
 def assessment_plan_query_conditions(user: str | None = None) -> str:

@@ -31,6 +31,18 @@ truth, referenced from every other doc.
 - **Cannot** view marks for other classes/subjects, approve reports, or
   add Class Teacher/Headmaster comments.
 
+**Implementation (corrected 2026-07-09, `.claude/DECISIONS.md` 0021):**
+`Assessment Plan`/`Assessment Result` access is scoped in
+`teacher_permissions.py` to an exact `(student_group, course)` match
+against `Class Subject Assignment` — the same table that assigns them
+the subject in the first place. Earlier this scoped by `student_group`
+alone, which meant teaching (or being Class Teacher of) *any* subject in
+a class granted read/write access to *every* subject in that class. Now
+a teacher assigned only French in a class cannot see or enter marks for
+Mathematics in that same class, even if they're that class's Class
+Teacher. This does not affect the Class Teacher's own whole-class
+capabilities below — those are gated by a separate, independent check.
+
 ### Class Teacher (Frappe Role: `Class Teacher`, layered on top of `Teacher`)
 
 **Primary responsibility:** manage a specific class.
@@ -48,6 +60,19 @@ Sprint 7:** `get_permission_query_conditions` on `Report Card` restricts a
 Class Teacher to only Student Groups where they're the `class_teacher`
 (`edupro_sms/edupro_sms/doctype/report_card/report_card.py`) — contextual,
 not a flat role grant, since "which class" varies per teacher.
+
+**Two separate grants are required, not one:** the `Student Group.class_teacher`
+Link field *and* the Frappe `Class Teacher` role on the Instructor's
+User — `approvals._is_class_teacher_of()` (which gates the class-review
+page, report-card comments, and the Review workflow step) checks both.
+`teacher_assignment.assign_class_teacher()` sets the Link field and now
+(2026-07-09, `.claude/DECISIONS.md` 0021) auto-grants the role too, so a
+newly-designated Class Teacher isn't locked out of their own class. The
+teacher dashboard surfaces this distinctly: a **"My Class"** section
+(only shown to Class Teachers) always lists the classes they manage,
+separate from **"Subjects You Teach"** (their `Class Subject Assignment`
+rows) — previously the only Class Teacher-specific UI was a "Review"
+link that only appeared when a report card happened to be pending.
 
 ### Headmaster (Frappe Role: `Headmaster`)
 

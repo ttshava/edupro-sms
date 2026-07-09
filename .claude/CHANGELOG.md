@@ -6,6 +6,68 @@ YYYY-MM-DD.
 
 ## [Unreleased]
 
+### 2026-07-09 — Real-data go-live corrections, Headmaster/Deputy Head dashboard, marks-entry rollout, permission fix
+
+School rebranded to **First Class High School** (`School Settings.school_name`);
+this is now the live production tenant, not a demo — 491 students, 41
+teachers, 13 classes, 25 subjects.
+
+- **Roles:** created School Head (Mr Marange) and Deputy Head (Mr
+  Mwatutsa) as new Instructors, both granted the `Headmaster` role
+  (reusing the existing role rather than creating a parallel "Deputy
+  Head" role, so both accounts stay in permanent lock-step with zero
+  drift risk).
+- **Headmaster dashboard** (`/dashboard`): added Subjects/Revenue
+  Collected/Outstanding Balance stat cards and a Finance section
+  (outstanding balance by class, linking to `/bursar_fees/` for the
+  student-by-student view). New `fees.get_school_fee_totals()` /
+  `fees.get_class_fee_summary()`. See `docs/12_Finance_Billing.md` §12.10
+  for the two pre-existing Headmaster pages found to be dead code
+  (`analytics_api.py`/`fee_dashboard_api.py` query a nonexistent `Mark`
+  doctype) — left unfixed as out of scope, flagged for a future pass.
+- **Finance data corrected:** all 491 students switched from Full
+  Boarder to Day Boarder (existing `fees.set_boarding_type()` already
+  supported the Bursar toggling this either way — no code change
+  needed). Term 1 + Term 2 2026 billed and paid in full for every
+  student except 66 named students with real outstanding balances
+  (matched against the school's own balance sheet; a handful of
+  unmatched names were skipped and flagged rather than guessed).
+- **Marks entry was completely non-functional before this pass** — zero
+  `Assessment Plan` records existed for any of the 171 real
+  class/subject combinations. Root-caused and fixed (full detail in
+  `.claude/DECISIONS.md` 0021): missing `academic_term` on the two
+  A-Level `Student Group` records, missing `Course.assessment_criteria`
+  on all 25 real courses, and the plans themselves. Verified via a real
+  submit-then-cancel-then-delete round trip for all 171 combinations,
+  not just a permission dry run.
+- **Fixed a real permission bug:** a teacher assigned to even one
+  subject in a class (or who was that class's Class Teacher) could
+  previously see and enter marks for *every* subject in that class.
+  Narrowed to an exact (class, subject) match against `Class Subject
+  Assignment`. Verified live (not just via test script — the backend
+  container caches Python imports, so a fix only takes effect after a
+  restart; caught and fixed mid-verification).
+- **Fixed `assign_class_teacher()`** to also grant the Frappe `Class
+  Teacher` role (previously only set the `Student Group.class_teacher`
+  Link field) — one real Class Teacher assigned earlier this session had
+  been locked out of their own class's review/comment/batch-report
+  features as a result.
+- **Teacher dashboard:** added a permanent "My Class" section (sidebar +
+  page), separate from "Subjects You Teach", listing every class a
+  teacher is the Class Teacher of with a direct link into the full
+  class-review page — previously the only Class Teacher-specific UI was
+  a "Review" link that only appeared when a report card happened to be
+  pending.
+- **Reports generated:** full class-by-class data verification PDF
+  (students, subjects, teachers, fee balances), a staff login
+  credentials sheet (passwords reset for all 41 teachers + Bursar since
+  the originals were unrecoverable one-way hashes), and a teacher
+  class-assignment directory PDF.
+- **Cleanup:** removed 3 leftover "QA Strain" test Student Groups + a
+  test Program left over from an earlier strain-test cleanup pass that
+  never fully ran, and deleted the disposable `_tmp_qa_strain_cleanup.py`
+  script from the repo after running it.
+
 ### 2026-07-06 — End-to-end strain test, demo data, real SMTP live
 
 - **Full end-to-end scenario test**, one real student threaded through
