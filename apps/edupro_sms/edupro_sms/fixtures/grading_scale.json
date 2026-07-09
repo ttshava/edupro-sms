@@ -2,7 +2,7 @@
  {
   "amended_from": null,
   "description": "Standard IGCSE grade boundaries (A*-F), test 40% / exam 60% weighting.",
-  "docstatus": 0,
+  "docstatus": 1,
   "doctype": "Grading Scale",
   "grading_scale_name": "IGCSE Standard",
   "intervals": [
@@ -63,7 +63,7 @@
     "threshold": 0.0
    }
   ],
-  "modified": "2026-07-03 22:19:59.033867",
+  "modified": "2026-07-06 02:50:53.625411",
   "name": "IGCSE Standard"
  }
 ]

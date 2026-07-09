@@ -29,13 +29,47 @@ def _can_access_plan(plan, user=None) -> bool:
 	return plan.student_group in _assigned_student_groups(instructor)
 
 
-def _class_students(student_group):
-	return frappe.get_all(
+def _class_students(student_group, course=None):
+	"""Every active student in the class -- unless a course is given, in
+	which case only students actually enrolled in that specific subject
+	(required subjects still cover the whole class, since every student's
+	Program Enrollment gets those added automatically; an elective like
+	Computer Science only lists the students who picked it, not the
+	classmates who picked a different elective instead)."""
+	students = frappe.get_all(
 		"Student Group Student",
 		filters={"parent": student_group, "active": 1},
 		fields=["student", "student_name"],
 		order_by="student_name asc",
 	)
+	if not course or not students:
+		return students
+
+	program = frappe.db.get_value("Student Group", student_group, "program")
+	if not program:
+		return students
+
+	enrollments = frappe.get_all(
+		"Program Enrollment",
+		filters={"student": ["in", [s.student for s in students]], "program": program},
+		fields=["name", "student"],
+	)
+	if not enrollments:
+		return students
+
+	enrollment_student = {e.name: e.student for e in enrollments}
+	enrolled_in_course = frappe.get_all(
+		"Program Enrollment Course",
+		filters={"parent": ["in", list(enrollment_student)], "course": course},
+		pluck="parent",
+	)
+	students_with_course = {enrollment_student[e] for e in enrolled_in_course}
+	# A student with no enrollment row at all can't be confirmed either
+	# way -- default to including them rather than silently hiding them
+	# from marks entry over a data gap.
+	no_enrollment = {s.student for s in students} - set(enrollment_student.values())
+
+	return [s for s in students if s.student in students_with_course or s.student in no_enrollment]
 
 
 @frappe.whitelist()
@@ -47,7 +81,7 @@ def get_entry_data(assessment_plan):
 		frappe.throw(_("You are not permitted to enter marks for this class."), frappe.PermissionError)
 
 	criteria = get_assessment_details(assessment_plan)
-	students = _class_students(plan.student_group)
+	students = _class_students(plan.student_group, plan.course)
 
 	existing = frappe.get_all(
 		"Assessment Result",
@@ -108,7 +142,7 @@ def save_marks(assessment_plan, entries):
 		frappe.throw(_("You are not permitted to enter marks for this class."), frappe.PermissionError)
 
 	valid_criteria = {c.assessment_criteria for c in get_assessment_details(assessment_plan)}
-	valid_students = {s.student for s in _class_students(plan.student_group)}
+	valid_students = {s.student for s in _class_students(plan.student_group, plan.course)}
 
 	saved = 0
 	for entry in entries:

@@ -272,6 +272,7 @@ fixtures = [
 					"Instructor-user",
 					"Program-curriculum",
 					"Student-boarding_type",
+					"Program Course-elective_group",
 				],
 			]
 		],
@@ -281,6 +282,28 @@ fixtures = [
 	{"dt": "Workflow Action Master", "filters": [["name", "in", ["Resubmit", "Publish"]]]},
 	{
 		"dt": "Custom DocPerm",
+		# NOTE: keep this as a single "Custom DocPerm" fixtures entry, not
+		# split across several -- bench export-fixtures overwrites rather
+		# than merges when the same dt appears more than once in this list,
+		# silently dropping every block but the last on the next export.
+		#
+		# Headmaster/Instructor grants: read access to the core academic
+		# doctypes their Desk-free portals need.
+		#
+		# Bursar grants on Customer: Student.on_update() (education app
+		# core, not ours to edit) calls update_linked_customer() ->
+		# customer.save() with no ignore_permissions, so any
+		# Bursar-initiated Student save (edit, deactivate, link guardian,
+		# ...) 403s on the cascading Customer save unless Bursar has real
+		# write+create on Customer here.
+		#
+		# Bursar grants on User: Student.validate() -> validate_user()
+		# (education app core) creates a linked website User for a new
+		# student email via User.add_roles(), which internally calls
+		# self.save() with no ignore_permissions -- before the caller's
+		# own ignore_permissions save ever runs. Creating any Student with
+		# a brand-new email (CSV import, Add Student) 403s unless Bursar
+		# has real create+write on User here.
 		"filters": [
 			[
 				"parent",
@@ -297,27 +320,12 @@ fixtures = [
 					"Assessment Result",
 					"Academic Term",
 					"Academic Year",
+					"Customer",
+					"User",
 				],
 			],
-			["role", "in", ["Headmaster", "Instructor"]],
+			["role", "in", ["Headmaster", "Instructor", "Bursar"]],
 		],
-	},
-	{
-		"dt": "Custom DocPerm",
-		# Customer: Student.on_update() (education app core, not ours to edit)
-		# calls update_linked_customer() -> customer.save() with no
-		# ignore_permissions, so any Bursar-initiated Student save (edit,
-		# deactivate, link guardian, ...) 403s on the cascading Customer
-		# save unless Bursar has real write+create on Customer here.
-		#
-		# User: Student.validate() -> validate_user() (education app core)
-		# creates a linked website User for a new student email via
-		# User.add_roles(), which internally calls self.save() with no
-		# ignore_permissions -- before the caller's own ignore_permissions
-		# save ever runs. Creating any Student with a brand-new email
-		# (CSV import, Add Student) 403s unless Bursar has real
-		# create+write on User here.
-		"filters": [["parent", "in", ["Student", "Customer", "User"]], ["role", "in", ["Bursar"]]],
 	},
 ]
 

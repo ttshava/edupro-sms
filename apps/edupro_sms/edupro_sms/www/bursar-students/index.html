@@ -77,6 +77,7 @@
   const PROGRAMS = [{% for p in programs %}"{{ p.name }}"{{ "," if not loop.last }}{% endfor %}];
   const STUDENT_GROUPS = [{% for g in student_groups %}"{{ g.name }}"{{ "," if not loop.last }}{% endfor %}];
   const GUARDIANS = [{% for g in guardians %}{name: "{{ g.name }}", guardian_name: "{{ g.guardian_name }}"}{{ "," if not loop.last }}{% endfor %}];
+  const PROGRAM_ELECTIVES = {{ program_electives }};
 
   function csrfHeaders() {
     return { "Content-Type": "application/json", "X-Frappe-CSRF-Token": "{{ csrf_token }}" };
@@ -169,6 +170,7 @@
         + "<h3>" + ICON_GRAD + " Enroll in Program</h3>"
         + '<div class="detail-field"><label>Program</label><select class="enroll-program">' + optionList(PROGRAMS, "-- Select Program --") + "</select></div>"
         + '<div class="detail-field"><label>Class (optional)</label><select class="enroll-class">' + optionList(STUDENT_GROUPS, "-- Select Class --") + "</select></div>"
+        + '<div class="enroll-electives"></div>'
         + '<div><button class="btn btn-primary enroll-btn" data-student="' + s.name + '">Enroll</button><span class="field-status enroll-status"></span></div>'
         + "</div>"
         + '<div class="detail-section">'
@@ -204,6 +206,9 @@
       });
     });
 
+    document.querySelectorAll(".enroll-program").forEach(function (sel) {
+      sel.addEventListener("change", function () { renderElectiveFields(sel); });
+    });
     document.querySelectorAll(".enroll-btn").forEach(function (btn) {
       btn.addEventListener("click", function () { enrollStudent(btn); });
     });
@@ -236,6 +241,25 @@
       .catch(function (err) { onError(String(err)); });
   }
 
+  function renderElectiveFields(programSelect) {
+    const panel = programSelect.closest(".detail-panel");
+    const container = panel.querySelector(".enroll-electives");
+    const groups = PROGRAM_ELECTIVES[programSelect.value] || {};
+    const groupNames = Object.keys(groups);
+
+    if (!groupNames.length) {
+      container.innerHTML = "";
+      return;
+    }
+
+    container.innerHTML = groupNames.map(function (groupName) {
+      return '<div class="detail-field"><label>' + groupName + ' (choose one)</label>'
+        + '<select class="enroll-elective" data-group="' + groupName + '">'
+        + optionList(groups[groupName], "-- Select " + groupName + " --")
+        + "</select></div>";
+    }).join("");
+  }
+
   function enrollStudent(btn) {
     const panel = document.getElementById("detail-panel-" + btn.dataset.student);
     const program = panel.querySelector(".enroll-program").value;
@@ -248,11 +272,23 @@
       return;
     }
 
+    const electives = {};
+    const electiveSelects = panel.querySelectorAll(".enroll-elective");
+    for (let i = 0; i < electiveSelects.length; i++) {
+      const sel = electiveSelects[i];
+      if (!sel.value) {
+        statusEl.textContent = "Please choose a subject for: " + sel.dataset.group;
+        statusEl.className = "field-status enroll-status save-error";
+        return;
+      }
+      electives[sel.dataset.group] = sel.value;
+    }
+
     btn.disabled = true;
     statusEl.textContent = "Enrolling...";
     statusEl.className = "field-status enroll-status";
 
-    apiCall("enroll_student", { student_id: btn.dataset.student, program: program, student_group: studentGroup || null },
+    apiCall("enroll_student", { student_id: btn.dataset.student, program: program, student_group: studentGroup || null, electives: electives },
       function (msg) { btn.disabled = false; statusEl.textContent = msg.message; statusEl.className = "field-status enroll-status save-ok"; },
       function (err) { btn.disabled = false; statusEl.textContent = "Error: " + err; statusEl.className = "field-status enroll-status save-error"; });
   }

@@ -134,7 +134,18 @@ def create_student(
             'enabled': 1,
         })
 
-        student.insert(ignore_permissions=True)
+        # Education's own Student.validate_user() creates the linked User
+        # with send_welcome_email=1 (unlike our own _create_user() helper
+        # for Guardians/Instructors, which always sets 0) -- with real SMTP
+        # configured, a bounce on that welcome email raises and aborts the
+        # whole student creation. Mute it here for consistency with every
+        # other role: nobody gets an automatic core Frappe welcome email.
+        original_mute = frappe.flags.mute_emails
+        frappe.flags.mute_emails = True
+        try:
+            student.insert(ignore_permissions=True)
+        finally:
+            frappe.flags.mute_emails = original_mute
         frappe.db.commit()
 
         log_audit('CREATE', 'Student', student.name, {
@@ -154,12 +165,85 @@ def create_student(
         frappe.throw(f"Failed to create student: {str(e)}")
 
 
+def _elective_groups_for(program: str) -> Dict[str, List[str]]:
+    """Map of elective_group name -> list of course options, for whichever
+    Program Course rows on this Program have a non-blank elective_group.
+    A Program with no elective groups returns {}."""
+    rows = frappe.get_all(
+        'Program Course',
+        filters={'parent': program, 'elective_group': ['is', 'set']},
+        fields=['course', 'elective_group'],
+    )
+    groups: Dict[str, List[str]] = {}
+    for row in rows:
+        if row.elective_group:
+            groups.setdefault(row.elective_group, []).append(row.course)
+    return groups
+
+
+def _sync_program_enrollment_courses(enrollment_name: str, program: str, electives: Optional[Dict[str, str]] = None) -> None:
+    """Populate Program Enrollment.courses: every required=1 Program
+    Course, plus one elective per elective_group if a valid choice was
+    given. Never removes a course the student already has -- swapping an
+    elective is update_student_elective()'s job, not this one's."""
+    enrollment = frappe.get_doc('Program Enrollment', enrollment_name)
+    existing_courses = {row.course for row in enrollment.courses}
+    changed = False
+
+    required = frappe.get_all(
+        'Program Course', filters={'parent': program, 'required': 1}, fields=['course']
+    )
+    for row in required:
+        if row.course not in existing_courses:
+            enrollment.append('courses', {'course': row.course})
+            existing_courses.add(row.course)
+            changed = True
+
+    # Programs like A-Level's Lower/Upper 6 model "pick 3 from one pool" as
+    # 3 elective groups with an IDENTICAL option list (Subject Choice 1/2/3)
+    # -- group by the option set itself so "already satisfied" is judged by
+    # how many DISTINCT choices from that shared pool exist, not by "does
+    # any existing course happen to also be a valid option here" (which,
+    # for identical pools, is true again the moment the first slot fills,
+    # silently skipping every other slot).
+    elective_groups = _elective_groups_for(program)
+    pools: Dict[tuple, List[str]] = {}
+    for group_name, options in elective_groups.items():
+        pools.setdefault(tuple(sorted(options)), []).append(group_name)
+
+    for pool_key, group_names in pools.items():
+        options = list(pool_key)
+        needed = len(group_names)
+        already_chosen = [c for c in existing_courses if c in options]
+        still_needed = needed - len(already_chosen)
+        if still_needed <= 0:
+            continue
+
+        candidates = []
+        for g in group_names:
+            chosen = (electives or {}).get(g)
+            if chosen and chosen not in already_chosen and chosen not in candidates:
+                candidates.append(chosen)
+
+        for chosen in candidates[:still_needed]:
+            if chosen not in options:
+                frappe.throw(_("'{0}' is not a valid choice for this elective.").format(chosen))
+            enrollment.append('courses', {'course': chosen})
+            existing_courses.add(chosen)
+            already_chosen.append(chosen)
+            changed = True
+
+    if changed:
+        enrollment.save(ignore_permissions=True)
+
+
 @frappe.whitelist()
 def enroll_student(
     student_id: str,
     program: str,
     student_group: Optional[str] = None,
-    academic_year: Optional[str] = None
+    academic_year: Optional[str] = None,
+    electives: Optional[Dict[str, str]] = None,
 ) -> Dict:
     """
     Enroll a student in a program.
@@ -170,6 +254,11 @@ def enroll_student(
         student_group: Class name (e.g., 'Form 1A', optional)
         academic_year: Academic year (optional, defaults to the year
             whose date range contains today)
+        electives: {elective_group: chosen_course}, one entry per
+            elective group the Program defines (e.g. {"Practical":
+            "Computer Science"}). Required if the Program has any
+            elective groups and the student doesn't already have a
+            choice recorded for them.
 
     Returns:
         Dict with success flag and enrollment ID
@@ -191,6 +280,22 @@ def enroll_student(
         if not academic_year:
             frappe.throw(_("No Academic Year configured"))
 
+    # Elective groups are mandatory at enrollment time -- the system has
+    # no way to guess which practical subject a student wants, and a
+    # Report Card can't generate correctly without a full course list.
+    elective_groups = _elective_groups_for(program)
+    if elective_groups:
+        missing = [g for g in elective_groups if not (electives or {}).get(g)]
+        if missing:
+            frappe.throw(_("Please choose a subject for: {0}").format(", ".join(missing)))
+
+        # Programs like A-Level's Lower/Upper 6 model "pick 3 from one
+        # pool" as 3 identical elective groups (Subject Choice 1/2/3) --
+        # nothing else stops the same course being picked for two slots.
+        chosen = [electives[g] for g in elective_groups if g in electives]
+        if len(chosen) != len(set(chosen)):
+            frappe.throw(_("Each subject choice must be different -- you picked the same subject twice."))
+
     try:
         existing = frappe.db.get_value(
             'Program Enrollment',
@@ -210,6 +315,8 @@ def enroll_student(
             })
             enrollment.insert(ignore_permissions=True)
             enrollment_name = enrollment.name
+
+        _sync_program_enrollment_courses(enrollment_name, program, electives)
 
         # Program Enrollment has no student_group field -- passing it in
         # the dict above is a silent no-op (Frappe ignores unknown keys).
@@ -239,7 +346,8 @@ def enroll_student(
         log_audit('ENROLL', 'Student', student_id, {
             'program': program,
             'student_group': student_group,
-            'enrollment_id': enrollment_name
+            'enrollment_id': enrollment_name,
+            'electives': electives,
         })
 
         return {
@@ -255,6 +363,79 @@ def enroll_student(
     except Exception as e:
         frappe.logger().error(f"Enrollment failed: {traceback.format_exc()}")
         frappe.throw(f"Failed to enroll student: {str(e)}")
+
+
+@frappe.whitelist()
+def update_student_elective(student_id: str, elective_group: str, new_course: str) -> Dict:
+    """
+    Change a student's elective choice (e.g. switching Computer Science ->
+    Textile Technology mid-year). Only swaps the Program Enrollment
+    course row -- any Assessment Result already recorded under the
+    dropped subject is left untouched as historical data; report card
+    completeness only checks the student's *current* enrollment, so a
+    switch never blocks their report.
+
+    Args:
+        student_id: Student name
+        elective_group: Which elective group to change (e.g. "Practical")
+        new_course: The course to switch to -- must be a valid option in
+            that elective group for the student's Program
+
+    Returns:
+        Dict with success flag and the old/new course
+    """
+
+    if not has_bursar_permission():
+        frappe.throw(_("You do not have permission to manage student subjects"))
+
+    enrollment_name = frappe.db.get_value('Program Enrollment', {'student': student_id}, 'name')
+    if not enrollment_name:
+        frappe.throw(_("This student has no Program Enrollment to update."))
+
+    enrollment = frappe.get_doc('Program Enrollment', enrollment_name)
+    elective_groups = _elective_groups_for(enrollment.program)
+
+    if elective_group not in elective_groups:
+        frappe.throw(_("'{0}' is not an elective group on this student's Program.").format(elective_group))
+
+    options = elective_groups[elective_group]
+    if new_course not in options:
+        frappe.throw(_("'{0}' is not a valid choice for the '{1}' elective.").format(new_course, elective_group))
+
+    # Programs with multiple identical elective slots (e.g. A-Level's
+    # "pick 3 from one pool") could otherwise end up with the same
+    # course chosen for two different slots.
+    other_slot_courses = {
+        row.course for row in enrollment.courses
+        if row.course in {c for g, opts in elective_groups.items() if g != elective_group for c in opts}
+    }
+    if new_course in other_slot_courses:
+        frappe.throw(_("'{0}' is already chosen for another subject slot.").format(new_course))
+
+    old_course = None
+    for row in list(enrollment.courses):
+        if row.course in options and row.course != new_course:
+            old_course = row.course
+            enrollment.remove(row)
+
+    if new_course not in {row.course for row in enrollment.courses}:
+        enrollment.append('courses', {'course': new_course})
+
+    enrollment.save(ignore_permissions=True)
+    frappe.db.commit()
+
+    log_audit('UPDATE_ELECTIVE', 'Student', student_id, {
+        'elective_group': elective_group,
+        'old_course': old_course,
+        'new_course': new_course,
+    })
+
+    return {
+        'success': True,
+        'message': f"Elective changed from '{old_course}' to '{new_course}'" if old_course else f"Elective set to '{new_course}'",
+        'old_course': old_course,
+        'new_course': new_course,
+    }
 
 
 @frappe.whitelist()

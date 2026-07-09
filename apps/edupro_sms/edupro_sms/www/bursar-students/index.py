@@ -34,10 +34,25 @@ def get_context(context):
         'Guardian', fields=['name', 'guardian_name'], order_by='guardian_name asc', ignore_permissions=True
     )
 
+    # {program: {elective_group: [course, ...]}} -- drives the elective
+    # dropdown(s) the enrollment form shows once a Program with elective
+    # groups is picked. Most Programs have none, in which case they're
+    # just absent from this dict and no dropdown appears.
+    program_electives = {}
+    elective_rows = frappe.db.get_list(
+        'Program Course',
+        filters={'elective_group': ['is', 'set']},
+        fields=['parent', 'elective_group', 'course'],
+        ignore_permissions=True,
+    )
+    for row in elective_rows:
+        program_electives.setdefault(row.parent, {}).setdefault(row.elective_group, []).append(row.course)
+
     context.no_cache = 1
     context.programs = programs
     context.student_groups = student_groups
     context.guardians = guardians
+    context.program_electives = frappe.as_json(program_electives)
     context.csrf_token = frappe.sessions.get_csrf_token()
     context.title = "Bursar: Students"
     context.active_nav = "students"

@@ -136,13 +136,13 @@ def generate_report_cards(student_group: str, academic_term: str) -> dict:
 	reported back, not silently included with a partial total.
 	"""
 	group = frappe.get_doc("Student Group", student_group)
-	required_courses = _required_courses_for(group)
 
 	created, updated, skipped = [], [], []
 
 	for row in group.students:
 		if not row.active:
 			continue
+		required_courses = _required_courses_for_student(row.student, group)
 		result = _generate_for_student(row.student, group, academic_term, required_courses)
 		if result is None:
 			skipped.append(row.student_name or row.student)
@@ -161,10 +161,36 @@ def generate_report_cards(student_group: str, academic_term: str) -> dict:
 
 
 def _required_courses_for(group) -> list[str]:
+	"""Fallback only -- the Program's blanket required-course list, used
+	when a student has no Program Enrollment (or it has no courses
+	recorded yet). Prefer _required_courses_for_student(), which reflects
+	each student's own subjects including their elective choice."""
 	if not group.program:
 		return []
 	program = frappe.get_doc("Program", group.program)
 	return [c.course for c in program.courses if c.required]
+
+
+def _required_courses_for_student(student: str, group) -> list[str]:
+	"""A student's real, personal subject list: their own Program
+	Enrollment.courses (core subjects + whichever elective they picked),
+	not the Program's one-size-fits-all required list -- two students in
+	the same class can legitimately take different subjects (e.g. one
+	chose Computer Science, another chose Textile Technology)."""
+	if not group.program:
+		return []
+
+	enrollment_name = frappe.db.get_value(
+		"Program Enrollment", {"student": student, "program": group.program}, "name"
+	)
+	if enrollment_name:
+		courses = frappe.get_all(
+			"Program Enrollment Course", filters={"parent": enrollment_name}, pluck="course"
+		)
+		if courses:
+			return courses
+
+	return _required_courses_for(group)
 
 
 def _generate_for_student(student: str, group, academic_term: str, required_courses: list[str]):
