@@ -188,8 +188,12 @@ def _report_history(student_name):
 		card["subjects"] = frappe.get_all(
 			"Report Card Assessment Result",
 			filters={"parent": card.name},
-			fields=["course", "total_score", "maximum_score", "grade", "comment"],
-			order_by="course asc",
+			fields=["course", "reporting_subject", "total_score", "maximum_score", "grade", "comment"],
+			# idx, not course asc -- report_card.py already sorted these
+			# alphabetically with Practical last at generation time; a NULL
+			# `course` (the synthetic Practical/NONE row) would otherwise
+			# sort first under most DBs' ascending-NULL ordering.
+			order_by="idx asc",
 		)
 		card["star_rating"] = _star_rating(card["overall_grade"])
 	return cards

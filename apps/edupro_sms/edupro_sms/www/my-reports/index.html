@@ -119,12 +119,18 @@
       </thead>
       <tbody>
         {% for s in p.latest_report.subjects %}
-        {% set pct = (s.total_score / s.maximum_score * 100) if s.maximum_score else 0 %}
         <tr>
-          <td>{{ s.course }}</td>
+          <td>{{ s.reporting_subject or s.course }}</td>
+          {% if s.maximum_score %}
+          {% set pct = (s.total_score / s.maximum_score * 100) %}
           <td>{{ s.total_score }}/{{ s.maximum_score|int }}</td>
           <td>{{ s.grade }}</td>
           <td><span class="pill {{ 'pill-green' if pct >= 50 else 'pill-red' }}">{{ "Pass" if pct >= 50 else "Fail" }}</span></td>
+          {% else %}
+          <td>-</td>
+          <td>{{ s.grade or "-" }}</td>
+          <td><span class="pill pill-gray">N/A</span></td>
+          {% endif %}
           <td class="comment" title="{{ s.comment or '' }}">{{ s.comment or "-" }}</td>
         </tr>
         {% endfor %}

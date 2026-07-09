@@ -253,9 +253,14 @@
     }
 
     container.innerHTML = groupNames.map(function (groupName) {
+      // "Practical" is the one elective group real students sometimes
+      // genuinely have none of (see docs/03_DocTypes.md) -- offer an
+      // explicit "None" choice there so the Bursar isn't forced to guess
+      // a subject just to get past this required field.
+      var options = groupName === "Practical" ? groups[groupName].concat(["None"]) : groups[groupName];
       return '<div class="detail-field"><label>' + groupName + ' (choose one)</label>'
         + '<select class="enroll-elective" data-group="' + groupName + '">'
-        + optionList(groups[groupName], "-- Select " + groupName + " --")
+        + optionList(options, "-- Select " + groupName + " --")
         + "</select></div>";
     }).join("");
   }

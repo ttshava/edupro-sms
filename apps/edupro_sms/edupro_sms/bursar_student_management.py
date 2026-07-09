@@ -222,7 +222,11 @@ def _sync_program_enrollment_courses(enrollment_name: str, program: str, electiv
         candidates = []
         for g in group_names:
             chosen = (electives or {}).get(g)
-            if chosen and chosen not in already_chosen and chosen not in candidates:
+            # "None" is a deliberate, explicit "this student has no subject
+            # for this elective group" (e.g. some Form 3-4 students
+            # genuinely have no practical) -- distinct from an omitted key,
+            # which enroll_student() itself already rejects as a mistake.
+            if chosen and chosen != "None" and chosen not in already_chosen and chosen not in candidates:
                 candidates.append(chosen)
 
         for chosen in candidates[:still_needed]:
@@ -280,19 +284,23 @@ def enroll_student(
         if not academic_year:
             frappe.throw(_("No Academic Year configured"))
 
-    # Elective groups are mandatory at enrollment time -- the system has
-    # no way to guess which practical subject a student wants, and a
-    # Report Card can't generate correctly without a full course list.
+    # Elective groups must be explicitly addressed at enrollment time --
+    # the system has no way to guess which practical subject a student
+    # wants. An omitted key is treated as a mistake; passing "None" is
+    # the deliberate, explicit way to enroll a student with no subject
+    # for that group (real for some Form 3-4 students -- see
+    # report_card.py's "Practical: NONE" handling).
     elective_groups = _elective_groups_for(program)
     if elective_groups:
-        missing = [g for g in elective_groups if not (electives or {}).get(g)]
+        provided = electives or {}
+        missing = [g for g in elective_groups if g not in provided]
         if missing:
             frappe.throw(_("Please choose a subject for: {0}").format(", ".join(missing)))
 
         # Programs like A-Level's Lower/Upper 6 model "pick 3 from one
         # pool" as 3 identical elective groups (Subject Choice 1/2/3) --
         # nothing else stops the same course being picked for two slots.
-        chosen = [electives[g] for g in elective_groups if g in electives]
+        chosen = [v for g, v in provided.items() if g in elective_groups and v and v != "None"]
         if len(chosen) != len(set(chosen)):
             frappe.throw(_("Each subject choice must be different -- you picked the same subject twice."))
 
@@ -399,7 +407,11 @@ def update_student_elective(student_id: str, elective_group: str, new_course: st
         frappe.throw(_("'{0}' is not an elective group on this student's Program.").format(elective_group))
 
     options = elective_groups[elective_group]
-    if new_course not in options:
+    # "None" deliberately clears the elective (no subject for this group)
+    # rather than swapping to another real course -- same sentinel as
+    # enroll_student()'s electives dict.
+    clearing = new_course == "None"
+    if not clearing and new_course not in options:
         frappe.throw(_("'{0}' is not a valid choice for the '{1}' elective.").format(new_course, elective_group))
 
     # Programs with multiple identical elective slots (e.g. A-Level's
@@ -409,7 +421,7 @@ def update_student_elective(student_id: str, elective_group: str, new_course: st
         row.course for row in enrollment.courses
         if row.course in {c for g, opts in elective_groups.items() if g != elective_group for c in opts}
     }
-    if new_course in other_slot_courses:
+    if not clearing and new_course in other_slot_courses:
         frappe.throw(_("'{0}' is already chosen for another subject slot.").format(new_course))
 
     old_course = None
@@ -418,7 +430,7 @@ def update_student_elective(student_id: str, elective_group: str, new_course: st
             old_course = row.course
             enrollment.remove(row)
 
-    if new_course not in {row.course for row in enrollment.courses}:
+    if not clearing and new_course not in {row.course for row in enrollment.courses}:
         enrollment.append('courses', {'course': new_course})
 
     enrollment.save(ignore_permissions=True)

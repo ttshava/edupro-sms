@@ -19,7 +19,7 @@ Edupro SMS is an IGCSE-curriculum academic-reporting and finance platform for a 
 
 Success looks like: staff complete daily record-processing tasks with minimal clicks and no ambiguity; families can find their child's standing or balance in under a few seconds without needing help.
 
-**Scope boundary:** this redesign covers the custom `edupro_sms` portal surfaces only (the 16 pages under `www/`: bursar, bursar_billing, bursar_fees, bursar-students, headmaster_dashboard_fees, headmaster_batch_print, headmaster_analytics, student_dashboard, parent_dashboard, my-reports, marks-entry, class-review, admin, import-data, dashboard, verify-report-card). Frappe Desk itself (used by System Manager for raw DocType administration) is core Frappe/ERPNext and is out of scope — per project standing rule, core files are never modified. Where Desk conventions are genuinely good, we borrow the *pattern*, not the file.
+**Scope boundary:** this redesign covers the custom `edupro_sms` portal surfaces only (the pages under `www/`: bursar, bursar_billing, bursar_fees, bursar-students, my-reports, marks-entry, class-review, admin, import-data, dashboard, verify-report-card). `headmaster_dashboard_fees`, `headmaster_batch_print`, `headmaster_analytics`, `student_dashboard`, and `parent_dashboard` were removed pre-launch (2026-07-09) — unreachable from any nav, and each fully superseded by working, linked pages (`/dashboard`'s own Finance/Analytics sections, `/my-reports`). Frappe Desk itself (used by System Manager for raw DocType administration) is core Frappe/ERPNext and is out of scope — per project standing rule, core files are never modified. Where Desk conventions are genuinely good, we borrow the *pattern*, not the file.
 
 ## Brand Personality
 

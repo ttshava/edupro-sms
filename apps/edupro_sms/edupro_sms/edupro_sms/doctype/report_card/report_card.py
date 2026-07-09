@@ -193,6 +193,47 @@ def _required_courses_for_student(student: str, group) -> list[str]:
 	return _required_courses_for(group)
 
 
+def _practical_courses_for_program(program: str | None) -> set[str]:
+	"""Every course this Program offers under the "Practical" elective
+	group (Fashion and Textiles / Design and Technology / Building
+	Technology / Computer Science, depending on Form) -- whichever one a
+	student picked, it reports as a single "Practical" line, never its
+	real name. Empty for programs with no practical family (A-Level)."""
+	if not program:
+		return set()
+	return set(frappe.get_all("Program Course", filters={"parent": program, "elective_group": "Practical"}, pluck="course"))
+
+
+def _practical_none_row() -> dict:
+	"""Synthetic Report Card row for a student with no practical subject
+	in their Program Enrollment at all (real for some Form 3-4 students)
+	-- shown as "Practical: NONE" rather than silently omitted, and
+	deliberately not backed by any Assessment Result (there is nothing to
+	link -- no marks were ever going to exist for a subject the student
+	doesn't take), so it's excluded from the total/average calculation."""
+	return {
+		"assessment_result": None,
+		"course": None,
+		"reporting_subject": "Practical",
+		"total_score": None,
+		"maximum_score": None,
+		"grade": "NONE",
+		"term_mark": None,
+		"term_grade": "NONE",
+		"exam_mark": None,
+		"exam_grade": "NONE",
+		"comment": "No practical subject enrolled.",
+	}
+
+
+def _report_row_sort_key(row: dict):
+	"""Alphabetical by displayed subject name, except Practical (real or
+	NONE) always sorts last, per the school's requested layout."""
+	is_practical = row.get("reporting_subject") == "Practical"
+	label = row.get("reporting_subject") or row.get("course") or ""
+	return (1 if is_practical else 0, label)
+
+
 def _generate_for_student(student: str, group, academic_term: str, required_courses: list[str]):
 	results = frappe.get_all(
 		"Assessment Result",
@@ -228,10 +269,13 @@ def _generate_for_student(student: str, group, academic_term: str, required_cour
 	report_card.maximum_score = maximum_score
 	report_card.average_percentage = average_percentage
 	report_card.overall_grade = overall_grade
-	report_card.set(
-		"assessment_results",
-		[_subject_row(r) for r in results],
-	)
+
+	practical_courses = _practical_courses_for_program(group.program)
+	subject_rows = [_subject_row(r, practical_courses) for r in results]
+	if practical_courses and not (practical_courses & found_courses):
+		subject_rows.append(_practical_none_row())
+	subject_rows.sort(key=_report_row_sort_key)
+	report_card.set("assessment_results", subject_rows)
 
 	if is_new:
 		report_card.insert()
@@ -241,12 +285,17 @@ def _generate_for_student(student: str, group, academic_term: str, required_cour
 	return {"name": report_card.name, "is_new": is_new}
 
 
-def _subject_row(result) -> dict:
+def _subject_row(result, practical_courses: set[str] | None = None) -> dict:
 	"""One Report Card Assessment Result row -- the overall subject
 	score/grade (unchanged from before) plus the Term Mark/Exam Mark
 	breakdown pulled from the underlying Assessment Result's own detail
 	rows, and a comment auto-filled from the grade's Remark text unless
-	a teacher already wrote a specific one in."""
+	a teacher already wrote a specific one in.
+
+	`course` always stays the real taught subject (Teaching Subject) --
+	`reporting_subject`, when set, is what's actually displayed (Reporting
+	Subject). Only the four real practical courses get this override, to
+	"Practical"; every other subject displays under its own name."""
 	details = frappe.get_all(
 		"Assessment Result Detail",
 		filters={"parent": result.name},
@@ -261,6 +310,7 @@ def _subject_row(result) -> dict:
 	return {
 		"assessment_result": result.name,
 		"course": result.course,
+		"reporting_subject": "Practical" if practical_courses and result.course in practical_courses else None,
 		"total_score": result.total_score,
 		"maximum_score": result.maximum_score,
 		"grade": result.grade,

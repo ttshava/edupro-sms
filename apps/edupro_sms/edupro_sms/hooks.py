@@ -102,11 +102,6 @@ def _import_api_modules():
 	"""Import API modules to ensure @whitelist decorators are registered."""
 	try:
 		import edupro_sms.batch_billing_api
-		import edupro_sms.fee_dashboard_api
-		import edupro_sms.batch_print_api
-		import edupro_sms.analytics_api
-		import edupro_sms.student_portal_api
-		import edupro_sms.guardian_portal_api
 	except ImportError:
 		pass
 

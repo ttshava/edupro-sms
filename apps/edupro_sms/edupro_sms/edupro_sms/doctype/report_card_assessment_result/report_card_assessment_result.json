@@ -8,6 +8,7 @@
  "field_order": [
   "assessment_result",
   "course",
+  "reporting_subject",
   "total_score",
   "maximum_score",
   "grade",
@@ -25,7 +26,7 @@
    "in_list_view": 1,
    "label": "Assessment Result",
    "options": "Assessment Result",
-   "reqd": 1
+   "description": "Blank for a synthetic row with no underlying assessment (e.g. a student with no practical subject enrolled)."
   },
   {
    "fieldname": "course",
@@ -33,6 +34,13 @@
    "in_list_view": 1,
    "label": "Subject",
    "options": "Course"
+  },
+  {
+   "fieldname": "reporting_subject",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Reporting Subject",
+   "description": "The label shown on the printed/portal Report Card, when it differs from the real taught Subject (course) -- e.g. every practical subject (Fashion and Textiles, Building Technology, Computer Science, Design and Technology) reports as \"Practical\" regardless of which one the student actually takes. Blank means: display `course` as-is."
   },
   {
    "fieldname": "total_score",
