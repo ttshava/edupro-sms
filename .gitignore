@@ -29,3 +29,8 @@ backups/*
 # for handout, never committed. Regenerate via a fresh password reset if
 # this file is lost; it's not a source-of-truth artifact.
 Edupro_SMS_Staff_Login_Credentials.pdf
+
+# Generated rosters containing real student names -- handout artifacts,
+# regenerate from the database on demand rather than tracking in git.
+Edupro_SMS_Lower6_Upper6_Combinations.pdf
+Edupro_SMS_Lower6_Combinations_Template.pdf
