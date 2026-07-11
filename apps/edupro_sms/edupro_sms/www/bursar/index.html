@@ -6,6 +6,7 @@
 <a href="/bursar_fees" class="{{ 'active' if active_nav == 'fees' else '' }}">{{ icons.icon("dollar-sign") }} Fees</a>
 <a href="/bursar_billing">{{ icons.icon("term") }} Billing</a>
 <a href="/bursar-students">{{ icons.icon("graduation-cap") }} Students</a>
+<a href="/bursar-reports">{{ icons.icon("bar-chart") }} Reports</a>
 {% endblock %}
 
 {% block portal_content %}
@@ -168,6 +169,12 @@
             input.value = "";
             statusEl.textContent = "Recorded.";
             statusEl.className = "payment-status save-ok";
+            if (msg.ledger_entry) {
+              window.open(
+                "/printview?doctype=Student%20Ledger%20Entry&name=" + encodeURIComponent(msg.ledger_entry) + "&format=Payment%20Receipt&no_letterhead=0",
+                "_blank"
+              );
+            }
             setTimeout(function () { window.location.reload(); }, 900);
           } else {
             statusEl.textContent = "Error: " + (result.body.exception || result.body._server_messages || "Could not record.");

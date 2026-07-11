@@ -91,8 +91,10 @@ jinja = {
 	"methods": [
 		"edupro_sms.edupro_sms.qr.report_card_verification_qr_data_uri",
 		"edupro_sms.edupro_sms.watermark.report_card_watermark_data_uri",
+		"edupro_sms.edupro_sms.watermark.school_logo_data_uri",
 		"edupro_sms.edupro_sms.fees.get_student_fee_statement",
 		"edupro_sms.edupro_sms.fees.get_student_ledger",
+		"edupro_sms.edupro_sms.fees.get_receipt_context",
 		"edupro_sms.edupro_sms.academic_calendar.get_next_term_start",
 	],
 }

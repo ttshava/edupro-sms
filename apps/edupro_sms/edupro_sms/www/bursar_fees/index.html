@@ -6,6 +6,7 @@
 <a href="/bursar_fees" class="{{ 'active' if active_nav == 'fees' else '' }}">{{ icons.icon("dollar-sign") }} Fees</a>
 <a href="/bursar_billing">{{ icons.icon("term") }} Billing</a>
 <a href="/bursar-students">{{ icons.icon("graduation-cap") }} Students</a>
+<a href="/bursar-reports">{{ icons.icon("bar-chart") }} Reports</a>
 {% endblock %}
 
 {% block portal_content %}
@@ -246,6 +247,12 @@
         if (result.ok && msg && msg.success) {
           statusEl.textContent = "Recorded. Balance: " + money(msg.new_balance);
           statusEl.className = "field-status payment-status save-ok";
+          if (msg.receipt_id) {
+            window.open(
+              "/printview?doctype=Student%20Ledger%20Entry&name=" + encodeURIComponent(msg.receipt_id) + "&format=Payment%20Receipt&no_letterhead=0",
+              "_blank"
+            );
+          }
           setTimeout(function () { window.location.reload(); }, 900);
         } else {
           btn.disabled = false;

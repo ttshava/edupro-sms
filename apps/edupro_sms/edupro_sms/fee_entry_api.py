@@ -170,7 +170,8 @@ def record_payment(fee_id, amount, payment_date=None, payment_method=None, notes
             'success': True,
             'message': 'Payment recorded successfully. Outstanding balance: $500.00',
             'new_balance': 500,
-            'fee_status': 'Partially Paid'
+            'fee_status': 'Partially Paid',
+            'receipt_id': 'a1b2c3d4e5'
         }
     """
 
@@ -180,7 +181,8 @@ def record_payment(fee_id, amount, payment_date=None, payment_method=None, notes
             'success': True,
             'message': f"Payment recorded successfully. Outstanding balance: ${result['balance']:,.2f}",
             'new_balance': result['balance'],
-            'fee_status': result['status']
+            'fee_status': result['status'],
+            'receipt_id': result['ledger_entry']
         }
     except frappe.PermissionError as e:
         return {'success': False, 'error': str(e)}

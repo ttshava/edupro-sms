@@ -34,12 +34,15 @@ def _log_ledger_entry(
 	academic_term: str | None = None,
 	reference_student_fee: str | None = None,
 	posting_datetime=None,
-):
+) -> str:
 	"""Every bill and every payment gets its own timestamped row here --
 	the Fee Statement print format renders these as a running Debit/
 	Credit/Balance ledger, like a bank statement, instead of just a
-	per-term summary."""
-	frappe.get_doc(
+	per-term summary. Returns the new row's name -- record_payment()
+	uses it as the receipt to print (Payment Receipt print format is
+	bound to Student Ledger Entry, not Student Fee, since a fee can be
+	paid in several installments and each one needs its own receipt)."""
+	doc = frappe.get_doc(
 		{
 			"doctype": "Student Ledger Entry",
 			"student": student,
@@ -50,7 +53,9 @@ def _log_ledger_entry(
 			"debit": debit,
 			"credit": credit,
 		}
-	).insert(ignore_permissions=True)
+	)
+	doc.insert(ignore_permissions=True)
+	return doc.name
 
 
 @frappe.whitelist()
@@ -192,7 +197,7 @@ def record_payment(student_fee: str, amount) -> dict:
 		)
 	doc.amount_paid = new_paid
 	doc.save(ignore_permissions=True)
-	_log_ledger_entry(
+	ledger_entry = _log_ledger_entry(
 		doc.student,
 		f"Payment Received - {doc.academic_term}",
 		credit=amount,
@@ -200,7 +205,13 @@ def record_payment(student_fee: str, amount) -> dict:
 		reference_student_fee=doc.name,
 	)
 	frappe.db.commit()
-	return {"name": doc.name, "amount_paid": doc.amount_paid, "balance": doc.balance, "status": doc.status}
+	return {
+		"name": doc.name,
+		"amount_paid": doc.amount_paid,
+		"balance": doc.balance,
+		"status": doc.status,
+		"ledger_entry": ledger_entry,
+	}
 
 
 @frappe.whitelist()
@@ -355,3 +366,33 @@ def get_student_ledger(student: str) -> dict:
 		)
 
 	return {"entries": rows, "closing_balance": balance}
+
+
+def get_receipt_context(ledger_entry: str) -> dict:
+	"""Everything the Payment Receipt print format needs for one payment
+	row -- the student's current class, and (when the payment is tied to
+	a Student Fee) that term's real amount/paid/balance, read straight
+	off the stored Student Fee record rather than recomputed here, since
+	Student Ledger Entry rows don't carry their own persisted balance
+	(get_student_ledger() computes a running balance only at display
+	time, across the whole account, not per row)."""
+	entry = frappe.get_doc("Student Ledger Entry", ledger_entry)
+
+	student_group = frappe.db.get_value(
+		"Student Group Student", {"student": entry.student, "active": 1}, "parent", order_by="creation desc"
+	)
+
+	fee = None
+	if entry.reference_student_fee and frappe.db.exists("Student Fee", entry.reference_student_fee):
+		fee = frappe.db.get_value(
+			"Student Fee",
+			entry.reference_student_fee,
+			["academic_term", "amount", "amount_paid", "balance"],
+			as_dict=True,
+		)
+
+	return {
+		"entry": entry,
+		"student_group": student_group or "Unassigned",
+		"fee": fee,
+	}

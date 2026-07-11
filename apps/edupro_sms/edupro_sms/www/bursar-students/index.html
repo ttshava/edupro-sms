@@ -6,6 +6,7 @@
 <a href="/bursar_fees">{{ icons.icon("dollar-sign") }} Fees</a>
 <a href="/bursar_billing">{{ icons.icon("term") }} Billing</a>
 <a href="/bursar-students" class="{{ 'active' if active_nav == 'students' else '' }}">{{ icons.icon("graduation-cap") }} Students</a>
+<a href="/bursar-reports">{{ icons.icon("bar-chart") }} Reports</a>
 {% endblock %}
 
 {% block portal_content %}
@@ -21,7 +22,7 @@
 <p class="user-line">Manage student records, enrollments, and guardians</p>
 
 <div class="quick-actions">
-  <a class="btn btn-primary" href="/bursar-students/add">{{ icons.icon("users") }}Add Student</a>
+  <a class="btn btn-primary" href="/bursar-students/add-student">{{ icons.icon("users") }}Add Student</a>
   <a class="btn btn-secondary" href="/import-data">{{ icons.icon("upload") }}Bulk Import</a>
 </div>
 

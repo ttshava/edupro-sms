@@ -1,11 +1,14 @@
-"""Faded school-logo watermark for the Report Card print format --
-registered as a Jinja method (hooks.py), same pattern as qr.py's
-verification QR code.
+"""School-logo image helpers for print formats -- both registered as
+Jinja methods (hooks.py), same pattern as qr.py's verification QR code.
 
-The low opacity is baked into the PNG's own alpha channel rather than
-left to CSS `opacity` on the <img> tag: wkhtmltopdf's older WebKit
-engine renders CSS opacity on position:absolute images unreliably (it
-showed up full-strength in testing), so this bypasses that entirely.
+Both variants embed the logo as a base64 data URI rather than pointing
+<img src> at the raw file URL. wkhtmltopdf fetches src URLs over real
+HTTP, and on this LAN setup that means looping back through the
+machine's own external IP (hairpin NAT via host_name) -- unreliable
+from inside the Docker container, and it intermittently fails PDF
+generation outright ("broken image links"). Embedding the bytes
+directly sidesteps any network fetch, for the plain logo just as much
+as the faded watermark.
 """
 
 import base64
@@ -25,7 +28,7 @@ from PIL import Image
 WATERMARK_MAX_ALPHA = 70
 
 
-def report_card_watermark_data_uri() -> str | None:
+def _get_logo_image():
 	logo_url = frappe.db.get_single_value("School Settings", "logo")
 	if not logo_url:
 		return None
@@ -37,17 +40,35 @@ def report_card_watermark_data_uri() -> str | None:
 	file_path = frappe.get_doc("File", file_name).get_full_path()
 
 	try:
-		img = Image.open(file_path).convert("RGBA")
+		return Image.open(file_path).convert("RGBA")
 	except Exception:
-		frappe.log_error(title="Report card watermark generation failed")
+		frappe.log_error(title="School logo load failed")
 		return None
 
-	img.thumbnail((500, 500))
-	luminance = img.convert("L")
-	alpha = luminance.point(lambda p: min(255 - p, WATERMARK_MAX_ALPHA))
-	img.putalpha(alpha)
 
+def _to_data_uri(img) -> str:
 	buf = BytesIO()
 	img.save(buf, format="PNG")
 	encoded = base64.b64encode(buf.getvalue()).decode()
 	return f"data:image/png;base64,{encoded}"
+
+
+def school_logo_data_uri() -> str | None:
+	"""Full-opacity school logo, for the header of any print format --
+	use this instead of School Settings.logo's raw file URL directly."""
+	img = _get_logo_image()
+	if img is None:
+		return None
+	img.thumbnail((400, 400))
+	return _to_data_uri(img)
+
+
+def report_card_watermark_data_uri() -> str | None:
+	img = _get_logo_image()
+	if img is None:
+		return None
+	img.thumbnail((500, 500))
+	luminance = img.convert("L")
+	alpha = luminance.point(lambda p: min(255 - p, WATERMARK_MAX_ALPHA))
+	img.putalpha(alpha)
+	return _to_data_uri(img)
