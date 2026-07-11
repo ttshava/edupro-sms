@@ -1,5 +1,5 @@
 # Frappe / Docker local dev - vendored repo and runtime data, not our source
-frappe_docker/
+frappe_docker/*
 apps/*
 sites/*
 logs/*
@@ -8,6 +8,22 @@ backups/*
 !sites/.gitkeep
 !logs/.gitkeep
 !backups/.gitkeep
+
+# frappe_docker/ is a vendored clone (README, docs, apps/, images/, every
+# compose variant we don't use) -- not worth tracking wholesale. But three
+# files there are the actual configuration inputs for THIS deployment and
+# exist nowhere else, so a fresh server setup has nothing to rebuild from
+# without them: apps.json (which apps/branches get baked into the image),
+# overrides.local/ (the edupro_sms bind-mount + shared bench-env volume
+# fix -- see its own header comment for why this exists), and .env.example
+# (a redacted template for the real .env, which stays gitignored via the
+# blanket `.env` rule below). See docs/08_Deployment.md for how these
+# combine into the actual running compose.edupro.yaml, which is NOT
+# tracked here since it bakes in this machine's absolute bind-mount paths
+# and current Docker bridge IP -- both need re-deriving per machine.
+!frappe_docker/apps.json
+!frappe_docker/.env.example
+!frappe_docker/overrides.local
 
 # apps/edupro_sms is OUR custom app -- the actual source code for every
 # feature in this project. It was excluded by the apps/* rule above for
