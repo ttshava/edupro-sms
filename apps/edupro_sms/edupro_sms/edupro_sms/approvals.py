@@ -14,7 +14,7 @@ import frappe
 from frappe import _
 from frappe.model.workflow import apply_workflow
 
-ALLOWED_ACTIONS = {"Review", "Approve", "Reject", "Publish"}
+ALLOWED_ACTIONS = {"Review", "Approve", "Reject", "Publish", "Resubmit"}
 
 
 def _is_headmaster(user=None) -> bool:
@@ -37,7 +37,7 @@ def _is_class_teacher_of(student_group, user=None) -> bool:
 def _can_perform(action, student_group, user=None) -> bool:
 	if _is_headmaster(user):
 		return True
-	if action == "Review":
+	if action in ("Review", "Resubmit"):
 		return _is_class_teacher_of(student_group, user)
 	return False
 
@@ -56,40 +56,6 @@ def get_pending_report_cards(student_group: str | None = None):
 	)
 
 
-_COMMENT_FIELD_RULES = {
-	# field -> (who may edit it, which workflow_state(s) it's editable in)
-	"class_teacher_comment": {"Pending Approval", "Reviewed"},
-	"headmaster_comment": {"Reviewed", "Approved"},
-}
-
-
-@frappe.whitelist()
-def save_report_card_comment(report_card_name: str, field: str, value: str) -> dict:
-	"""Class Teacher writes class_teacher_comment during their Review
-	step; Headmaster writes headmaster_comment during Approve/Publish --
-	both fields already print on the Report Card PDF but previously had
-	no portal input anywhere, only Desk (which these roles don't have)."""
-	if field not in _COMMENT_FIELD_RULES:
-		frappe.throw(_("Invalid field."))
-
-	doc = frappe.get_doc("Report Card", report_card_name)
-
-	if field == "class_teacher_comment":
-		allowed = _is_headmaster() or _is_class_teacher_of(doc.student_group)
-	else:
-		allowed = _is_headmaster()
-
-	if not allowed:
-		frappe.throw(_("You are not permitted to edit this comment."), frappe.PermissionError)
-
-	if doc.workflow_state not in _COMMENT_FIELD_RULES[field]:
-		frappe.throw(_("This report card is not currently in a state where that comment can be edited."))
-
-	frappe.db.set_value("Report Card", report_card_name, field, value)
-	frappe.db.commit()
-	return {"report_card": report_card_name, "field": field, "value": value}
-
-
 @frappe.whitelist()
 def apply_report_card_action(name, action):
 	if action not in ALLOWED_ACTIONS:
@@ -98,6 +64,15 @@ def apply_report_card_action(name, action):
 	doc = frappe.get_doc("Report Card", name)
 	if not _can_perform(action, doc.student_group):
 		frappe.throw(_("You are not permitted to {0} this report card.").format(action.lower()), frappe.PermissionError)
+
+	if action == "Publish" and doc.workflow_state == "Reviewed":
+		# The Headmaster's per-student "Publish" button is one click, not
+		# two -- Approved stays a real, valid intermediate workflow_state
+		# (still meaningful for the dashboard's approved_count and for
+		# anyone using the separate bulk Approve/Publish buttons), just
+		# applied back-to-back here instead of requiring a second click.
+		apply_workflow(doc, "Approve")
+
 	apply_workflow(doc, action)
 	return {"workflow_state": doc.workflow_state}
 

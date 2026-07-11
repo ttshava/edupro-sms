@@ -23,8 +23,7 @@ def get_context(context):
 	context.no_cache = 1
 	context.review = get_class_review(student_group)
 	context.pending_report_cards = get_pending_report_cards(student_group) if is_headmaster else []
-	context.can_edit_class_teacher_comment = is_headmaster or is_class_teacher
-	context.can_edit_headmaster_comment = is_headmaster
 	context.is_headmaster = is_headmaster
+	context.is_class_teacher = is_class_teacher
 	context.csrf_token = frappe.sessions.get_csrf_token()
 	context.title = f"Class Review - {student_group}"

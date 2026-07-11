@@ -217,5 +217,25 @@ def save_marks(assessment_plan, entries):
 		doc.submit()
 		saved += 1
 
+		# The moment this student's last required subject is submitted,
+		# their Report Card should exist for Class Teacher review with no
+		# separate "generate reports" step -- there's no such button
+		# anywhere in the product (see docs/04_Workflows.md 4.2), so this
+		# is the only trigger point. Runs as Administrator since it's a
+		# system side effect, not something the teacher is themselves
+		# permitted/expected to do; never allowed to break the teacher's
+		# actual mark submission above, which has already succeeded.
+		try:
+			from edupro_sms.edupro_sms.doctype.report_card.report_card import maybe_generate_report_card
+
+			acting_user = frappe.session.user
+			frappe.set_user("Administrator")
+			try:
+				maybe_generate_report_card(student, plan.student_group, plan.academic_term)
+			finally:
+				frappe.set_user(acting_user)
+		except Exception:
+			frappe.log_error(title="Auto report card generation failed")
+
 	frappe.db.commit()
 	return {"saved": saved}

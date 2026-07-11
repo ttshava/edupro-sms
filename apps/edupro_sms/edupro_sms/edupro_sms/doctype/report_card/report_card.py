@@ -160,6 +160,26 @@ def generate_report_cards(student_group: str, academic_term: str) -> dict:
 	}
 
 
+def maybe_generate_report_card(student: str, student_group: str, academic_term: str) -> dict | None:
+	"""Auto-trigger for one student, called by marks_entry.save_marks()
+	right after every submit -- the moment their last required subject is
+	in, this generates/updates their Report Card and re-ranks the class,
+	so a complete student flows straight into Class Teacher review with
+	no separate "generate reports" step for anyone to remember to run.
+	Silently no-ops (returns None) if they're still missing subjects --
+	exactly the same completeness check generate_report_cards() itself
+	uses, just scoped to one student instead of the whole class."""
+	group = frappe.get_doc("Student Group", student_group)
+	required_courses = _required_courses_for_student(student, group)
+	if not required_courses:
+		return None
+
+	result = _generate_for_student(student, group, academic_term, required_courses)
+	if result:
+		_calculate_positions(student_group, academic_term)
+	return result
+
+
 def _required_courses_for(group) -> list[str]:
 	"""Fallback only -- the Program's blanket required-course list, used
 	when a student has no Program Enrollment (or it has no courses
@@ -325,7 +345,16 @@ def _subject_row(result, practical_courses: set[str] | None = None) -> dict:
 def _calculate_positions(student_group: str, academic_term: str):
 	"""Standard competition ranking: equal averages share a rank, and the
 	next distinct rank skips accordingly (two students tied at 3 both show
-	3, the next student shows 5, not 4)."""
+	3, the next student shows 5, not 4).
+
+	Also (re)generates both comment fields here rather than in
+	_generate_for_student() -- position/number_of_students aren't known
+	until this whole-class pass runs, and an insightful comment wants to
+	reference them. Runs on every completion (not just full-batch
+	generation), so as more classmates finish, everyone's comment stays
+	current -- there's no manual override to preserve since Class
+	Teacher/Headmaster no longer hand-type these (see .claude/DECISIONS.md
+	on removing that input in favour of auto-generated remarks)."""
 	cards = frappe.get_all(
 		"Report Card",
 		filters={"student_group": student_group, "academic_term": academic_term, "docstatus": ["!=", 2]},
@@ -339,4 +368,133 @@ def _calculate_positions(student_group: str, academic_term: str):
 		if card.average_percentage != last_percentage:
 			rank = idx
 			last_percentage = card.average_percentage
-		frappe.db.set_value("Report Card", card.name, {"position": rank, "number_of_students": count})
+		doc = frappe.get_doc("Report Card", card.name)
+		frappe.db.set_value(
+			"Report Card",
+			card.name,
+			{
+				"position": rank,
+				"number_of_students": count,
+				"class_teacher_comment": _generate_class_teacher_comment(doc, rank, count),
+				"headmaster_comment": _generate_headmaster_comment(doc, rank, count),
+			},
+		)
+
+
+_GRADE_TIERS = {
+	"A*": "excellent", "A": "excellent", "A*/A": "excellent",
+	"B": "good",
+	"C": "solid",
+	"D": "needs_improvement",
+	"E": "at_risk", "F": "at_risk", "U": "at_risk", "Ungraded": "at_risk",
+}
+
+
+def _grade_tier(grade_code: str | None) -> str:
+	return _GRADE_TIERS.get(grade_code, "solid")
+
+
+def _ordinal(n: int) -> str:
+	if 11 <= (n % 100) <= 13:
+		suffix = "th"
+	else:
+		suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+	return f"{n}{suffix}"
+
+
+def _best_and_worst_subjects(assessment_results) -> tuple[str | None, str | None]:
+	"""Real strongest/weakest subject by percentage -- excludes the
+	synthetic Practical/NONE row (no score to compare) and skips entirely
+	if there's only one scored subject (nothing meaningful to contrast)."""
+	scored = [
+		(r.reporting_subject or r.course, flt(r.total_score) / flt(r.maximum_score))
+		for r in assessment_results
+		if r.course and r.maximum_score
+	]
+	if len(scored) < 2:
+		return (scored[0][0], None) if scored else (None, None)
+	scored.sort(key=lambda x: x[1])
+	return scored[-1][0], scored[0][0]
+
+
+def _generate_class_teacher_comment(report_card, position: int, count: int) -> str:
+	"""Insightful, multi-sentence remark grounded entirely in this term's
+	real results -- grade tier, class standing, and the student's actual
+	strongest/weakest subject. Warmer and more pastoral in tone than the
+	Headmaster's, since this is the teacher who sees the student daily."""
+	name = (report_card.student_name or "This student").split(" ")[0]
+	avg = flt(report_card.average_percentage)
+	grade = report_card.overall_grade or "-"
+	tier = _grade_tier(grade)
+	best, worst = _best_and_worst_subjects(report_card.assessment_results)
+	pos_clause = f", finishing {_ordinal(position)} out of {count} in the class," if position and count else ""
+
+	if tier == "excellent":
+		subject_line = f" {name} performed particularly strongly in {best}, and" if best else f" {name}"
+		return (
+			f"An outstanding term for {name}{pos_clause} with an average of {avg:.1f}% (Grade {grade})."
+			f"{subject_line} showed real depth of understanding across the board. "
+			f"Effort and focus have clearly paid off this term -- keep up this excellent standard."
+		)
+	if tier == "good":
+		mid = f"{name}'s best results came in {best}" if best else f"{name} showed good results overall"
+		tail = f", though more consistency in {worst} would help push things further" if worst else ""
+		return (
+			f"A solid, encouraging term for {name}{pos_clause} with an average of {avg:.1f}% (Grade {grade}). "
+			f"{mid}{tail}. A promising foundation to build on next term."
+		)
+	if tier == "solid":
+		detail = f" Results were strongest in {best}" + (f", but {worst} needs more focused attention" if worst else "") + "." if best else ""
+		return (
+			f"{name} achieved an average of {avg:.1f}% (Grade {grade}) this term{pos_clause.rstrip(',')}.{detail} "
+			f"With more consistent effort and regular revision across all subjects, {name} is capable of a stronger result next term."
+		)
+	if tier == "needs_improvement":
+		weak_line = f" {worst} in particular needs urgent attention" + (f", though {best} shows real capability" if best else "") + "." if worst else ""
+		return (
+			f"{name}'s average this term was {avg:.1f}% (Grade {grade}){pos_clause.rstrip(',')}, which falls below expectation.{weak_line} "
+			f"I strongly encourage extra effort, better time management, and support at home to turn this around next term."
+		)
+	# at_risk
+	weak_line = f", especially in {worst}," if worst else ""
+	return (
+		f"This has been a difficult term for {name}{pos_clause} with an average of {avg:.1f}% (Grade {grade}). "
+		f"Performance across most subjects{weak_line} is well below what is needed. "
+		f"I recommend a meeting with parents/guardians to put a focused support plan in place before next term."
+	)
+
+
+def _generate_headmaster_comment(report_card, position: int, count: int) -> str:
+	"""Shorter, more formal endorsement-style remark for the Headmaster --
+	same underlying data as the Class Teacher's comment, different
+	register: evaluative and standing-focused rather than pastoral."""
+	name = (report_card.student_name or "This student").split(" ")[0]
+	avg = flt(report_card.average_percentage)
+	grade = report_card.overall_grade or "-"
+	tier = _grade_tier(grade)
+	pos_clause = f", ranking {_ordinal(position)} out of {count} students in the class," if position and count else ""
+
+	if tier == "excellent":
+		return (
+			f"An excellent set of results this term{pos_clause} with an average of {avg:.1f}% (Grade {grade}). "
+			f"{name} is commended for this outstanding academic performance and is encouraged to maintain this standard."
+		)
+	if tier == "good":
+		return (
+			f"A good, consistent performance this term{pos_clause} averaging {avg:.1f}% (Grade {grade}). "
+			f"{name} is encouraged to keep building on this progress with continued effort next term."
+		)
+	if tier == "solid":
+		return (
+			f"A satisfactory term overall{pos_clause} with an average of {avg:.1f}% (Grade {grade}). "
+			f"{name} has the ability to achieve more with greater consistency and focus."
+		)
+	if tier == "needs_improvement":
+		return (
+			f"This term's results{pos_clause} averaging {avg:.1f}% (Grade {grade}), fall below the expected standard. "
+			f"{name} is urged to work more closely with teachers and put in significantly more effort next term."
+		)
+	return (
+		f"This term's performance{pos_clause} at {avg:.1f}% (Grade {grade}), is a serious concern. "
+		f"I urge {name}, together with parents/guardians and teachers, to take immediate corrective action."
+	)

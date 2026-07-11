@@ -14,16 +14,13 @@
   .dist-row .bar-track { flex: 1; height: 10px; }
   .dist-count { width: 120px; color: var(--edu-gray-500); font-size: 0.75rem; }
 
-  .comment-block { font-size: 0.82rem; color: var(--edu-gray-700); margin-bottom: 8px; }
+  .comment-block { font-size: 0.82rem; color: var(--edu-gray-700); max-width: 260px; }
 
   .action-row { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
 
-  .row-comment-input {
-    width: 150px; padding: 4px 6px; border: 1px solid var(--edu-gray-300); border-radius: var(--edu-radius-sm);
-    font-size: 0.78rem; font-family: inherit; display: block; margin-bottom: 3px;
-  }
-  .row-comment-save { font-size: 0.72rem; padding: 2px 8px; }
-  .row-comment-status { font-size: 0.7rem; }
+  .row-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 90px; }
+  .row-actions .btn { font-size: 0.75rem; padding: 3px 10px; }
+  .row-action-status { font-size: 0.7rem; }
 </style>
 
 <h1>{{ review.student_group }}</h1>
@@ -69,28 +66,23 @@
       <td>{{ "%.1f"|format(s.average_percentage) if s.average_percentage is not none else "-" }}%</td>
       <td>{{ s.grade or "-" }}</td>
       <td><span class="pill {{ 'pill-green' if s.workflow_state == 'Published' else 'pill-amber' }}">{{ s.workflow_state }}</span></td>
-      <td>
-        {% if can_edit_class_teacher_comment and s.workflow_state in ("Pending Approval", "Reviewed") %}
-        <input type="text" class="row-comment-input" data-field="class_teacher_comment" value="{{ s.class_teacher_comment }}" placeholder="Optional remark">
-        <button class="btn btn-secondary row-comment-save" data-field="class_teacher_comment">Save</button>
-        <span class="row-comment-status" data-status="class_teacher_comment"></span>
-        {% else %}
-        {{ s.class_teacher_comment or "-" }}
+      <td class="comment-block">{{ s.class_teacher_comment or "-" }}</td>
+      <td class="comment-block">{{ s.headmaster_comment or "-" }}</td>
+      <td class="row-actions">
+        <a href="/printview?doctype=Report%20Card&name={{ s.report_card|urlencode }}&format=IGCSE%20Report%20Card&no_letterhead=0" target="_blank" class="btn btn-secondary">View</a>
+        {% if is_class_teacher and s.workflow_state == "Pending Approval" %}
+        <button class="btn btn-secondary row-action" data-action="Review" data-report="{{ s.report_card }}">Review</button>
         {% endif %}
-      </td>
-      <td>
-        {% if can_edit_headmaster_comment and s.workflow_state in ("Reviewed", "Approved") %}
-        <input type="text" class="row-comment-input" data-field="headmaster_comment" value="{{ s.headmaster_comment }}" placeholder="Optional remark">
-        <button class="btn btn-secondary row-comment-save" data-field="headmaster_comment">Save</button>
-        <span class="row-comment-status" data-status="headmaster_comment"></span>
-        {% else %}
-        {{ s.headmaster_comment or "-" }}
+        {% if is_class_teacher and s.workflow_state == "Rejected" %}
+        <button class="btn btn-secondary row-action" data-action="Resubmit" data-report="{{ s.report_card }}">Resubmit</button>
         {% endif %}
-      </td>
-      <td>
-        {% if s.workflow_state == "Published" %}
-        <a href="/printview?doctype=Report%20Card&name={{ s.report_card|urlencode }}&format=IGCSE%20Report%20Card&no_letterhead=0" target="_blank">View</a>
+        {% if is_headmaster and s.workflow_state in ("Reviewed", "Approved") %}
+        <button class="btn btn-publish row-action" data-action="Publish" data-report="{{ s.report_card }}">Publish</button>
         {% endif %}
+        {% if is_headmaster and s.workflow_state == "Reviewed" %}
+        <button class="btn btn-reject row-action" data-action="Reject" data-report="{{ s.report_card }}">Reject</button>
+        {% endif %}
+        <div class="row-action-status" data-report-status="{{ s.report_card }}"></div>
       </td>
     </tr>
     {% endfor %}
@@ -157,44 +149,41 @@
     });
   });
 
-  document.querySelectorAll(".row-comment-save").forEach(function (btn) {
+  document.querySelectorAll(".row-action").forEach(function (btn) {
     btn.addEventListener("click", function () {
+      var action = btn.dataset.action;
+      var report = btn.dataset.report;
       var tr = btn.closest("tr");
-      var field = btn.dataset.field;
-      var input = tr.querySelector('.row-comment-input[data-field="' + field + '"]');
-      var statusEl = tr.querySelector('.row-comment-status[data-status="' + field + '"]');
+      var statusEl = tr.querySelector('.row-action-status[data-report-status="' + report + '"]');
 
-      btn.disabled = true;
-      statusEl.textContent = "Saving...";
-      statusEl.className = "row-comment-status";
+      tr.querySelectorAll(".row-action").forEach(function (b) { b.disabled = true; });
+      statusEl.textContent = action + "ing...";
+      statusEl.className = "row-action-status";
 
-      fetch("/api/method/edupro_sms.edupro_sms.approvals.save_report_card_comment", {
+      fetch("/api/method/edupro_sms.edupro_sms.approvals.apply_report_card_action", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-Frappe-CSRF-Token": "{{ csrf_token }}",
         },
-        body: JSON.stringify({
-          report_card_name: tr.dataset.report,
-          field: field,
-          value: input.value,
-        }),
+        body: JSON.stringify({ name: report, action: action }),
       })
         .then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
         .then(function (result) {
-          btn.disabled = false;
           if (result.ok) {
-            statusEl.textContent = "Saved.";
-            statusEl.className = "row-comment-status save-ok";
+            statusEl.textContent = "Done.";
+            statusEl.className = "row-action-status save-ok";
+            setTimeout(function () { window.location.reload(); }, 700);
           } else {
-            statusEl.textContent = "Error: " + (result.body.exception || result.body._server_messages || "Could not save.");
-            statusEl.className = "row-comment-status save-error";
+            statusEl.textContent = "Error: " + (result.body.exception || result.body._server_messages || "Could not update.");
+            statusEl.className = "row-action-status save-error";
+            tr.querySelectorAll(".row-action").forEach(function (b) { b.disabled = false; });
           }
         })
         .catch(function (err) {
-          btn.disabled = false;
           statusEl.textContent = "Error: " + err;
-          statusEl.className = "row-comment-status save-error";
+          statusEl.className = "row-action-status save-error";
+          tr.querySelectorAll(".row-action").forEach(function (b) { b.disabled = false; });
         });
     });
   });
