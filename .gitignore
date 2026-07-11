@@ -34,6 +34,17 @@ backups/*
 # up there.)
 !apps/edupro_sms
 
+# One explicit, dated full-site backup (database + files), pushed on
+# request as a disaster-recovery snapshot -- see docs/13_Backup_Restore.md.
+# Contains real student/guardian PII and financial data; this is a
+# deliberate one-off exception to the blanket backups/* rule above, not a
+# standing policy. Future backups stay untracked unless individually
+# un-ignored the same way -- don't broaden this to `!backups/*`.
+!backups/20260712_013402-edupro_localhost-database.sql.gz
+!backups/20260712_013402-edupro_localhost-files.tar
+!backups/20260712_013402-edupro_localhost-private-files.tar
+!backups/20260712_013402-edupro_localhost-site_config_backup.json
+
 *.log
 *.pid
 .env

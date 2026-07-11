@@ -1,0 +1,9 @@
+{
+ "allow_tests": false,
+ "db_name": "_42fa2701e9126147",
+ "db_password": "ak6aiU4yzti97V6M",
+ "db_type": "mariadb",
+ "developer_mode": 0,
+ "encryption_key": "YwxHgwBmQc6LWmlBwQrUrTogWqRa2FiLIH0jasm0bbs=",
+ "host_name": "http://192.168.1.100:8080"
+}
