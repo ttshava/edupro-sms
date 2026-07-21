@@ -1,2 +1,7 @@
-// Edupro SMS - IGCSE Academic Reporting Platform
-console.log('Edupro SMS loaded');
+frappe.provide("edupro_sms");
+
+frappe.ui.form.on("*", {
+	setup: function(frm) {
+		// Edupro SMS initialized
+	}
+});
