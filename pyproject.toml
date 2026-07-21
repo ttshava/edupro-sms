@@ -10,6 +10,10 @@ readme = "README.md"
 requires-python = ">=3.10"
 authors = [{name = "Edupro", email = "ttshava@gmail.com"}]
 license = {text = "MIT"}
+dependencies = [
+    "qrcode",
+    "Pillow",
+]
 
 [project.urls]
 Homepage = "https://github.com/ttshava/edupro-sms"
