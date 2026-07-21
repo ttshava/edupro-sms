@@ -1,0 +1,303 @@
+{% extends "templates/portal_base.html" %}
+{% import "templates/includes/icons.html" as icons %}
+
+{% block sidebar_nav %}
+<button class="tab-btn active" data-tab="overview">{{ icons.icon("home") }} Overview</button>
+<button class="tab-btn" data-tab="grades">{{ icons.icon("bar-chart") }} Grades</button>
+<button class="tab-btn" data-tab="profile">{{ icons.icon("user") }} Profile</button>
+<button class="tab-btn" data-tab="fees">{{ icons.icon("dollar-sign") }} Fees</button>
+{% endblock %}
+
+{% block portal_content %}
+<style>
+  /* Page-specific layout only -- colors/fonts/spacing come from the
+     standard theme in portal_base.html. */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .child-block { margin-bottom: 16px; }
+  .child-name { font-size: 0.95rem; font-weight: 700; margin-bottom: 10px; color: var(--edu-dark); }
+
+  .profile-row { display: flex; padding: 7px 0; border-bottom: 1px solid var(--edu-gray-100); font-size: 0.82rem; }
+  .profile-label { width: 150px; color: var(--edu-gray-500); font-weight: 700; }
+  .subjects-heading { margin: 14px 0 6px; font-weight: 700; color: var(--edu-gray-600); font-size: 0.78rem; }
+
+  .fee-block { margin-bottom: 16px; }
+  .fee-statement-table tr.not-billed { color: var(--edu-gray-500); }
+  .fee-statement-table tr.not-billed td { font-style: italic; }
+
+  /* Overview: compact chip strip + kid cards + per-child detail blocks */
+  .chip-strip { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+
+  .kid-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+  .kid-card {
+    width: 140px; text-align: center; text-decoration: none; color: inherit;
+  }
+  .kid-avatar {
+    width: 34px; height: 34px; border-radius: 50%; background: var(--edu-red); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto 8px; font-size: 0.85rem;
+  }
+  .kid-card .kid-name { font-weight: 700; font-size: 0.8rem; color: var(--edu-dark); }
+  .kid-card .kid-class { color: var(--edu-gray-500); font-size: 0.7rem; margin: 2px 0 6px; }
+  .kid-card .kid-avg { font-weight: 800; color: var(--edu-red); font-size: 0.85rem; }
+
+  .detail-block { margin-bottom: 16px; scroll-margin-top: 20px; }
+  .detail-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; flex-wrap: wrap; gap: 4px; }
+  .detail-header h3 { margin: 0; }
+  .detail-header .sub { color: var(--edu-gray-500); font-size: 0.75rem; }
+
+  .stat-chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .stat-chip { background: var(--edu-gray-50); border-radius: var(--edu-radius-sm); padding: 7px 14px; min-width: 80px; text-align: center; }
+  .stat-chip .v { font-size: 1.05rem; font-weight: 800; color: var(--edu-red); }
+  .stat-chip .l { font-size: 0.66rem; color: var(--edu-gray-500); text-transform: uppercase; letter-spacing: .3px; }
+  .stars { color: #d4ac0d; letter-spacing: 0.5px; }
+
+  .subject-perf-table td.comment { color: var(--edu-gray-600); font-size: 0.78rem; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .action-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+  .action-status { font-size: 0.78rem; margin-top: 6px; }
+
+  .progress-note { color: var(--edu-gray-500); font-size: 0.78rem; border-top: 1px dashed var(--edu-gray-200); padding-top: 10px; margin-top: 10px; }
+  .progress-table td, .progress-table th { text-align: center; }
+</style>
+
+<h1>My Reports</h1>
+<p class="user-line">{{ frappe.session.user }}</p>
+
+<div class="tab-panel active" id="tab-overview">
+  {% if not profile_students %}
+    <p class="empty">No profile information available yet.</p>
+  {% else %}
+
+  <div class="chip-strip">
+    {% if overview.academic_year %}<div class="chip">{{ icons.icon("calendar") }} Academic Year <strong>{{ overview.academic_year }}</strong></div>{% endif %}
+    {% if overview.current_term %}<div class="chip">{{ icons.icon("term") }} Current Term <strong>{{ overview.current_term }}</strong></div>{% endif %}
+    <div class="chip">{{ icons.icon("users") if viewer_role == "guardian" else icons.icon("graduation-cap") }} {{ "Children" if viewer_role == "guardian" else "Class" }} <strong>{{ overview.children_count if viewer_role == "guardian" else profile_students[0].student_group }}</strong></div>
+    <div class="chip">{{ icons.icon("check-circle") }} Reports Available <strong>{{ overview.reports_available }}</strong></div>
+    {% if overview.new_reports %}
+    <div class="chip chip-alert">{{ icons.icon("bell") }} New <strong>{{ overview.new_reports }}</strong></div>
+    {% endif %}
+  </div>
+
+  {% if viewer_role == "guardian" and profile_students|length > 1 %}
+  <div class="kid-grid">
+    {% for p in profile_students %}
+    <a href="#child-{{ p.student }}" class="card card-hover kid-card">
+      <div class="kid-avatar">{{ p.student_name[0] }}</div>
+      <div class="kid-name">{{ p.student_name }}</div>
+      <div class="kid-class">{{ p.student_group or "Unassigned" }}</div>
+      {% if p.latest_report %}
+      <div class="kid-avg">{{ "%.1f"|format(p.latest_report.average_percentage) }}%</div>
+      {% else %}
+      <div class="kid-avg">-</div>
+      {% endif %}
+      <span class="pill {{ 'pill-green' if p.enabled else 'pill-gray' }}">{{ "Active" if p.enabled else "Inactive" }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% for p in profile_students %}
+  <div class="card detail-block" id="child-{{ p.student }}">
+    <div class="detail-header">
+      <h3>{{ p.student_name }}{% if p.student_group %} &middot; {{ p.student_group }}{% endif %}</h3>
+      <span class="sub">Class Teacher: {{ p.class_teacher }}</span>
+    </div>
+
+    {% if p.latest_report %}
+    <div class="stat-chip-row">
+      <div class="stat-chip"><div class="v">{{ "%.1f"|format(p.latest_report.average_percentage) }}%</div><div class="l">Average</div></div>
+      <div class="stat-chip"><div class="v">{{ p.latest_report.overall_grade or "-" }}</div><div class="l">Grade</div></div>
+      <div class="stat-chip"><div class="v">{{ p.latest_report.position }}/{{ p.latest_report.number_of_students }}</div><div class="l">Position</div></div>
+      <div class="stat-chip"><div class="v">{{ p.latest_report.subjects|length }}</div><div class="l">Subjects</div></div>
+      <div class="stat-chip"><div class="v stars">{{ "★" * p.latest_report.star_rating }}{{ "☆" * (5 - p.latest_report.star_rating) }}</div><div class="l">Rating</div></div>
+    </div>
+
+    <table class="subject-perf-table">
+      <thead>
+        <tr><th>Subject</th><th>Score</th><th>Grade</th><th>Status</th><th>Teacher Comment</th></tr>
+      </thead>
+      <tbody>
+        {% for s in p.latest_report.subjects %}
+        <tr>
+          <td>{{ s.reporting_subject or s.course }}</td>
+          {% if s.maximum_score %}
+          {% set pct = (s.total_score / s.maximum_score * 100) %}
+          <td>{{ s.total_score }}/{{ s.maximum_score|int }}</td>
+          <td>{{ s.grade }}</td>
+          <td><span class="pill {{ 'pill-green' if pct >= 50 else 'pill-red' }}">{{ "Pass" if pct >= 50 else "Fail" }}</span></td>
+          {% else %}
+          <td>-</td>
+          <td>{{ s.grade or "-" }}</td>
+          <td><span class="pill pill-gray">N/A</span></td>
+          {% endif %}
+          <td class="comment" title="{{ s.comment or '' }}">{{ s.comment or "-" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="action-row">
+      <a class="btn btn-primary" href="/printview?doctype=Report%20Card&name={{ p.latest_report.name|urlencode }}&format=IGCSE%20Report%20Card&no_letterhead=0" target="_blank">{{ icons.icon("printer") }} View / Print / Download PDF</a>
+    </div>
+
+    {% if p.has_history %}
+    <div class="progress-note">
+      <strong>Academic Progress</strong>
+      <table class="progress-table">
+        <thead><tr>{% for h in p.report_history %}<th>{{ h.academic_term }}</th>{% endfor %}</tr></thead>
+        <tbody><tr>{% for h in p.report_history %}<td>{{ "%.1f"|format(h.average_percentage) }}%</td>{% endfor %}</tr></tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="progress-note">Progress-over-terms will appear here once a second term is published for {{ p.student_name.split(" ")[0] }}.</p>
+    {% endif %}
+
+    {% else %}
+    <p class="empty">No report card published yet.</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% endif %}
+</div>
+
+<div class="tab-panel" id="tab-grades">
+  {% if not children %}
+    <p class="empty">No profile information available yet.</p>
+  {% endif %}
+
+  {% for child in children %}
+  <div class="card child-block">
+    <div class="child-name">{{ child.student_name }}</div>
+    {% if not child.reports %}
+    <p class="empty">No report card published yet.</p>
+    {% else %}
+    <table>
+      <thead>
+        <tr>
+          <th>Term</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for report in child.reports %}
+        <tr>
+          <td>{{ report.academic_term }}</td>
+          <td>
+            <span class="pill {{ 'pill-green' if report.workflow_state == 'Published' else 'pill-amber' }}">
+              {{ "Published" if report.workflow_state == "Published" else "Pending" }}
+            </span>
+          </td>
+          <td>
+            {% if report.workflow_state == "Published" %}
+            <a href="/printview?doctype=Report%20Card&name={{ report.name|urlencode }}&format=IGCSE%20Report%20Card&no_letterhead=0" target="_blank">
+              View / Print
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="tab-panel" id="tab-profile">
+  {% if not profile_students %}
+    <p class="empty">No profile information available yet.</p>
+  {% endif %}
+  {% for p in profile_students %}
+  <div class="card child-block">
+    <div class="child-name">{{ p.student_name }}</div>
+    <div class="profile-row"><div class="profile-label">Class</div><div>{{ p.student_group or "Not yet assigned" }}</div></div>
+    <div class="profile-row"><div class="profile-label">Class Teacher</div><div>{{ p.class_teacher }}</div></div>
+    <div class="profile-row"><div class="profile-label">Parent Email{{ "s" if p.guardian_emails|length > 1 else "" }}</div><div>{{ p.guardian_emails|join(", ") if p.guardian_emails else "Not on file" }}</div></div>
+
+    {% if p.subjects %}
+    <div class="subjects-heading">Subjects</div>
+    <table class="subjects-table">
+      <thead>
+        <tr><th>Subject</th><th>Teacher</th></tr>
+      </thead>
+      <tbody>
+        {% for s in p.subjects %}
+        <tr>
+          <td>{{ s.course }}</td>
+          <td>{{ s.teacher }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="profile-row"><div class="profile-label">Subjects</div><div>Not yet assigned</div></div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="tab-panel" id="tab-fees">
+  {% if not fees %}
+  <p class="empty">No fee information available yet.</p>
+  {% endif %}
+  {% for f in fees %}
+  <div class="card fee-block">
+    <div class="detail-header">
+      <h3>{{ f.student_name }}</h3>
+      <span class="sub">{{ f.boarding_type }} &middot; {{ f.academic_year or "-" }}</span>
+    </div>
+
+    <div class="stat-chip-row">
+      <div class="stat-chip"><div class="v">${{ "%.0f"|format(f.total_balance) }}</div><div class="l">Balance Due</div></div>
+      <div class="stat-chip"><div class="v">${{ "%.0f"|format(f.terms|selectattr('billed')|map(attribute='amount')|sum) }}</div><div class="l">Total Billed</div></div>
+      <div class="stat-chip"><div class="v">${{ "%.0f"|format(f.terms|selectattr('billed')|map(attribute='amount_paid')|sum) }}</div><div class="l">Total Paid</div></div>
+    </div>
+
+    <table class="fee-statement-table">
+      <thead>
+        <tr><th>Term</th><th>Boarding Type</th><th>Amount</th><th>Paid</th><th>Balance</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for row in f.terms %}
+        <tr class="{{ 'not-billed' if not row.billed else '' }}">
+          <td>{{ row.academic_term }}</td>
+          <td>{{ row.boarding_type }}</td>
+          <td>${{ "%.0f"|format(row.amount) }}</td>
+          <td>{{ "$%.0f"|format(row.amount_paid) if row.billed else "-" }}</td>
+          <td>{{ "$%.0f"|format(row.balance) if row.billed else "-" }}</td>
+          <td>
+            {% if row.status == "Paid" %}
+            <span class="pill pill-green">{{ icons.icon("check-circle") }} Paid</span>
+            {% elif row.status == "Partially Paid" %}
+            <span class="pill pill-amber">{{ icons.icon("clock") }} Partially Paid</span>
+            {% elif row.status == "Billed" %}
+            <span class="pill pill-red">{{ icons.icon("alert-circle") }} Balance Due</span>
+            {% else %}
+            <span class="pill pill-gray">Not Yet Billed</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="action-row">
+      <a class="btn btn-primary" href="/printview?doctype=Student&name={{ f.student|urlencode }}&format=Fee%20Statement&no_letterhead=0" target="_blank">{{ icons.icon("printer") }} View / Print / Download Statement</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+  document.querySelectorAll(".tab-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll(".tab-btn").forEach(function (b) { b.classList.remove("active"); });
+      document.querySelectorAll(".tab-panel").forEach(function (p) { p.classList.remove("active"); });
+      btn.classList.add("active");
+      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+    });
+  });
+</script>
+{% endblock %}

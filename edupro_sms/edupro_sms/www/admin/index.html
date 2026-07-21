@@ -1,0 +1,372 @@
+{% extends "templates/portal_base.html" %}
+{% import "templates/includes/icons.html" as icons %}
+
+{% block sidebar_nav %}
+<a href="/dashboard">{{ icons.icon("arrow-left") }} Dashboard</a>
+<a href="#add-student" class="active">{{ icons.icon("user") }} Add Student</a>
+<a href="#add-teacher">{{ icons.icon("user") }} Add Teacher</a>
+<a href="#enroll">{{ icons.icon("graduation-cap") }} Enroll</a>
+<a href="#assign-teachers">{{ icons.icon("book") }} Assign Teachers</a>
+{% endblock %}
+
+{% block portal_content %}
+<style>
+  .admin-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; max-width: 640px; }
+  .admin-form .field-full { grid-column: 1 / -1; }
+  .admin-form label { display: block; font-size: 0.76rem; font-weight: 600; color: var(--edu-gray-600); margin-bottom: 4px; }
+  .admin-form input, .admin-form select {
+    width: 100%; box-sizing: border-box; padding: 7px 10px; border: 1px solid var(--edu-gray-300);
+    border-radius: var(--edu-radius-sm); font-size: 0.82rem; font-family: inherit;
+  }
+  .guardian-toggle { display: flex; gap: 14px; margin-bottom: 6px; font-size: 0.8rem; }
+  .guardian-toggle label { display: flex; align-items: center; gap: 5px; font-weight: 500; color: var(--edu-gray-700); }
+  .guardian-block { display: none; }
+  .guardian-block.active { display: contents; }
+  .credentials-box {
+    display: none; margin-top: 14px; padding: 12px 16px; border-radius: var(--edu-radius-md);
+    background: var(--edu-green-light); border: 1px solid var(--edu-green); color: var(--edu-green-dark);
+    font-size: 0.82rem; line-height: 1.6;
+  }
+  .credentials-box.show { display: block; }
+  .credentials-box strong { font-family: monospace; font-size: 0.9rem; }
+  .form-card { margin-bottom: 26px; padding-bottom: 20px; border-bottom: 1px solid var(--edu-gray-200); }
+  .lookup-unresolved { border-color: var(--edu-red) !important; background: var(--edu-red-light); }
+</style>
+
+<h1>Admin</h1>
+<p class="user-line">{{ frappe.session.user }}</p>
+
+<div class="form-card" id="add-student">
+  <h2>{{ icons.icon("user") }}Add Student</h2>
+  <form id="student-form" class="admin-form">
+    <div><label>Full Name</label><input type="text" name="student_name" required></div>
+    <div><label>Email</label><input type="email" name="student_email" required></div>
+    <div><label>Gender</label><select name="gender">{% for g in genders %}<option value="{{ g }}">{{ g }}</option>{% endfor %}</select></div>
+    <div><label>Date of Birth</label><input type="date" name="date_of_birth"></div>
+    <div><label>Boarding Type</label><select name="boarding_type"><option value="Day Boarder">Day Boarder</option><option value="Full Boarder">Full Boarder</option></select></div>
+    <div><label>Class</label><select name="student_group"><option value="">-- Not enrolled yet --</option>{% for sg in student_groups %}<option value="{{ sg.name }}">{{ sg.name }}</option>{% endfor %}</select></div>
+
+    <div class="field-full guardian-toggle">
+      <label><input type="radio" name="guardian_mode" value="existing" checked> Link existing guardian</label>
+      <label><input type="radio" name="guardian_mode" value="new"> Create new guardian</label>
+    </div>
+    <div class="field-full guardian-block active" data-mode="existing">
+      <label>Guardian</label>
+      <input type="text" list="guardian-options" class="searchable-lookup" data-map="guardianMap" data-hidden="existing_guardian" placeholder="Start typing a guardian's name...">
+      <datalist id="guardian-options">{% for g in guardians %}<option value="{{ g.guardian_name }}">{% endfor %}</datalist>
+      <input type="hidden" name="existing_guardian">
+    </div>
+    <div class="guardian-block" data-mode="new"><label>Guardian Name</label><input type="text" name="guardian_name"></div>
+    <div class="guardian-block" data-mode="new"><label>Guardian Email</label><input type="email" name="guardian_email"></div>
+    <div class="guardian-block" data-mode="new"><label>Guardian Mobile</label><input type="text" name="guardian_mobile"></div>
+    <div class="guardian-block" data-mode="new">
+      <label>Relation</label>
+      <select name="guardian_relation"><option>Mother</option><option>Father</option><option>Others</option></select>
+    </div>
+
+    <div class="field-full"><button type="submit" class="btn btn-primary">{{ icons.icon("save") }} Create Student</button></div>
+  </form>
+  <div class="credentials-box" id="student-credentials"></div>
+  <div class="action-status" id="student-status"></div>
+</div>
+
+<div class="form-card" id="add-teacher">
+  <h2>{{ icons.icon("user") }}Add Teacher</h2>
+  <form id="teacher-form" class="admin-form">
+    <div><label>Full Name</label><input type="text" name="instructor_name" required></div>
+    <div><label>Email</label><input type="email" name="email" required></div>
+    <div class="field-full"><button type="submit" class="btn btn-primary">{{ icons.icon("save") }} Create Teacher</button></div>
+  </form>
+  <div class="credentials-box" id="teacher-credentials"></div>
+  <div class="action-status" id="teacher-status"></div>
+</div>
+
+<div class="form-card" id="enroll">
+  <h2>{{ icons.icon("graduation-cap") }}Enroll Student in a Class</h2>
+  <form id="enroll-form" class="admin-form">
+    <div>
+      <label>Student</label>
+      <input type="text" list="student-options" class="searchable-lookup" data-map="studentMap" data-hidden="student" placeholder="Start typing a student's name..." required>
+      <datalist id="student-options">{% for s in students %}<option value="{{ s.student_name }}">{% endfor %}</datalist>
+      <input type="hidden" name="student">
+    </div>
+    <div>
+      <label>Class</label>
+      <select name="student_group" required><option value="">-- Select --</option>{% for sg in student_groups %}<option value="{{ sg.name }}">{{ sg.name }}</option>{% endfor %}</select>
+    </div>
+    <div class="field-full"><button type="submit" class="btn btn-primary">{{ icons.icon("save") }} Enroll</button></div>
+  </form>
+  <div class="action-status" id="enroll-status"></div>
+</div>
+
+<div class="form-card" id="assign-teachers" style="border-bottom: none;">
+  <h2>{{ icons.icon("book") }}Assign Teachers</h2>
+
+  <h3 style="font-size: 0.9rem; margin-bottom: 8px;">Class Teacher</h3>
+  <form id="class-teacher-form" class="admin-form">
+    <div>
+      <label>Class</label>
+      <select name="student_group" required><option value="">-- Select --</option>{% for sg in student_groups %}<option value="{{ sg.name }}">{{ sg.name }}</option>{% endfor %}</select>
+    </div>
+    <div>
+      <label>Teacher</label>
+      <select name="instructor" required><option value="">-- Select --</option>{% for i in instructors %}<option value="{{ i.name }}">{{ i.instructor_name }}</option>{% endfor %}</select>
+    </div>
+    <div class="field-full"><button type="submit" class="btn btn-primary">{{ icons.icon("save") }} Set Class Teacher</button></div>
+  </form>
+  <div class="action-status" id="class-teacher-status"></div>
+
+  <h3 style="font-size: 0.9rem; margin: 20px 0 8px 0;">Subject Teacher</h3>
+  <form id="subject-teacher-form" class="admin-form">
+    <div>
+      <label>Class</label>
+      <select name="student_group" required><option value="">-- Select --</option>{% for sg in student_groups %}<option value="{{ sg.name }}">{{ sg.name }}</option>{% endfor %}</select>
+    </div>
+    <div>
+      <label>Subject</label>
+      <select name="course" required><option value="">-- Select --</option>{% for c in courses %}<option value="{{ c.name }}">{{ c.name }}</option>{% endfor %}</select>
+    </div>
+    <div>
+      <label>Teacher</label>
+      <select name="instructor" required><option value="">-- Select --</option>{% for i in instructors %}<option value="{{ i.name }}">{{ i.instructor_name }}</option>{% endfor %}</select>
+    </div>
+    <div>
+      <label>Academic Year</label>
+      <select name="academic_year" required><option value="">-- Select --</option>{% for ay in academic_years %}<option value="{{ ay.name }}">{{ ay.name }}</option>{% endfor %}</select>
+    </div>
+    <div class="field-full"><button type="submit" class="btn btn-primary">{{ icons.icon("save") }} Assign Subject Teacher</button></div>
+  </form>
+  <div class="action-status" id="subject-teacher-status"></div>
+
+  <h3 style="font-size: 0.9rem; margin: 20px 0 8px 0;">Current Subject Assignments</h3>
+  <select id="assignments-class-filter" style="max-width: 320px; padding: 7px 10px; border: 1px solid var(--edu-gray-300); border-radius: var(--edu-radius-sm); font-size: 0.82rem; font-family: inherit; margin-bottom: 10px;">
+    <option value="">-- Select a class to view its assignments --</option>
+    {% for sg in student_groups %}<option value="{{ sg.name }}">{{ sg.name }}</option>{% endfor %}
+  </select>
+  <table id="assignments-table" style="display: none;">
+    <thead><tr><th>Subject</th><th>Teacher</th><th>Academic Year</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+  document.querySelectorAll('input[name="guardian_mode"]').forEach(function (radio) {
+    radio.addEventListener("change", function () {
+      document.querySelectorAll(".guardian-block").forEach(function (block) {
+        block.classList.toggle("active", block.dataset.mode === radio.value);
+      });
+    });
+  });
+
+  // Name -> record id lookups, so the "search a name" boxes below can
+  // resolve back to the real Student/Guardian id the backend needs --
+  // a plain <select> here would dump every student/guardian in the
+  // school into one unsearchable list, which stops being usable well
+  // before a school's roll reaches four figures.
+  var studentMap = {};
+  {% for s in students %}studentMap[{{ s.student_name|tojson }}] = {{ s.name|tojson }};
+  {% endfor %}
+  var guardianMap = {};
+  {% for g in guardians %}guardianMap[{{ g.guardian_name|tojson }}] = {{ g.name|tojson }};
+  {% endfor %}
+  var lookupMaps = { studentMap: studentMap, guardianMap: guardianMap };
+
+  document.querySelectorAll(".searchable-lookup").forEach(function (input) {
+    var hidden = input.closest("div").querySelector('input[type="hidden"][name="' + input.dataset.hidden + '"]');
+    var map = lookupMaps[input.dataset.map];
+    input.addEventListener("input", function () {
+      hidden.value = map[input.value] || "";
+      input.classList.toggle("lookup-unresolved", input.value !== "" && !hidden.value);
+    });
+  });
+
+  function postJSON(method, payload) {
+    return fetch("/api/method/" + method, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Frappe-CSRF-Token": "{{ csrf_token }}" },
+      body: JSON.stringify(payload),
+    }).then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); });
+  }
+
+  document.getElementById("student-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var form = e.target;
+    var statusEl = document.getElementById("student-status");
+    var credEl = document.getElementById("student-credentials");
+    var payload = Object.fromEntries(new FormData(form).entries());
+    if (payload.guardian_mode !== "new") { delete payload.guardian_name; delete payload.guardian_email; delete payload.guardian_mobile; delete payload.guardian_relation; }
+    else { delete payload.existing_guardian; }
+    delete payload.guardian_mode;
+
+    if (payload.existing_guardian !== undefined) {
+      var guardianSearch = form.querySelector('.searchable-lookup[data-hidden="existing_guardian"]');
+      if (guardianSearch.value && !payload.existing_guardian) {
+        statusEl.textContent = "\"" + guardianSearch.value + "\" doesn't match any guardian -- pick one from the list.";
+        statusEl.className = "action-status save-error";
+        return;
+      }
+    }
+
+    statusEl.textContent = "Creating...";
+    statusEl.className = "action-status";
+    credEl.classList.remove("show");
+
+    postJSON("edupro_sms.edupro_sms.admin_provisioning.create_student", payload).then(function (result) {
+      if (result.ok) {
+        var m = result.body.message;
+        var html = "<div>Student created: <strong>" + m.student_email + "</strong> / <strong>" + m.student_password + "</strong></div>";
+        if (m.guardian_password) {
+          html += "<div>Guardian created: <strong>" + m.guardian_email + "</strong> / <strong>" + m.guardian_password + "</strong></div>";
+        }
+        credEl.innerHTML = html;
+        credEl.classList.add("show");
+        statusEl.textContent = "";
+        form.reset();
+      } else {
+        statusEl.textContent = "Error: " + (result.body.exception || result.body._server_messages || "Could not create.");
+        statusEl.className = "action-status save-error";
+      }
+    }).catch(function (err) {
+      statusEl.textContent = "Error: " + err;
+      statusEl.className = "action-status save-error";
+    });
+  });
+
+  document.getElementById("teacher-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var form = e.target;
+    var statusEl = document.getElementById("teacher-status");
+    var credEl = document.getElementById("teacher-credentials");
+    var payload = Object.fromEntries(new FormData(form).entries());
+
+    statusEl.textContent = "Creating...";
+    statusEl.className = "action-status";
+    credEl.classList.remove("show");
+
+    postJSON("edupro_sms.edupro_sms.admin_provisioning.create_instructor", payload).then(function (result) {
+      if (result.ok) {
+        var m = result.body.message;
+        credEl.innerHTML = "<div>Teacher created: <strong>" + m.email + "</strong> / <strong>" + m.password + "</strong></div>";
+        credEl.classList.add("show");
+        statusEl.textContent = "";
+        form.reset();
+      } else {
+        statusEl.textContent = "Error: " + (result.body.exception || result.body._server_messages || "Could not create.");
+        statusEl.className = "action-status save-error";
+      }
+    }).catch(function (err) {
+      statusEl.textContent = "Error: " + err;
+      statusEl.className = "action-status save-error";
+    });
+  });
+
+  document.getElementById("enroll-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var form = e.target;
+    var statusEl = document.getElementById("enroll-status");
+    var payload = Object.fromEntries(new FormData(form).entries());
+
+    var studentSearch = form.querySelector('.searchable-lookup[data-hidden="student"]');
+    if (!payload.student) {
+      statusEl.textContent = studentSearch.value
+        ? "\"" + studentSearch.value + "\" doesn't match any student -- pick one from the list."
+        : "Type a student's name first.";
+      statusEl.className = "action-status save-error";
+      return;
+    }
+
+    statusEl.textContent = "Enrolling...";
+    statusEl.className = "action-status";
+
+    postJSON("edupro_sms.edupro_sms.admin_provisioning.enroll_student", payload).then(function (result) {
+      if (result.ok) {
+        statusEl.textContent = "Enrolled.";
+        statusEl.className = "action-status save-ok";
+        form.reset();
+      } else {
+        statusEl.textContent = "Error: " + (result.body.exception || result.body._server_messages || "Could not enroll.");
+        statusEl.className = "action-status save-error";
+      }
+    }).catch(function (err) {
+      statusEl.textContent = "Error: " + err;
+      statusEl.className = "action-status save-error";
+    });
+  });
+
+  document.getElementById("class-teacher-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var form = e.target;
+    var statusEl = document.getElementById("class-teacher-status");
+    var payload = Object.fromEntries(new FormData(form).entries());
+
+    statusEl.textContent = "Saving...";
+    statusEl.className = "action-status";
+
+    postJSON("edupro_sms.edupro_sms.teacher_assignment.assign_class_teacher", payload).then(function (result) {
+      if (result.ok) {
+        statusEl.textContent = "Class teacher set.";
+        statusEl.className = "action-status save-ok";
+        form.reset();
+      } else {
+        statusEl.textContent = "Error: " + (result.body.exception || result.body._server_messages || "Could not save.");
+        statusEl.className = "action-status save-error";
+      }
+    }).catch(function (err) {
+      statusEl.textContent = "Error: " + err;
+      statusEl.className = "action-status save-error";
+    });
+  });
+
+  function loadAssignments(studentGroup) {
+    var table = document.getElementById("assignments-table");
+    if (!studentGroup) { table.style.display = "none"; return; }
+    fetch("/api/method/edupro_sms.edupro_sms.teacher_assignment.get_class_subject_assignments?student_group=" + encodeURIComponent(studentGroup))
+      .then(function (r) { return r.json(); })
+      .then(function (body) {
+        var rows = (body.message || []);
+        var tbody = table.querySelector("tbody");
+        tbody.innerHTML = "";
+        if (!rows.length) {
+          tbody.innerHTML = "<tr><td colspan=\"3\">No subject assignments yet for this class.</td></tr>";
+        } else {
+          rows.forEach(function (r) {
+            var tr = document.createElement("tr");
+            tr.innerHTML = "<td>" + r.course + "</td><td>" + r.instructor_name + "</td><td>" + r.academic_year + "</td>";
+            tbody.appendChild(tr);
+          });
+        }
+        table.style.display = "";
+      });
+  }
+
+  document.getElementById("assignments-class-filter").addEventListener("change", function () {
+    loadAssignments(this.value);
+  });
+
+  document.getElementById("subject-teacher-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var form = e.target;
+    var statusEl = document.getElementById("subject-teacher-status");
+    var payload = Object.fromEntries(new FormData(form).entries());
+
+    statusEl.textContent = "Saving...";
+    statusEl.className = "action-status";
+
+    postJSON("edupro_sms.edupro_sms.teacher_assignment.assign_subject_teacher", payload).then(function (result) {
+      if (result.ok) {
+        statusEl.textContent = "Subject teacher assigned.";
+        statusEl.className = "action-status save-ok";
+        var filter = document.getElementById("assignments-class-filter");
+        if (filter.value === payload.student_group) loadAssignments(payload.student_group);
+        form.reset();
+      } else {
+        statusEl.textContent = "Error: " + (result.body.exception || result.body._server_messages || "Could not save.");
+        statusEl.className = "action-status save-error";
+      }
+    }).catch(function (err) {
+      statusEl.textContent = "Error: " + err;
+      statusEl.className = "action-status save-error";
+    });
+  });
+</script>
+{% endblock %}
