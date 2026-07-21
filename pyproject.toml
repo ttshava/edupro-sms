@@ -19,9 +19,3 @@ Repository = "https://github.com/ttshava/edupro-sms.git"
 frappe = ">=15.0,<17"
 erpnext = ">=15.0,<17"
 education = ">=15.0,<17"
-
-[tool.frappe.build]
-# Frontend assets build configuration for esbuild
-packages = [
-	{ "name": "edupro_sms", "public": true }
-]
