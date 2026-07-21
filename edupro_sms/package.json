@@ -1,9 +1,11 @@
 {
   "name": "edupro_sms",
   "version": "0.0.1",
-  "description": "Edupro School Management System",
+  "description": "Edupro School Management System - IGCSE Academic Reporting",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "build": "echo 'No build needed for edupro_sms'"
+  },
   "dependencies": {},
   "devDependencies": {}
 }
