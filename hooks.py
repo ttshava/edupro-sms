@@ -1,3 +1,7 @@
-# Root-level hooks.py that imports from the app package
-# This satisfies Frappe Cloud's validator while keeping the app in edupro_sms/
-from edupro_sms.hooks import *
+app_name = "edupro_sms"
+app_title = "Edupro SMS"
+app_publisher = "Edupro"
+app_description = "Minimal test app"
+app_email = "ttshava@gmail.com"
+app_license = "mit"
+__version__ = "0.0.1"

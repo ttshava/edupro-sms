@@ -1,0 +1,52 @@
+
+# edupro_sms is bind-mounted from the host (not baked into the image), so
+# its Python package registration must happen inside the container venv.
+# `env/` is baked into the image, NOT a shared volume by default — each
+# container gets its own independent copy via its own writable layer, so
+# installing it in one container (e.g. configurator) does NOT make it
+# visible to backend/queue/scheduler/websocket. Fix: make `env` a shared
+# named volume across every bench-role container, and have configurator
+# (which every other service depends_on) install edupro_sms into it on
+# every startup. Without this, a normal `docker compose down && up -d`
+# cycle silently breaks edupro_sms.
+
+services:
+  configurator:
+    volumes:
+      - ../apps/edupro_sms:/home/frappe/frappe-bench/apps/edupro_sms
+      - bench-env:/home/frappe/frappe-bench/env
+    command:
+      - >
+        uv pip install --quiet -e apps/edupro_sms --python env/bin/python;
+        ls -1 apps > sites/apps.txt;
+        bench set-config -g db_host $$DB_HOST;
+        bench set-config -gp db_port $$DB_PORT;
+        bench set-config -g redis_cache "redis://$$REDIS_CACHE";
+        bench set-config -g redis_queue "redis://$$REDIS_QUEUE";
+        bench set-config -g redis_socketio "redis://$$REDIS_QUEUE";
+        bench set-config -gp socketio_port $$SOCKETIO_PORT;
+        bench set-config -g chromium_path /usr/bin/chromium-headless-shell;
+
+  backend:
+    volumes:
+      - ../apps/edupro_sms:/home/frappe/frappe-bench/apps/edupro_sms
+      - bench-env:/home/frappe/frappe-bench/env
+  queue-short:
+    volumes:
+      - ../apps/edupro_sms:/home/frappe/frappe-bench/apps/edupro_sms
+      - bench-env:/home/frappe/frappe-bench/env
+  queue-long:
+    volumes:
+      - ../apps/edupro_sms:/home/frappe/frappe-bench/apps/edupro_sms
+      - bench-env:/home/frappe/frappe-bench/env
+  scheduler:
+    volumes:
+      - ../apps/edupro_sms:/home/frappe/frappe-bench/apps/edupro_sms
+      - bench-env:/home/frappe/frappe-bench/env
+  websocket:
+    volumes:
+      - ../apps/edupro_sms:/home/frappe/frappe-bench/apps/edupro_sms
+      - bench-env:/home/frappe/frappe-bench/env
+
+volumes:
+  bench-env:
