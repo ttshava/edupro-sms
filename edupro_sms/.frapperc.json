@@ -4,5 +4,6 @@
   "app_description": "Edupro School Management System - IGCSE Academic Reporting",
   "app_publisher": "Edupro",
   "app_license": "MIT",
-  "app_version": "0.0.1"
+  "app_version": "0.0.1",
+  "frappe_version": "15"
 }
