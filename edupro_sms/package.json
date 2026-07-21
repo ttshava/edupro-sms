@@ -1,0 +1,9 @@
+{
+  "name": "edupro_sms",
+  "version": "0.0.1",
+  "description": "Edupro School Management System",
+  "main": "index.js",
+  "scripts": {},
+  "dependencies": {},
+  "devDependencies": {}
+}
