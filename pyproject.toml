@@ -1,22 +1,21 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "edupro-sms"
+name = "edupro_sms"
 version = "0.0.1"
 description = "Edupro School Management System - IGCSE Academic Reporting and Finance"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 authors = [{name = "Edupro", email = "ttshava@gmail.com"}]
 license = {text = "MIT"}
 
 [project.urls]
 Homepage = "https://github.com/ttshava/edupro-sms"
-Repository = "https://github.com/ttshava/edupro-sms.git"
 
-[tool.setuptools]
-packages = ["edupro_sms"]
+[tool.setuptools.packages.find]
+include = ["edupro_sms", "edupro_sms.*"]
 
 [tool.bench.frappe-dependencies]
 frappe = ">=15.0,<17"
