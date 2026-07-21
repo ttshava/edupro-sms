@@ -1,5 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /downloads/paid/
-
-Sitemap: https://timothyshava.com/sitemap.xml
