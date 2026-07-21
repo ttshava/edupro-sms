@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 
-from edupro_sms.edupro_sms.marks_entry import get_entry_data
+from edupro_sms.marks_entry import get_entry_data
 
 
 def get_context(context):

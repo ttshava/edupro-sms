@@ -5,7 +5,7 @@
 Instructor is assigned to teach, with marks-entry progress.
 
 Relies entirely on Assessment Plan's own permission scoping
-(edupro_sms.edupro_sms.teacher_permissions) -- frappe.get_list respects
+(edupro_sms.teacher_permissions) -- frappe.get_list respects
 that automatically, so an Instructor only ever sees their own classes
 without any extra filtering logic here. Headmaster/System Manager see
 every class (their permission scoping returns unrestricted access).

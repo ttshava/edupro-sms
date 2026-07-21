@@ -8,7 +8,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt
 
-from edupro_sms.edupro_sms.grading import DEFAULT_GRADING_SCALE, get_grade_description, get_grade_for_percentage
+from edupro_sms.grading import DEFAULT_GRADING_SCALE, get_grade_description, get_grade_for_percentage
 
 
 class ReportCard(Document):
@@ -26,11 +26,11 @@ class ReportCard(Document):
 			# scanning it can't be used to enumerate other students' reports.
 			self.db_set("verification_code", secrets.token_hex(8), update_modified=False)
 
-		from edupro_sms.edupro_sms.doctype.report_card.notify import EMAIL_DELIVERY_ENABLED
+		from edupro_sms.doctype.report_card.notify import EMAIL_DELIVERY_ENABLED
 
 		if EMAIL_DELIVERY_ENABLED and not self.sent_to_parent_at:
 			frappe.enqueue(
-				"edupro_sms.edupro_sms.doctype.report_card.notify.send_report_card_emails",
+				"edupro_sms.doctype.report_card.notify.send_report_card_emails",
 				queue="short",
 				report_card_name=self.name,
 			)

@@ -15,8 +15,8 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import add_days
 
-from edupro_sms.edupro_sms.doctype.report_card.notify import send_report_card_emails
-from edupro_sms.edupro_sms.doctype.report_card.report_card import (
+from edupro_sms.doctype.report_card.notify import send_report_card_emails
+from edupro_sms.doctype.report_card.report_card import (
 	generate_report_cards,
 	has_permission,
 )
@@ -438,7 +438,7 @@ class TestReportCard(FrappeTestCase):
 	# TC-10 — Grade calculation matches Cambridge O Level boundaries exactly
 	# ------------------------------------------------------------------
 	def test_tc10_grade_calculation_boundaries(self):
-		from edupro_sms.edupro_sms.grading import get_grade_for_percentage
+		from edupro_sms.grading import get_grade_for_percentage
 
 		cases = [
 			(100, "A*/A"), (90, "A*/A"), (80, "A*/A"),

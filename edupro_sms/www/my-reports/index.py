@@ -1,7 +1,7 @@
 import frappe
 from frappe.utils import now_datetime
 
-from edupro_sms.edupro_sms.academic_calendar import get_current_term
+from edupro_sms.academic_calendar import get_current_term
 
 
 def get_context(context):
@@ -68,7 +68,7 @@ def _build_overview(profile_students: list[dict]) -> dict:
 
 
 def _build_fees(profile_students: list[dict]) -> list[dict]:
-	from edupro_sms.edupro_sms.fees import get_student_fee_statement
+	from edupro_sms.fees import get_student_fee_statement
 
 	fees = []
 	for p in profile_students:
