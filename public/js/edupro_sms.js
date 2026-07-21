@@ -1,1 +1,2 @@
-// Edupro SMS - No frontend assets to bundle
+// Edupro SMS - IGCSE Academic Reporting Platform
+console.log('Edupro SMS loaded');
