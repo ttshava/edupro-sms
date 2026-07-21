@@ -13,7 +13,7 @@ from education.education.api import get_assessment_details
 from frappe import _
 from frappe.utils import flt
 
-from teacher_permissions import has_permission_for_assessment
+from edupro_sms.teacher_permissions import has_permission_for_assessment
 
 
 def _can_access_plan(plan, user=None) -> bool:
@@ -65,7 +65,7 @@ def _class_students(student_group, course=None):
 
 @frappe.whitelist()
 def get_entry_data(assessment_plan):
-	from grading import get_grade_boundaries
+	from edupro_sms.grading import get_grade_boundaries
 
 	plan = frappe.get_doc("Assessment Plan", assessment_plan)
 	if not _can_access_plan(plan):
@@ -209,7 +209,7 @@ def save_marks(assessment_plan, entries):
 			# band's own description (e.g. "Very good" for a B) instead
 			# of leaving it empty. Still just a starting point: they can
 			# overwrite it any time via the comment-only edit path above.
-			from grading import get_grade_description
+			from edupro_sms.grading import get_grade_description
 
 			auto_comment = get_grade_description(doc.grading_scale, doc.grade)
 			if auto_comment:

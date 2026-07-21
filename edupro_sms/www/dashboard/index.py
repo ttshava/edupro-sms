@@ -16,7 +16,7 @@ def get_context(context):
 		context.summary = _headmaster_summary()
 		context.csrf_token = frappe.sessions.get_csrf_token()
 	elif "Instructor" in roles:
-		from grading import get_grade_boundaries
+		from edupro_sms.grading import get_grade_boundaries
 
 		context.dashboard_role = "teacher"
 		context.classes = _teacher_classes()
@@ -39,7 +39,7 @@ def get_context(context):
 
 
 def _teacher_summary(classes: list[dict]) -> dict:
-	from academic_calendar import get_current_term
+	from edupro_sms.academic_calendar import get_current_term
 
 	term = get_current_term()
 	academic_year = frappe.db.get_value("Academic Term", term, "academic_year") if term else None
@@ -64,10 +64,10 @@ def _teacher_summary(classes: list[dict]) -> dict:
 
 
 def _headmaster_summary():
-	from academic_calendar import get_current_term
-	from class_review import get_class_summary_rows, get_recent_activity, get_subject_analysis
-	from fees import get_class_fee_summary, get_school_fee_totals
-	from grading import DEFAULT_GRADING_SCALE, get_grade_for_percentage
+	from edupro_sms.academic_calendar import get_current_term
+	from edupro_sms.class_review import get_class_summary_rows, get_recent_activity, get_subject_analysis
+	from edupro_sms.fees import get_class_fee_summary, get_school_fee_totals
+	from edupro_sms.grading import DEFAULT_GRADING_SCALE, get_grade_for_percentage
 
 	term = get_current_term()
 	academic_year = frappe.db.get_value("Academic Term", term, "academic_year") if term else None
@@ -136,7 +136,7 @@ def _class_teacher_reviews():
 	logged-in Instructor is the Class Teacher -- their own "Review" step
 	in the Report Card Approval workflow (see approvals.py), surfaced
 	here since Desk access was removed for this role (DECISIONS.md 0014)."""
-	from academic_calendar import get_current_term
+	from edupro_sms.academic_calendar import get_current_term
 
 	instructor = frappe.db.get_value("Instructor", {"user": frappe.session.user}, "name")
 	if not instructor:

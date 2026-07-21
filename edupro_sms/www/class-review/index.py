@@ -12,8 +12,8 @@ def get_context(context):
 	if not student_group:
 		frappe.throw(_("Missing class."), frappe.DoesNotExistError)
 
-	from approvals import _is_class_teacher_of, _is_headmaster, get_pending_report_cards
-	from class_review import get_class_review
+	from edupro_sms.approvals import _is_class_teacher_of, _is_headmaster, get_pending_report_cards
+	from edupro_sms.class_review import get_class_review
 
 	is_headmaster = _is_headmaster()
 	is_class_teacher = _is_class_teacher_of(student_group)

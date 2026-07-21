@@ -8,7 +8,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt
 
-from grading import DEFAULT_GRADING_SCALE, get_grade_description, get_grade_for_percentage
+from edupro_sms.grading import DEFAULT_GRADING_SCALE, get_grade_description, get_grade_for_percentage
 
 
 class ReportCard(Document):

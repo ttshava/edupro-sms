@@ -5,8 +5,8 @@ Assessment Result data, no fabricated trend figures."""
 import frappe
 from frappe.utils import flt
 
-from academic_calendar import get_current_term
-from grading import get_grade_for_percentage, get_grading_scale_for_program
+from edupro_sms.academic_calendar import get_current_term
+from edupro_sms.grading import get_grade_for_percentage, get_grading_scale_for_program
 
 
 def get_class_summary_rows(academic_term: str | None = None) -> list[dict]:

@@ -438,7 +438,7 @@ class TestReportCard(FrappeTestCase):
 	# TC-10 — Grade calculation matches Cambridge O Level boundaries exactly
 	# ------------------------------------------------------------------
 	def test_tc10_grade_calculation_boundaries(self):
-		from grading import get_grade_for_percentage
+		from edupro_sms.grading import get_grade_for_percentage
 
 		cases = [
 			(100, "A*/A"), (90, "A*/A"), (80, "A*/A"),

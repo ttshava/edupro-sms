@@ -1,6 +1,6 @@
 import frappe
 
-from fees import BOARDING_FEE, get_student_fee_statement
+from edupro_sms.fees import BOARDING_FEE, get_student_fee_statement
 
 
 def get_context(context):

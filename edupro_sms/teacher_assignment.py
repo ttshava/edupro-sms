@@ -17,7 +17,7 @@ precise, per-subject grant going forward.
 
 import frappe
 
-from approvals import _is_headmaster
+from edupro_sms.approvals import _is_headmaster
 
 
 def _require_headmaster():
