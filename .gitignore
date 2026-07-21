@@ -61,3 +61,8 @@ Edupro_SMS_Staff_Login_Credentials.pdf
 # regenerate from the database on demand rather than tracking in git.
 Edupro_SMS_Lower6_Upper6_Combinations.pdf
 Edupro_SMS_Lower6_Combinations_Template.pdf
+
+# Python bytecode (real rules -- the comment above assumed an inner app .gitignore)
+__pycache__/
+*.py[cod]
+*.egg-info/
