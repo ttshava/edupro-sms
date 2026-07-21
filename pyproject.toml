@@ -14,3 +14,8 @@ dependencies = []
 Homepage = "https://github.com/ttshava/edupro-sms"
 Documentation = "https://github.com/ttshava/edupro-sms/wiki"
 Repository = "https://github.com/ttshava/edupro-sms.git"
+
+[tool.bench.frappe-dependencies]
+frappe = "~15.0"
+erpnext = "~15.0"
+education = "~15.0"
