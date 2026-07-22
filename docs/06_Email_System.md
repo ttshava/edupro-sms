@@ -1,124 +1,85 @@
 # 06 — Email System
 
-**Built and verified, Sprint 7** (`edupro_sms/edupro_sms/doctype/report_card/notify.py`).
-Real SMTP delivery is configured and verified as of 2026-07-06 — see §6.6.
+Outbound email uses Frappe's built-in Email Account / Email Queue
+mechanism (SMTP) — no separate email service. Configured and
+live-tested in production on Frappe Cloud.
 
 ## 6.1 Approach
 
-- Outbound email via Frappe's built-in Email Queue (SMTP), configured
-  against an Email Account in Frappe settings — no separate email service
-  for MVP.
-- Bulk sends (report cards to all parents in a class/term) are enqueued as
-  RQ background jobs (`frappe.enqueue`) — never sent synchronously in a
-  request/response cycle. Target: 1,000 emails/hr (single school), see
-  `docs/08_Deployment.md`.
-- Delivery status is logged per recipient (sent/failed), surfaced on the
-  `Report Card` (`sent_to_parent_at`) and available for a Headmaster/Admin
-  delivery report.
+- Outbound mail is sent via a Frappe **Email Account** (SMTP), not a
+  third-party transactional email API.
+- Bulk sends (report cards to a whole class/term) should be enqueued as
+  background jobs (`frappe.enqueue`) rather than sent synchronously in a
+  request/response cycle.
+- Delivery status is tracked per message on the `Communication` record
+  (`delivery_status`) and surfaced on `Report Card.sent_to_parent_at`.
 
-## 6.2 Trigger
+## 6.2 Email Accounts (production)
+
+Two accounts, both on `mail.firstclasshigh.ac.zw`:
+
+| Account | Address | Role | Default |
+|---|---|---|---|
+| First Class High Outgoing | `admin@firstclasshigh.ac.zw` | Academic notifications, report cards | Yes (system default incoming + outgoing) |
+| First Class High Support | `support@firstclasshigh.ac.zw` | Technical/support routing | No |
+
+**Server settings (both accounts):**
+
+| Direction | Protocol | Host | Port | Encryption |
+|---|---|---|---|---|
+| Incoming | POP3 | `mail.firstclasshigh.ac.zw` | 995 | SSL |
+| Outgoing | SMTP | `mail.firstclasshigh.ac.zw` | 465 | SSL |
+
+Credentials are stored only in the Email Account's encrypted `password`
+field on the live site — never committed to this repository.
+
+## 6.3 Branding
+
+Both accounts have a custom **footer** overriding Frappe's default
+"Sent via ERPNext" boilerplate:
+
+> Sent via **Edupro SMS** ([www.edupro.co.zw](https://www.edupro.co.zw))
+
+`admin@` additionally has a **signature** reading "Edupro SMS" (replacing
+an earlier "First Class High School" signature line). To change either,
+edit the Email Account's `footer` / `signature` fields in Desk — leaving
+`footer` blank reverts to Frappe's default boilerplate, so it must stay
+set explicitly.
+
+## 6.4 Trigger
 
 | Trigger | Recipient | Attachment |
 |---|---|---|
-| Report Card status → `Published` (end of `docs/04` §4.2 workflow) | All guardians linked to the student (`Student.guardians`) | Report Card PDF |
-
-## 6.3 Subject Line
-
-```
-📊 Report Card - {Student Name} - {Term} - {Academic Year}
-```
-
-## 6.4 Email Body Template
-
-Rendered as an HTML email (Frappe email template / Jinja), summarizing
-results with a link into the parent portal:
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: Arial, sans-serif; }
-    .container { max-width: 600px; margin: 0 auto; }
-    .header { background: #1a5276; color: white; padding: 20px; text-align: center; }
-    .content { padding: 20px; }
-    .student-info { background: #f8f9fa; padding: 15px; border-radius: 5px; }
-    .cta-button {
-      display: inline-block;
-      padding: 12px 24px;
-      background: #2ecc71;
-      color: white;
-      text-decoration: none;
-      border-radius: 5px;
-    }
-    .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #666; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>📋 Report Card Available</h1>
-      <p>{School Name}</p>
-    </div>
-    <div class="content">
-      <h2>Dear {Parent Name},</h2>
-      <p>We are pleased to inform you that the report card for <strong>{Student Name}</strong>
-      for <strong>{Term} - {Academic Year}</strong> is now available.</p>
-      <div class="student-info">
-        <p><strong>📊 Academic Summary:</strong></p>
-        <ul>
-          <li>📈 Average Score: {Average}%</li>
-          <li>🏆 Overall Grade: {Grade}</li>
-          <li>📚 Class Position: {Position}/{Total Students}</li>
-        </ul>
-      </div>
-      <p>Please log in to the parent portal to view and download the complete report card.</p>
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="{Portal_URL}" class="cta-button">📂 View Report Card</a>
-      </div>
-      <p>If you have any questions, please contact the school administration.</p>
-      <p>Best regards,<br><strong>{School Name} Administration</strong></p>
-    </div>
-    <div class="footer">
-      <p>This is an automated message. Please do not reply to this email.</p>
-      <p>© {Year} {School Name} | All Rights Reserved</p>
-    </div>
-  </div>
-</body>
-</html>
-```
-
-Placeholders (`{Student Name}`, `{Parent Name}`, etc.) are filled from the
-`Report Card` + `Student` + `Student Guardian` + `School Settings` records
-at send time.
+| Report Card `workflow_state → Published` (end of `docs/04_Workflows.md` §4.2) | All guardians linked to the student (`Student.guardians`) | Report Card PDF |
 
 ## 6.5 Failure Handling
 
-Failed sends stay visible (not silently dropped): a per-guardian failure
-is caught and logged via `frappe.log_error` (visible in the Desk Error
-Log to Admin/System Manager) rather than crashing the whole batch or
-silently swallowing it — verified with a real failure (no Email Account
-configured) that logged correctly and left `sent_to_parent_at` unset.
-**Not yet built:** a friendlier Headmaster-facing delivery report (vs.
-digging through Error Log) — Sprint 8 polish candidate. Retry policy:
-default to Frappe Email Queue's built-in retry behavior.
+A per-guardian send failure is caught and logged via `frappe.log_error`
+(visible in Desk's Error Log to Admin/System Manager) rather than
+crashing the whole batch. Retry policy defaults to Frappe Email Queue's
+built-in retry behavior.
 
-## 6.6 SMTP Setup (done — 2026-07-06)
+**Known constraint:** `mail.firstclasshigh.ac.zw` validates recipients —
+any guardian email address that isn't a real mailbox on that domain (or
+elsewhere) will bounce. Only guardians with a real, deliverable email
+address will actually receive mail.
 
-Real SMTP is configured and verified end-to-end:
+## 6.6 Verifying Email Is Working
 
-- **Email Account:** `First Class High Outgoing` (`admin@firstclasshigh.ac.zw`,
-  `mail.firstclasshigh.ac.zw:465`, SSL), `enable_outgoing = 1`,
-  `default_outgoing = 1`. Credentials were entered directly into the
-  Email Account form in Desk (never handled by Claude or committed to
-  the repo — they live only in the site's database).
-- `EMAIL_DELIVERY_ENABLED` flipped to `True` in `notify.py`.
-- Verified with two real sends: a plain SMTP connectivity test (Sent),
-  and a full report-card-publish send with PDF attachment to a real
-  inbox (Sent, confirmed via `Email Queue` status).
-- **Known gap, not a bug:** `mail.firstclasshigh.ac.zw` is a real mail
-  server that validates recipients — the sample/demo guardian emails
-  generated for testing (e.g. `angel.dube@firstclasshigh.ac.zw`) are not
-  real mailboxes on that domain and will bounce with `550 No Such User
-  Here` if email is ever triggered for them. Only guardians with a real
-  email address will actually receive mail.
+Send a test message via the API (or Desk's "New Email" compose) and
+check the resulting `Communication.delivery_status`:
+
+```
+POST /api/method/frappe.core.doctype.communication.email.make
+  recipients=<address>
+  sender=admin@firstclasshigh.ac.zw
+  subject=...
+  content=...
+  send_email=1
+  now=1
+```
+
+`delivery_status: "Sent"` confirms SMTP authentication and delivery
+succeeded. Cross-check the Error Log for anything tied to the real
+account names (not the harmless `Test`/`_Test Email Account 1` fixture
+accounts that ship with a fresh Frappe site).
