@@ -9,6 +9,10 @@ backups/*
 !logs/.gitkeep
 !backups/.gitkeep
 
+# Local-only backup copy from the Frappe Cloud migration (real student PII
+# and financial data - keep it out of git, this machine only)
+_restore_tmp/
+
 # frappe_docker/ is a vendored clone (README, docs, apps/, images/, every
 # compose variant we don't use) -- not worth tracking wholesale. But three
 # files there are the actual configuration inputs for THIS deployment and
