@@ -87,7 +87,7 @@
       <div class="kid-name">{{ p.student_name }}</div>
       <div class="kid-class">{{ p.student_group or "Unassigned" }}</div>
       {% if p.latest_report %}
-      <div class="kid-avg">{{ "%.1f"|format(p.latest_report.average_percentage) }}%</div>
+      <div class="kid-avg">{{ "%.0f"|format(p.latest_report.average_percentage) }}%</div>
       {% else %}
       <div class="kid-avg">-</div>
       {% endif %}
@@ -106,7 +106,7 @@
 
     {% if p.latest_report %}
     <div class="stat-chip-row">
-      <div class="stat-chip"><div class="v">{{ "%.1f"|format(p.latest_report.average_percentage) }}%</div><div class="l">Average</div></div>
+      <div class="stat-chip"><div class="v">{{ "%.0f"|format(p.latest_report.average_percentage) }}%</div><div class="l">Average</div></div>
       <div class="stat-chip"><div class="v">{{ p.latest_report.overall_grade or "-" }}</div><div class="l">Grade</div></div>
       <div class="stat-chip"><div class="v">{{ p.latest_report.position }}/{{ p.latest_report.number_of_students }}</div><div class="l">Position</div></div>
       <div class="stat-chip"><div class="v">{{ p.latest_report.subjects|length }}</div><div class="l">Subjects</div></div>
@@ -146,7 +146,7 @@
       <strong>Academic Progress</strong>
       <table class="progress-table">
         <thead><tr>{% for h in p.report_history %}<th>{{ h.academic_term }}</th>{% endfor %}</tr></thead>
-        <tbody><tr>{% for h in p.report_history %}<td>{{ "%.1f"|format(h.average_percentage) }}%</td>{% endfor %}</tr></tbody>
+        <tbody><tr>{% for h in p.report_history %}<td>{{ "%.0f"|format(h.average_percentage) }}%</td>{% endfor %}</tr></tbody>
       </table>
     </div>
     {% else %}

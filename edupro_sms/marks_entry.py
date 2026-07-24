@@ -205,13 +205,19 @@ def save_marks(assessment_plan, entries):
 		doc.flags.ignore_permissions = True
 		doc.save()
 		if not new_comment:
-			# Teacher left the remark blank -- fall back to the grade
-			# band's own description (e.g. "Very good" for a B) instead
-			# of leaving it empty. Still just a starting point: they can
-			# overwrite it any time via the comment-only edit path above.
-			from edupro_sms.grading import get_grade_description
+			# Teacher left the remark blank -- fall back to the canned
+			# per-grade comment, keyed off the Exam Mark criterion's own
+			# grade rather than the combined Term+Exam grade (falling
+			# back further to the grade band's short description if this
+			# assessment has no Exam Mark criterion at all). Still just a
+			# starting point: they can overwrite it any time via the
+			# comment-only edit path above.
+			from edupro_sms.grading import get_grade_description, get_subject_comment
 
-			auto_comment = get_grade_description(doc.grading_scale, doc.grade)
+			exam_grade = next((d.grade for d in doc.details if d.assessment_criteria == "Exam Mark"), None)
+			auto_comment = get_subject_comment(doc.grading_scale, exam_grade) or get_grade_description(
+				doc.grading_scale, doc.grade
+			)
 			if auto_comment:
 				doc.comment = auto_comment
 		doc.submit()

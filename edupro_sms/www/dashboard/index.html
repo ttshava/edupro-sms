@@ -87,7 +87,7 @@
     <div class="stat-card"><div class="stat-icon">{{ icons.icon("alert-triangle") }}</div><div><div class="stat-value">${{ "{:,.0f}".format(summary.fee_totals.total_outstanding) }}</div><div class="stat-label">Outstanding Balance</div></div></div>
     <div class="stat-card"><div class="stat-icon">{{ icons.icon("check-circle") }}</div><div><div class="stat-value">{{ summary.reports_published }}/{{ summary.reports_expected }}</div><div class="stat-label">Reports Published</div></div></div>
     <div class="stat-card"><div class="stat-icon">{{ icons.icon("clock") }}</div><div><div class="stat-value">{{ summary.reports_pending_approval }}</div><div class="stat-label">Pending Approval</div></div></div>
-    <div class="stat-card"><div class="stat-icon">{{ icons.icon("bar-chart") }}</div><div><div class="stat-value">{{ summary.overall_grade or "-" }}</div><div class="stat-label">Overall Grade{{ " (%.1f%%)"|format(summary.overall_average) if summary.overall_average is not none else "" }}</div></div></div>
+    <div class="stat-card"><div class="stat-icon">{{ icons.icon("bar-chart") }}</div><div><div class="stat-value">{{ summary.overall_grade or "-" }}</div><div class="stat-label">Overall Grade{{ " (%.0f%%)"|format(summary.overall_average) if summary.overall_average is not none else "" }}</div></div></div>
   </div>
 
   <h2 id="classes">{{ icons.icon("graduation-cap") }}Class Performance Overview</h2>
@@ -102,7 +102,7 @@
         <td>{{ c.student_group }}</td>
         <td>{{ c.class_teacher }}</td>
         <td>{{ c.student_count }}</td>
-        <td>{{ "%.1f"|format(c.average_percentage) if c.average_percentage is not none else "-" }}</td>
+        <td>{{ "%.0f"|format(c.average_percentage) if c.average_percentage is not none else "-" }}</td>
         <td>{{ c.grade or "-" }}</td>
         <td>
           {% if c.status == "Complete" %}
@@ -147,14 +147,14 @@
     <div class="subject-col">
       <div class="subject-col-title">Strong Subjects</div>
       {% for s in summary.subject_analysis.strong %}
-      <div class="subject-chip strong">{{ icons.icon("check-circle") }} {{ s.course }} ({{ "%.1f"|format(s.avg_pct) }}%)</div>
+      <div class="subject-chip strong">{{ icons.icon("check-circle") }} {{ s.course }} ({{ "%.0f"|format(s.avg_pct) }}%)</div>
       {% endfor %}
       {% if not summary.subject_analysis.strong %}<p class="empty">Not enough data yet.</p>{% endif %}
     </div>
     <div class="subject-col">
       <div class="subject-col-title">Improvement Areas</div>
       {% for s in summary.subject_analysis.weak %}
-      <div class="subject-chip weak">{{ icons.icon("alert-triangle") }} {{ s.course }} ({{ "%.1f"|format(s.avg_pct) }}%)</div>
+      <div class="subject-chip weak">{{ icons.icon("alert-triangle") }} {{ s.course }} ({{ "%.0f"|format(s.avg_pct) }}%)</div>
       {% endfor %}
       {% if not summary.subject_analysis.weak %}<p class="empty">Not enough data yet.</p>{% endif %}
     </div>

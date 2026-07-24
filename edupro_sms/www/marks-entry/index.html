@@ -19,6 +19,7 @@
   }
   input.score-input.pass { border-color: var(--edu-green); background: var(--edu-green-light); }
   input.score-input.fail { border-color: var(--edu-red); background: var(--edu-red-light); }
+  input.score-input.invalid { border-color: var(--edu-red); background: var(--edu-red-light); box-shadow: 0 0 0 2px rgba(220,38,38,0.35); }
   input.comment-input {
     width: 160px; padding: 4px 6px; border: 1px solid var(--edu-gray-300); border-radius: var(--edu-radius-sm);
     font-size: 0.8rem; font-family: inherit;
@@ -60,6 +61,8 @@
   @media print {
     #save-btn, .btn-secondary, .back-link, #save-status { display: none !important; }
   }
+
+  #save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>
 
 <h1>Enter Marks</h1>
@@ -130,6 +133,7 @@
 <input type="file" id="import-csv-file" accept=".csv" style="display: none;">
 <button class="btn btn-secondary" id="print-btn">{{ icons.icon("printer") }} Print</button>
 <a class="back-link" href="/dashboard">{{ icons.icon("arrow-left") }} Back to Dashboard</a>
+<p class="sub" style="margin-top:6px;">CSV files open directly in Excel -- edit there and re-import when done.</p>
 
 {% if data.rows %}
 <h2>{{ icons.icon("bar-chart") }}Class Performance</h2>
@@ -173,15 +177,22 @@
 
     function recalcRow(tr) {
       var inputs = tr.querySelectorAll(".score-input");
-      var total = 0, filled = 0;
+      var total = 0, filled = 0, invalid = false;
       inputs.forEach(function (input) {
-        input.classList.remove("pass", "fail");
+        input.classList.remove("pass", "fail", "invalid");
         var gradeCell = tr.querySelector('.row-grade[data-criteria-grade="' + input.dataset.criteria + '"]');
         if (input.value !== "") {
+          var score = parseFloat(input.value);
+          var maxVal = parseFloat(input.dataset.max);
+          if (isNaN(score) || score < 0 || score > maxVal) {
+            input.classList.add("invalid");
+            invalid = true;
+            if (gradeCell) gradeCell.textContent = "-";
+            return;
+          }
           filled++;
-          var score = parseFloat(input.value) || 0;
           total += score;
-          var critPct = input.dataset.max > 0 ? (score / input.dataset.max) * 100 : 0;
+          var critPct = maxVal > 0 ? (score / maxVal) * 100 : 0;
           var critGrade = gradeFor(critPct);
           if (gradeCell) gradeCell.textContent = critGrade;
           input.classList.add(critPct >= 50 ? "pass" : "fail");
@@ -190,16 +201,21 @@
         }
       });
       var statusCell = tr.querySelector(".row-status");
+      if (invalid) {
+        statusCell.innerHTML = ICON_ALERT + " Score exceeds maximum";
+        statusCell.className = "row-status missing";
+        return { complete: false, pct: null, invalid: true };
+      }
       var complete = filled === inputs.length && inputs.length > 0;
       if (complete) {
         var pct = totalMax ? (total / totalMax) * 100 : 0;
         statusCell.innerHTML = ICON_CHECK + " Entered";
         statusCell.className = "row-status entered";
-        return { complete: true, pct: pct };
+        return { complete: true, pct: pct, invalid: false };
       }
       statusCell.innerHTML = filled > 0 ? (ICON_CLOCK + " Incomplete") : (ICON_ALERT + " Missing");
       statusCell.className = "row-status missing";
-      return { complete: false, pct: null };
+      return { complete: false, pct: null, invalid: false };
     }
 
     function renderDistribution(gradeCounts, totalEntered) {
@@ -221,11 +237,12 @@
 
     function recalcAll() {
       var rows = document.querySelectorAll(".portal-main tbody tr[data-student]");
-      var entered = 0, total = 0, sumPct = 0, passCount = 0;
+      var entered = 0, total = 0, sumPct = 0, passCount = 0, invalidCount = 0;
       var gradeCounts = {};
       rows.forEach(function (tr) {
         total++;
         var result = recalcRow(tr);
+        if (result.invalid) invalidCount++;
         if (result.complete) {
           entered++;
           sumPct += result.pct;
@@ -236,17 +253,23 @@
       });
       document.getElementById("summary-entered").textContent = entered;
       document.getElementById("summary-total").textContent = total;
-      document.getElementById("summary-average").textContent = entered ? (sumPct / entered).toFixed(1) + "%" : "-";
+      document.getElementById("summary-average").textContent = entered ? Math.round(sumPct / entered) + "%" : "-";
       document.getElementById("summary-pass-rate").textContent = entered ? Math.round((passCount / entered) * 100) + "%" : "-";
 
       var warning = document.getElementById("missing-warning");
-      var missing = total - entered;
-      if (missing > 0) {
+      var missing = total - entered - invalidCount;
+      if (invalidCount > 0) {
+        warning.style.display = "block";
+        warning.innerHTML = ICON_TRIANGLE + " " + invalidCount + " score(s) exceed the maximum allowed -- fix before saving";
+      } else if (missing > 0) {
         warning.style.display = "block";
         warning.innerHTML = ICON_TRIANGLE + " " + missing + " student(s) missing marks";
       } else {
         warning.style.display = "none";
       }
+
+      var saveBtn = document.getElementById("save-btn");
+      if (saveBtn) saveBtn.disabled = invalidCount > 0;
 
       renderDistribution(gradeCounts, entered);
     }
@@ -390,21 +413,48 @@
     document.getElementById("import-csv-file").addEventListener("change", function (e) {
       var file = e.target.files[0];
       if (!file) return;
+      var statusEl = document.getElementById("save-status");
       var reader = new FileReader();
       reader.onload = function () {
         var lines = String(reader.result).split(/\r?\n/).filter(function (l) { return l.trim() !== ""; });
+        if (!lines.length) {
+          statusEl.className = "save-error";
+          statusEl.textContent = "Error: the selected file is empty.";
+          e.target.value = "";
+          return;
+        }
+
         var header = csvParseLine(lines[0]).map(function (h) { return h.trim(); });
+        var expectedCriteria = criteriaMax.map(function (c) { return c.assessment_criteria; });
         var commentColIdx = header.indexOf("Comment");
         var criteriaCols = header.slice(2, commentColIdx !== -1 ? commentColIdx : header.length);
+        var matchedCriteria = expectedCriteria.filter(function (c) { return criteriaCols.indexOf(c) !== -1; });
+
+        // A genuinely malformed file (wrong export, or a real .xlsx binary
+        // read as text) parses into garbage columns rather than raising an
+        // error -- catch that here instead of silently "succeeding" with
+        // nothing actually applied to any row.
+        if (header[0] !== "Student ID" || !matchedCriteria.length) {
+          statusEl.className = "save-error";
+          statusEl.textContent = "Error: this doesn't look like a marks CSV exported from this page " +
+            "(expected columns: " + ["Student ID", "Student Name"].concat(expectedCriteria, ["Comment"]).join(", ") + "). " +
+            "Only .csv files exported from the Export CSV button here are supported.";
+          e.target.value = "";
+          return;
+        }
+
         var byStudent = {};
         for (var i = 1; i < lines.length; i++) {
           var cols = csvParseLine(lines[i]);
           byStudent[cols[0]] = cols.slice(2);
         }
+
+        var matchedRows = 0;
         document.querySelectorAll(".portal-main tbody tr[data-student]").forEach(function (tr) {
           var values = byStudent[tr.dataset.student];
           if (!values) return;
-          tr.querySelectorAll(".score-input").forEach(function (input, idx) {
+          matchedRows++;
+          tr.querySelectorAll(".score-input").forEach(function (input) {
             var colIdx = criteriaCols.indexOf(input.dataset.criteria);
             if (colIdx !== -1 && values[colIdx] !== undefined && values[colIdx] !== "") {
               input.value = values[colIdx];
@@ -419,9 +469,14 @@
           }
         });
         recalcAll();
-        var statusEl = document.getElementById("save-status");
-        statusEl.className = "save-ok";
-        statusEl.textContent = "CSV imported -- review the marks below, then click Save Marks.";
+
+        if (!matchedRows) {
+          statusEl.className = "save-error";
+          statusEl.textContent = "Error: no students in this class matched the file's Student ID column -- nothing was imported.";
+        } else {
+          statusEl.className = "save-ok";
+          statusEl.textContent = "Imported marks for " + matchedRows + " student(s) -- review below, then click Save Marks.";
+        }
         e.target.value = "";
       };
       reader.readAsText(file);

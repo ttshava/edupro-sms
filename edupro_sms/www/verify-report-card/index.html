@@ -28,7 +28,7 @@
     <div class="row"><div class="label">Class</div><div class="value">{{ result.student_group }}</div></div>
     <div class="row"><div class="label">Term</div><div class="value">{{ result.academic_term }}, {{ result.academic_year }}</div></div>
     <div class="row"><div class="label">Overall Grade</div><div class="value">{{ result.overall_grade or "-" }}</div></div>
-    <div class="row"><div class="label">Average</div><div class="value">{{ "%.1f"|format(result.average_percentage) if result.average_percentage else "-" }}%</div></div>
+    <div class="row"><div class="label">Average</div><div class="value">{{ "%.0f"|format(result.average_percentage) if result.average_percentage else "-" }}%</div></div>
     <p class="note">This confirms the report card is a genuine published record. Full subject-by-subject marks are only available to the student/parent via their own portal login.</p>
   {% else %}
     <div class="badge badge-fail">&#10007; Not a recognized report card</div>

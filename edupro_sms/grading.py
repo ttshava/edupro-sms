@@ -60,6 +60,45 @@ def get_grade_description(grading_scale: str, grade_code: str | None) -> str | N
 	return None
 
 
+# Canned per-subject remark for a Report Card row, shown when a teacher
+# leaves the comment blank -- keyed off the Exam Mark criterion's own
+# grade (not the combined Term+Exam grade) and banded by Form level.
+# Grading scale names ending "A Level" are Form 5-6 (Lower/Upper Sixth);
+# the "Form 1-2"/"O Level" scales are all Form 1-4.
+_SUBJECT_COMMENT_BY_BAND_AND_GRADE = {
+	"Form 1-4": {
+		"A*": "Outstanding performance. Keep up the excellent work.",
+		"A": "Excellent achievement. Continue striving for excellence.",
+		"B": "Very good performance. Aim for greater consistency to reach the top grade.",
+		"C": "Good work. With more effort and revision, you can improve further.",
+		"D": "Fair performance. More commitment and regular practice are needed.",
+		"E": "Basic understanding shown, but significant improvement is required.",
+		"F": "Below expectations. Work harder and seek help regularly.",
+		"G": "Limited achievement. Greater effort and consistent study are essential.",
+		"U": "Unsatisfactory performance. Immediate improvement in effort and commitment is needed.",
+	},
+	"Form 5-6": {
+		"A*": "Exceptional performance. Demonstrates outstanding understanding and independent thinking.",
+		"A": "Excellent work. Continue maintaining this high standard.",
+		"B": "Very good performance. Greater consistency and deeper analysis will lead to higher achievement.",
+		"C": "Satisfactory performance. More critical engagement and regular revision are needed.",
+		"D": "A basic understanding is evident, but more focused effort is required.",
+		"E": "Minimum standard achieved. Greater commitment and independent study are essential.",
+		"U": "Performance is below the required standard. Significant improvement in effort, attendance, and study habits is urgently needed.",
+	},
+}
+
+
+def get_subject_comment(grading_scale: str | None, exam_grade: str | None) -> str | None:
+	"""Canned Report Card remark for the given Exam Mark grade, banded by
+	Form level. Returns None if there's no Exam Mark grade to key off, or
+	the grade isn't one of the band's known codes."""
+	if not exam_grade:
+		return None
+	band = "Form 5-6" if grading_scale and grading_scale.endswith("A Level") else "Form 1-4"
+	return _SUBJECT_COMMENT_BY_BAND_AND_GRADE[band].get(exam_grade)
+
+
 def get_grade_for_percentage(grading_scale: str, percentage: float | None) -> str | None:
 	"""Letter grade for a percentage against a named scale. Deliberately
 	doesn't call Education's own get_grade(): that function caches
