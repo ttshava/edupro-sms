@@ -236,27 +236,27 @@
     statusEl.textContent = "Saving...";
     statusEl.className = "field-status payment-status";
 
-    fetch("/api/method/edupro_sms.fee_entry_api.record_payment", {
+    fetch("/api/method/edupro_sms.fees.record_payment", {
       method: "POST",
       headers: csrfHeaders(),
-      body: JSON.stringify({ fee_id: feeId, amount: amount }),
+      body: JSON.stringify({ student_fee: feeId, amount: amount }),
     })
       .then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
       .then(function (result) {
         const msg = result.body.message;
-        if (result.ok && msg && msg.success) {
-          statusEl.textContent = "Recorded. Balance: " + money(msg.new_balance);
+        if (result.ok && msg) {
+          statusEl.textContent = "Recorded. Balance: " + money(msg.balance);
           statusEl.className = "field-status payment-status save-ok";
-          if (msg.receipt_id) {
+          if (msg.ledger_entry) {
             window.open(
-              "/printview?doctype=Student%20Ledger%20Entry&name=" + encodeURIComponent(msg.receipt_id) + "&format=Payment%20Receipt&no_letterhead=0",
+              "/printview?doctype=Student%20Ledger%20Entry&name=" + encodeURIComponent(msg.ledger_entry) + "&format=Payment%20Receipt&no_letterhead=0",
               "_blank"
             );
           }
           setTimeout(function () { window.location.reload(); }, 900);
         } else {
           btn.disabled = false;
-          statusEl.textContent = "Error: " + ((msg && msg.error) || result.body.exception || "Could not record payment.");
+          statusEl.textContent = "Error: " + (result.body.exception || result.body._server_messages || "Could not record payment.");
           statusEl.className = "field-status payment-status save-error";
         }
       })

@@ -75,7 +75,7 @@ def resend_report_card_email(report_card_name: str):
 	"""Manual "Email to Parent" action from the portal -- reuses the same
 	background job the Published workflow transition already enqueues,
 	gated by the same permission check Report Card itself uses."""
-	from doctype.report_card.report_card import has_permission
+	from edupro_sms.edupro_sms.doctype.report_card.report_card import has_permission
 
 	if not EMAIL_DELIVERY_ENABLED:
 		frappe.throw(frappe._("Email delivery is currently disabled."))

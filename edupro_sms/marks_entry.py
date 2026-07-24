@@ -226,7 +226,7 @@ def save_marks(assessment_plan, entries):
 		# permitted/expected to do; never allowed to break the teacher's
 		# actual mark submission above, which has already succeeded.
 		try:
-			from doctype.report_card.report_card import maybe_generate_report_card
+			from edupro_sms.edupro_sms.doctype.report_card.report_card import maybe_generate_report_card
 
 			acting_user = frappe.session.user
 			frappe.set_user("Administrator")

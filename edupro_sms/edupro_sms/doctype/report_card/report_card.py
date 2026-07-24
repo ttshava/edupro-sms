@@ -26,7 +26,7 @@ class ReportCard(Document):
 			# scanning it can't be used to enumerate other students' reports.
 			self.db_set("verification_code", secrets.token_hex(8), update_modified=False)
 
-		from doctype.report_card.notify import EMAIL_DELIVERY_ENABLED
+		from edupro_sms.edupro_sms.doctype.report_card.notify import EMAIL_DELIVERY_ENABLED
 
 		if EMAIL_DELIVERY_ENABLED and not self.sent_to_parent_at:
 			frappe.enqueue(

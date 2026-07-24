@@ -15,8 +15,8 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import add_days
 
-from doctype.report_card.notify import send_report_card_emails
-from doctype.report_card.report_card import (
+from edupro_sms.edupro_sms.doctype.report_card.notify import send_report_card_emails
+from edupro_sms.edupro_sms.doctype.report_card.report_card import (
 	generate_report_cards,
 	has_permission,
 )

@@ -154,7 +154,7 @@
       statusEl.textContent = "Saving...";
       statusEl.className = "payment-status";
 
-      fetch("/api/method/edupro_sms.edupro_sms.fees.record_payment", {
+      fetch("/api/method/edupro_sms.fees.record_payment", {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Frappe-CSRF-Token": "{{ csrf_token }}" },
         body: JSON.stringify({ student_fee: btn.dataset.fee, amount: amount }),

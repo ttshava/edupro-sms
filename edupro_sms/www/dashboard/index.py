@@ -160,7 +160,7 @@ def _teacher_classes():
 	# Reuse the My Classes report's row logic instead of duplicating it --
 	# frappe.get_list inside it already scopes to the logged-in Instructor's
 	# own classes via teacher_permissions.py, same as on the Desk report.
-	from report.my_classes.my_classes import _rows
+	from edupro_sms.edupro_sms.report.my_classes.my_classes import _rows
 
 	rows = _rows()
 	for row in rows:
